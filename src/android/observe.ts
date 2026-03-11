@@ -291,11 +291,18 @@ export class AndroidObserve {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
-      const output = await execAdb(['shell', 'dumpsys', 'activity', 'activities'], deviceId)
+      // Dumpsys activity can be slow on some devices, so we increase timeout to 10s
+      const output = await execAdb(['shell', 'dumpsys', 'activity', 'activities'], deviceId, { timeout: 10000 })
       
       // Find the line with mResumedActivity or ResumedActivity (some versions might differ)
       const lines = output.split('\n');
-      const resumedLine = lines.find(line => line.includes('mResumedActivity') || line.includes('ResumedActivity'));
+      // Prioritize mResumedActivity, then ResumedActivity. 
+      // Use strict regex match to ensure it starts with the key, avoiding false positives like 'mLastResumedActivity'.
+      let resumedLine = lines.find(line => /^\s*mResumedActivity:/.test(line));
+      
+      if (!resumedLine) {
+        resumedLine = lines.find(line => /^\s*ResumedActivity:/.test(line));
+      }
 
       if (!resumedLine) {
          return {

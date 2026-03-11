@@ -440,7 +440,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "get_current_screen") {
-      const { deviceId } = args as { deviceId?: string }
+      const { deviceId } = (args || {}) as { deviceId?: string }
       const result = await androidObserve.getCurrentScreen(deviceId)
       return wrapResponse(result)
     }

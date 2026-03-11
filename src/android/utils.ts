@@ -14,8 +14,11 @@ function getAdbArgs(args: string[], deviceId?: string): string[] {
 export function execAdb(args: string[], deviceId?: string, options: any = {}): Promise<string> {
   const adbArgs = getAdbArgs(args, deviceId)
   return new Promise((resolve, reject) => {
+    // Extract timeout from options if present, otherwise pass options to spawn
+    const { timeout: customTimeout, ...spawnOptions } = options;
+    
     // Use spawn instead of execFile for better stream control and to avoid potential buffering hangs
-    const child = spawn(ADB, adbArgs, options)
+    const child = spawn(ADB, adbArgs, spawnOptions)
     
     let stdout = ''
     let stderr = ''
@@ -32,11 +35,13 @@ export function execAdb(args: string[], deviceId?: string, options: any = {}): P
       })
     }
 
-    let timeoutMs = 2000;
-    if (args.includes('logcat')) {
-        timeoutMs = 10000;
-    } else if (args.includes('uiautomator') && args.includes('dump')) {
-        timeoutMs = 20000; // UI dump can be slow
+    let timeoutMs = customTimeout || 2000;
+    if (!customTimeout) {
+      if (args.includes('logcat')) {
+          timeoutMs = 10000;
+      } else if (args.includes('uiautomator') && args.includes('dump')) {
+          timeoutMs = 20000; // UI dump can be slow
+      }
     }
 
     const timeout = setTimeout(() => {
