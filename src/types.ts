@@ -97,3 +97,11 @@ export interface WaitForElementResponse {
   element?: UIElement;
   error?: string;
 }
+
+export interface TapResponse {
+  device: DeviceInfo;
+  success: boolean;
+  x: number;
+  y: number;
+  error?: string;
+}

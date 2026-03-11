@@ -1,4 +1,4 @@
-import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, WaitForElementResponse } from "../types.js"
+import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, WaitForElementResponse, TapResponse } from "../types.js"
 import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "./utils.js"
 import { AndroidObserve } from "./observe.js"
 
@@ -35,6 +35,19 @@ export class AndroidInteract {
     }
     return { device: deviceInfo, found: false };
   }
+
+  async tap(x: number, y: number, deviceId?: string): Promise<TapResponse> {
+    const metadata = await getAndroidDeviceMetadata("", deviceId)
+    const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
+
+    try {
+      await execAdb(['shell', 'input', 'tap', x.toString(), y.toString()], deviceId)
+      return { device: deviceInfo, success: true, x, y }
+    } catch (e) {
+      return { device: deviceInfo, success: false, x, y, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
   async startApp(appId: string, deviceId?: string): Promise<StartAppResponse> {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)

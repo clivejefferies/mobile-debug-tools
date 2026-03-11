@@ -314,6 +314,31 @@ If the element is not found within the timeout, `found` will be `false`. If a sy
 }
 ```
 
+### tap
+Simulate a finger tap on the device screen at specific coordinates.
+
+**Input:**
+```jsonc
+{
+  "platform": "android" | "ios", // Optional, defaults to "android"
+  "x": 200, // X coordinate (Required)
+  "y": 400, // Y coordinate (Required)
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true,
+  "x": 200,
+  "y": 400
+}
+```
+
+If the tap fails (e.g., ADB error), `success` will be `false` and an `error` field will be present.
+
 ---
 
 ## Recommended Workflow

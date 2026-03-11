@@ -241,6 +241,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["platform", "text"]
       }
+    },
+    {
+      name: "tap",
+      description: "Simulate a finger tap on the device screen at specific coordinates.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android", "ios"],
+            description: "Platform to tap on"
+          },
+          x: {
+            type: "number",
+            description: "X coordinate"
+          },
+          y: {
+            type: "number",
+            description: "Y coordinate"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        },
+        required: ["x", "y"]
+      }
     }
   ]
 }))
@@ -489,6 +516,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await androidInteract.waitForElement(text, effectiveTimeout, deviceId)
       } else {
         result = await iosInteract.waitForElement(text, effectiveTimeout, deviceId)
+      }
+      return wrapResponse(result)
+    }
+
+    if (name === "tap") {
+      const { platform, x, y, deviceId } = (args || {}) as {
+        platform?: "android" | "ios"
+        x: number
+        y: number
+        deviceId?: string
+      }
+
+      const effectivePlatform = platform || "android";
+      
+      // Basic validation
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        throw new Error("x and y coordinates are required and must be numbers");
+      }
+
+      let result: any;
+      if (effectivePlatform === "android") {
+        result = await androidInteract.tap(x, y, deviceId)
+      } else {
+        result = await iosInteract.tap(x, y, deviceId)
       }
       return wrapResponse(result)
     }
