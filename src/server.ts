@@ -16,7 +16,9 @@ import {
   GetCurrentScreenResponse,
   WaitForElementResponse,
   TapResponse,
-  SwipeResponse
+  SwipeResponse,
+  TypeTextResponse,
+  PressBackResponse
 } from "./types.js"
 
 import { AndroidObserve } from "./android/observe.js"
@@ -293,6 +295,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           }
         },
         required: ["x1", "y1", "x2", "y2", "duration"]
+      }
+    },
+    {
+      name: "type_text",
+      description: "Type text into the currently focused input field on an Android device.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android"],
+            description: "Platform to type on (currently only android supported)"
+          },
+          text: {
+            type: "string",
+            description: "The text to type"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        },
+        required: ["text"]
+      }
+    },
+    {
+      name: "press_back",
+      description: "Simulate pressing the Android Back button.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: {
+            type: "string",
+            enum: ["android"],
+            description: "Platform (currently only android supported)"
+          },
+          deviceId: {
+            type: "string",
+            description: "Device Serial/UDID. Defaults to connected/booted device."
+          }
+        }
       }
     }
   ]
@@ -593,6 +636,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       } else {
         throw new Error(`Platform ${effectivePlatform} not supported for swipe`)
       }
+      return wrapResponse(result)
+    }
+
+    if (name === "type_text") {
+      const { platform, text, deviceId } = (args || {}) as {
+        platform?: "android"
+        text: string
+        deviceId?: string
+      }
+
+      const effectivePlatform = platform || "android";
+      
+      if (typeof text !== 'string') {
+        throw new Error("text is required and must be a string");
+      }
+
+      let result: TypeTextResponse;
+      if (effectivePlatform === "android") {
+        result = await androidInteract.typeText(text, deviceId)
+      } else {
+        throw new Error(`Platform ${effectivePlatform} not supported for type_text`)
+      }
+      return wrapResponse(result)
+    }
+
+    if (name === "press_back") {
+      const { platform, deviceId } = (args || {}) as {
+        platform?: "android"
+        deviceId?: string
+      }
+      
+      const effectivePlatform = platform || "android";
+      
+      if (effectivePlatform !== "android") {
+        throw new Error(`Platform ${effectivePlatform} not supported for press_back`)
+      }
+
+      const result = await androidInteract.pressBack(deviceId)
       return wrapResponse(result)
     }
   } catch (error) {

@@ -114,3 +114,16 @@ export interface SwipeResponse {
   duration: number;
   error?: string;
 }
+
+export interface TypeTextResponse {
+  device: DeviceInfo;
+  success: boolean;
+  text: string;
+  error?: string;
+}
+
+export interface PressBackResponse {
+  device: DeviceInfo;
+  success: boolean;
+  error?: string;
+}

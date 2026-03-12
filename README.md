@@ -368,6 +368,48 @@ Simulate a swipe gesture on an Android device.
 
 If the swipe fails, `success` will be `false` and an `error` field will be present.
 
+### type_text
+Type text into the currently focused input field on an Android device.
+
+**Input:**
+```jsonc
+{
+  "platform": "android", // Optional, defaults to "android"
+  "text": "hello world", // Text to type (Required)
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true,
+  "text": "hello world"
+}
+```
+
+If the command fails, `success` will be `false` and an `error` field will be present.
+
+### press_back
+Simulate pressing the Android Back button.
+
+**Input:**
+```jsonc
+{
+  "platform": "android", // Optional
+  "deviceId": "emulator-5554" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "device": { /* device info */ },
+  "success": true
+}
+```
+
 ---
 
 ## Recommended Workflow

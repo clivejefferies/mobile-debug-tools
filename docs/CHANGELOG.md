@@ -2,13 +2,17 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## [0.7.0] - 2026-03-11
+## [0.7.0]
 
 ### Added
 - **`wait_for_element` tool**: Added ability to wait for a specific UI element to appear on screen. Polls `get_ui_tree` until timeout. Useful for waiting on app transitions or loading states.
 - **`get_current_screen` tool**: Added ability to determine the currently visible activity on an Android device using `dumpsys activity activities`. Includes robust regex parsing to handle various Android versions.
+- **`tap` tool**: Added ability to tap at specific screen coordinates on Android and iOS devices.
+- **`swipe` tool**: Added ability to simulate swipe gestures (scroll, drag) on Android devices.
+- **`type_text` tool**: Added ability to type text into focused input fields on Android devices.
+- **`press_back` tool**: Added ability to simulate the Android Back button.
 
-## [0.4.0] - 2026-03-09
+## [0.4.0]
 
 ### Added
 - **`terminate_app` tool**: Added ability to terminate apps on Android and iOS.

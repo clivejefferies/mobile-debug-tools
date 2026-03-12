@@ -1,4 +1,4 @@
-import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, WaitForElementResponse, TapResponse, SwipeResponse } from "../types.js"
+import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, WaitForElementResponse, TapResponse, SwipeResponse, TypeTextResponse, PressBackResponse } from "../types.js"
 import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "./utils.js"
 import { AndroidObserve } from "./observe.js"
 
@@ -57,6 +57,33 @@ export class AndroidInteract {
       return { device: deviceInfo, success: true, start: [x1, y1], end: [x2, y2], duration }
     } catch (e) {
       return { device: deviceInfo, success: false, start: [x1, y1], end: [x2, y2], duration, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  async typeText(text: string, deviceId?: string): Promise<TypeTextResponse> {
+    const metadata = await getAndroidDeviceMetadata("", deviceId)
+    const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
+
+    try {
+      // Encode spaces as %s to ensure proper input handling by adb shell input text
+      const encodedText = text.replace(/\s/g, '%s')
+      // Note: 'input text' might fail with some characters or if keyboard isn't ready, but it's the standard ADB way.
+      await execAdb(['shell', 'input', 'text', encodedText], deviceId)
+      return { device: deviceInfo, success: true, text }
+    } catch (e) {
+      return { device: deviceInfo, success: false, text, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  async pressBack(deviceId?: string): Promise<PressBackResponse> {
+    const metadata = await getAndroidDeviceMetadata("", deviceId)
+    const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
+
+    try {
+      await execAdb(['shell', 'input', 'keyevent', '4'], deviceId)
+      return { device: deviceInfo, success: true }
+    } catch (e) {
+      return { device: deviceInfo, success: false, error: e instanceof Error ? e.message : String(e) }
     }
   }
 
