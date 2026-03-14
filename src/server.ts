@@ -29,6 +29,14 @@ import { iOSInteract } from "./ios/interact.js"
 import { resolveTargetDevice, listDevices } from "./resolve-device.js"
 import { startAndroidLogStream, readLogStreamLines, stopAndroidLogStream } from "./android/utils.js"
 import { startIOSLogStream, readIOSLogStreamLines, stopIOSLogStream } from "./ios/utils.js"
+import { promises as fs } from 'fs'
+import path from 'path'
+import { installAppHandler } from './tools/install.js'
+import { startAppHandler, terminateAppHandler, restartAppHandler, resetAppDataHandler } from './tools/app.js'
+import { getLogsHandler, startLogStreamHandler, readLogStreamHandler, stopLogStreamHandler } from './tools/logs.js'
+import { listDevicesHandler } from './tools/devices.js'
+import { captureScreenshotHandler } from './tools/screenshot.js'
+import { getUITreeHandler, getCurrentScreenHandler, waitForElementHandler, tapHandler, swipeHandler, typeTextHandler, pressBackHandler } from './tools/ui.js'
 
 const androidObserve = new AndroidObserve()
 const androidInteract = new AndroidInteract()
@@ -148,15 +156,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "install_app",
-      description: "Install an app on Android (apk) or iOS simulator/device (ipa/.app).",
+      description: "Install an app on Android or iOS. Accepts a built binary (apk/.ipa/.app) or a project directory to build then install.",
       inputSchema: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["android", "ios"] },
-          appPath: { type: "string", description: "Path to APK (Android) or .app/.ipa (iOS) on the host machine" },
+          platform: { type: "string", enum: ["android", "ios"], description: "Optional. If omitted the server will attempt to detect platform from appPath/project files." },
+          appPath: { type: "string", description: "Path to APK, .app, .ipa, or project directory" },
           deviceId: { type: "string", description: "Device UDID (iOS) or Serial (Android). Defaults to booted/connected." }
         },
-        required: ["platform", "appPath"]
+        required: ["appPath"]
       }
     },
     {
@@ -409,444 +417,137 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     if (name === "start_app") {
-      const { platform, appId, deviceId } = args as {
-        platform: "android" | "ios"
-        appId: string
-        deviceId?: string
-      }
-
-      let appStarted: boolean
-      let launchTimeMs: number
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
-        const result = await androidInteract.startApp(appId, resolved.id)
-        appStarted = result.appStarted
-        launchTimeMs = result.launchTimeMs
-        deviceInfo = result.device
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId, deviceId })
-        const result = await iosInteract.startApp(appId, resolved.id)
-        appStarted = result.appStarted
-        launchTimeMs = result.launchTimeMs
-        deviceInfo = result.device
-      }
-
+      const { platform, appId, deviceId } = args as any
+      const result = await startAppHandler({ platform, appId, deviceId })
       const response: StartAppResponse = {
-        device: deviceInfo,
-        appStarted,
-        launchTimeMs
+        device: result.device,
+        appStarted: result.appStarted,
+        launchTimeMs: result.launchTimeMs
       }
-
       return wrapResponse(response)
     }
 
     if (name === "terminate_app") {
-      const { platform, appId, deviceId } = args as {
-        platform: "android" | "ios"
-        appId: string
-        deviceId?: string
-      }
-
-      let appTerminated: boolean
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
-        const result = await androidInteract.terminateApp(appId, resolved.id)
-        appTerminated = result.appTerminated
-        deviceInfo = result.device
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId, deviceId })
-        const result = await iosInteract.terminateApp(appId, resolved.id)
-        appTerminated = result.appTerminated
-        deviceInfo = result.device
-      }
-
-      const response: TerminateAppResponse = {
-        device: deviceInfo,
-        appTerminated
-      }
-
+      const { platform, appId, deviceId } = args as any
+      const result = await terminateAppHandler({ platform, appId, deviceId })
+      const response: TerminateAppResponse = { device: result.device, appTerminated: result.appTerminated }
       return wrapResponse(response)
     }
 
     if (name === "restart_app") {
-      const { platform, appId, deviceId } = args as {
-        platform: "android" | "ios"
-        appId: string
-        deviceId?: string
-      }
-
-      let appRestarted: boolean
-      let launchTimeMs: number
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
-        const result = await androidInteract.restartApp(appId, resolved.id)
-        appRestarted = result.appRestarted
-        launchTimeMs = result.launchTimeMs
-        deviceInfo = result.device
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId, deviceId })
-        const result = await iosInteract.restartApp(appId, resolved.id)
-        appRestarted = result.appRestarted
-        launchTimeMs = result.launchTimeMs
-        deviceInfo = result.device
-      }
-
-      const response: RestartAppResponse = {
-        device: deviceInfo,
-        appRestarted,
-        launchTimeMs
-      }
-
+      const { platform, appId, deviceId } = args as any
+      const result = await restartAppHandler({ platform, appId, deviceId })
+      const response: RestartAppResponse = { device: result.device, appRestarted: result.appRestarted, launchTimeMs: result.launchTimeMs }
       return wrapResponse(response)
     }
 
     if (name === "reset_app_data") {
-      const { platform, appId, deviceId } = args as {
-        platform: "android" | "ios"
-        appId: string
-        deviceId?: string
-      }
-
-      let dataCleared: boolean
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
-        const result = await androidInteract.resetAppData(appId, resolved.id)
-        dataCleared = result.dataCleared
-        deviceInfo = result.device
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId, deviceId })
-        const result = await iosInteract.resetAppData(appId, resolved.id)
-        dataCleared = result.dataCleared
-        deviceInfo = result.device
-      }
-
-      const response: ResetAppDataResponse = {
-        device: deviceInfo,
-        dataCleared
-      }
-
+      const { platform, appId, deviceId } = args as any
+      const result = await resetAppDataHandler({ platform, appId, deviceId })
+      const response: ResetAppDataResponse = { device: result.device, dataCleared: result.dataCleared }
       return wrapResponse(response)
     }
 
     if (name === "install_app") {
-      const { platform, appPath, deviceId } = args as {
-        platform: "android" | "ios"
-        appPath: string
-        deviceId?: string
+        const { platform, appPath, deviceId } = args as any
+        const result = await installAppHandler({ platform, appPath, deviceId })
+        const response: InstallAppResponse = {
+          device: result.device,
+          installed: result.installed,
+          output: (result as any).output,
+          error: (result as any).error
+        }
+        return wrapResponse(response)
       }
 
-      let installed: boolean
-      let output: string | undefined
-      let deviceInfo: DeviceInfo
-      let errorMsg: string | undefined
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        const result = await androidInteract.installApp(appPath, resolved.id)
-        installed = result.installed
-        output = (result as any).output
-        deviceInfo = result.device
-        errorMsg = (result as any).error
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', deviceId })
-        const result = await iosInteract.installApp(appPath, resolved.id)
-        installed = result.installed
-        output = (result as any).output
-        deviceInfo = result.device
-        errorMsg = (result as any).error
-      }
-
-      const response: InstallAppResponse = {
-        device: deviceInfo,
-        installed,
-        output,
-        error: errorMsg
-      }
-
-      return wrapResponse(response)
-    }
 
     if (name === "get_logs") {
-      const { platform, appId, deviceId, lines } = args as {
-        platform: "android" | "ios"
-        appId?: string
-        deviceId?: string
-        lines?: number
-      }
-
-      let logs: string[]
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        // Resolve an explicit target device when multiple are attached
-        const resolved = await resolveTargetDevice({ platform: 'android', appId, deviceId })
-        deviceInfo = resolved
-        const response = await androidObserve.getLogs(appId, lines ?? 200, resolved.id)
-        logs = Array.isArray(response.logs) ? response.logs : []
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId, deviceId })
-        deviceInfo = resolved
-        const response = await iosObserve.getLogs(appId, resolved.id)
-        logs = Array.isArray(response.logs) ? response.logs : []
-      }
-
-      // Filter crash lines (e.g. lines containing 'FATAL EXCEPTION') for internal or AI use
-      const crashLines = logs.filter(line => line.includes('FATAL EXCEPTION'))
-
-      // Return device metadata plus logs
+      const { platform, appId, deviceId, lines } = args as any
+      const res = await getLogsHandler({ platform, appId, deviceId, lines })
       return {
         content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              device: deviceInfo,
-              result: {
-                lines: logs.length,
-                crashLines: crashLines.length > 0 ? crashLines : undefined
-              }
-            }, null, 2)
-          },
-          {
-            type: "text",
-            text: logs.join("\n")
-          }
+          { type: 'text', text: JSON.stringify({ device: res.device, result: { lines: res.logs.length, crashLines: res.crashLines.length > 0 ? res.crashLines : undefined } }, null, 2) },
+          { type: 'text', text: (res.logs || []).join('\n') }
         ]
       }
     }
 
     if (name === "list_devices") {
-      const { platform, appId } = (args || {}) as { platform?: "android" | "ios"; appId?: string }
-      const devices = await listDevices(platform, appId)
-      return wrapResponse({ devices })
+      const { platform, appId } = (args || {}) as any
+      const res = await listDevicesHandler({ platform, appId })
+      return wrapResponse(res)
     }
 
 
     if (name === "capture_screenshot") {
-      const { platform, deviceId } = args as { platform: "android" | "ios"; deviceId?: string }
-
-      let screenshot: string
-      let resolution: { width: number; height: number }
-      let deviceInfo: DeviceInfo
-
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        deviceInfo = resolved
-        const result = await androidObserve.captureScreen(resolved.id)
-        screenshot = result.screenshot
-        resolution = result.resolution
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', deviceId })
-        deviceInfo = resolved
-        const result = await iosObserve.captureScreenshot(resolved.id)
-        screenshot = result.screenshot
-        resolution = result.resolution
-      }
-
+      const { platform, deviceId } = args as any
+      const res = await captureScreenshotHandler({ platform, deviceId })
       return {
         content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              device: deviceInfo,
-              result: {
-                resolution
-              }
-            }, null, 2)
-          },
-          {
-            type: "image",
-            data: screenshot,
-            mimeType: "image/png"
-          }
+          { type: 'text', text: JSON.stringify({ device: res.device, result: { resolution: res.resolution } }, null, 2) },
+          { type: 'image', data: res.screenshot, mimeType: 'image/png' }
         ]
       }
     }
 
     if (name === "get_ui_tree") {
-      const { platform, deviceId } = args as { platform: "android" | "ios", deviceId?: string }
-      
-      let result: GetUITreeResponse
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        result = await androidObserve.getUITree(resolved.id)
-      } else if (platform === "ios") {
-        const resolved = await resolveTargetDevice({ platform: 'ios', deviceId })
-        result = await iosObserve.getUITree(resolved.id)
-      } else {
-        throw new Error(`Platform ${platform} not supported for get_ui_tree`)
-      }
-
-      return wrapResponse(result)
+      const { platform, deviceId } = args as any
+      const res = await getUITreeHandler({ platform, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "get_current_screen") {
-      const { deviceId } = (args || {}) as { deviceId?: string }
-      const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-      const result = await androidObserve.getCurrentScreen(resolved.id)
-      return wrapResponse(result)
+      const { deviceId } = (args || {}) as any
+      const res = await getCurrentScreenHandler({ deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "wait_for_element") {
-      const { platform, text, timeout, deviceId } = (args || {}) as {
-        platform: "android" | "ios"
-        text: string
-        timeout?: number
-        deviceId?: string
-      }
-      
-      const effectiveTimeout = timeout ?? 10000;
-      
-      let result: WaitForElementResponse;
-      if (platform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        result = await androidInteract.waitForElement(text, effectiveTimeout, resolved.id)
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', deviceId })
-        result = await iosInteract.waitForElement(text, effectiveTimeout, resolved.id)
-      }
-      return wrapResponse(result)
+      const { platform, text, timeout, deviceId } = (args || {}) as any
+      const res = await waitForElementHandler({ platform, text, timeout, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "tap") {
-      const { platform, x, y, deviceId } = (args || {}) as {
-        platform?: "android" | "ios"
-        x: number
-        y: number
-        deviceId?: string
-      }
-
-      const effectivePlatform = platform || "android";
-      
-      // Basic validation
-      if (typeof x !== 'number' || typeof y !== 'number') {
-        throw new Error("x and y coordinates are required and must be numbers");
-      }
-
-      let result: TapResponse;
-      if (effectivePlatform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        result = await androidInteract.tap(x, y, resolved.id)
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', deviceId })
-        result = await iosInteract.tap(x, y, resolved.id)
-      }
-      return wrapResponse(result)
+      const { platform, x, y, deviceId } = (args || {}) as any
+      const res = await tapHandler({ platform, x, y, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "swipe") {
-      const { platform, x1, y1, x2, y2, duration, deviceId } = (args || {}) as {
-        platform?: "android"
-        x1: number
-        y1: number
-        x2: number
-        y2: number
-        duration: number
-        deviceId?: string
-      }
-
-      const effectivePlatform = platform || "android";
-      
-      if (typeof x1 !== 'number' || typeof y1 !== 'number' || typeof x2 !== 'number' || typeof y2 !== 'number' || typeof duration !== 'number') {
-        throw new Error("x1, y1, x2, y2, and duration are required and must be numbers");
-      }
-
-      let result: SwipeResponse;
-      if (effectivePlatform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        result = await androidInteract.swipe(x1, y1, x2, y2, duration, resolved.id)
-      } else {
-        throw new Error(`Platform ${effectivePlatform} not supported for swipe`)
-      }
-      return wrapResponse(result)
+      const { x1, y1, x2, y2, duration, deviceId } = (args || {}) as any
+      const res = await swipeHandler({ x1, y1, x2, y2, duration, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "type_text") {
-      const { platform, text, deviceId } = (args || {}) as {
-        platform?: "android"
-        text: string
-        deviceId?: string
-      }
-
-      const effectivePlatform = platform || "android";
-      
-      if (typeof text !== 'string') {
-        throw new Error("text is required and must be a string");
-      }
-
-      let result: TypeTextResponse;
-      if (effectivePlatform === "android") {
-        const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-        result = await androidInteract.typeText(text, resolved.id)
-      } else {
-        throw new Error(`Platform ${effectivePlatform} not supported for type_text`)
-      }
-      return wrapResponse(result)
+      const { text, deviceId } = (args || {}) as any
+      const res = await typeTextHandler({ text, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === "press_back") {
-      const { platform, deviceId } = (args || {}) as {
-        platform?: "android"
-        deviceId?: string
-      }
-      
-      const effectivePlatform = platform || "android";
-      
-      if (effectivePlatform !== "android") {
-        throw new Error(`Platform ${effectivePlatform} not supported for press_back`)
-      }
-
-      const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-      const result = await androidInteract.pressBack(resolved.id)
-      return wrapResponse(result)
+      const { deviceId } = (args || {}) as any
+      const res = await pressBackHandler({ deviceId })
+      return wrapResponse(res)
     }
 
     if (name === 'start_log_stream') {
-      const { platform, packageName, level, sessionId: argSession, deviceId } = args as { platform?: 'android' | 'ios'; packageName: string; level?: 'error' | 'warn' | 'info' | 'debug'; sessionId?: string; deviceId?: string }
-      const sessionId = argSession || 'default'
-      const effectivePlatform = platform || 'android'
-      if (effectivePlatform === 'android') {
-        const resolved = await resolveTargetDevice({ platform: 'android', appId: packageName, deviceId })
-        const res = await startAndroidLogStream(packageName, level || 'error', resolved.id, sessionId)
-        return wrapResponse(res)
-      } else {
-        const resolved = await resolveTargetDevice({ platform: 'ios', appId: packageName, deviceId })
-        const res = await startIOSLogStream(packageName, level || 'error', resolved.id, sessionId)
-        return wrapResponse(res)
-      }
+      const { platform, packageName, level, sessionId, deviceId } = args as any
+      const res = await startLogStreamHandler({ platform, packageName, level, sessionId, deviceId })
+      return wrapResponse(res)
     }
 
     if (name === 'read_log_stream') {
-      const { platform, sessionId: argSession, limit, since } = (args || {}) as { platform?: 'android' | 'ios'; sessionId?: string, limit?: number, since?: string }
-      const sid = argSession || 'default'
-      const effectivePlatform = platform || 'android'
-      if (effectivePlatform === 'android') {
-        const { entries, crash_summary } = await readLogStreamLines(sid, limit ?? 100, since)
-        return wrapResponse({ entries, crash_summary })
-      } else {
-        const { entries, crash_summary } = await readIOSLogStreamLines(sid, limit ?? 100, since)
-        return wrapResponse({ entries, crash_summary })
-      }
+      const { platform, sessionId, limit, since } = args as any
+      const res = await readLogStreamHandler({ platform, sessionId, limit, since })
+      return wrapResponse(res)
     }
 
     if (name === 'stop_log_stream') {
-      const { platform, sessionId: argSession } = (args || {}) as { platform?: 'android' | 'ios'; sessionId?: string }
-      const sid = argSession || 'default'
-      const effectivePlatform = platform || 'android'
-      if (effectivePlatform === 'android') {
-        const res = await stopAndroidLogStream(sid)
-        return wrapResponse(res)
-      } else {
-        const res = await stopIOSLogStream(sid)
-        return wrapResponse(res)
-      }
+      const { platform, sessionId } = (args || {}) as any
+      const res = await stopLogStreamHandler({ platform, sessionId })
+      return wrapResponse(res)
     }
   } catch (error) {
     return {

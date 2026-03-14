@@ -1,6 +1,11 @@
 import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, WaitForElementResponse, TapResponse, SwipeResponse, TypeTextResponse, PressBackResponse } from "../types.js"
-import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "./utils.js"
+import { execAdb, getAndroidDeviceMetadata, getDeviceInfo, detectJavaHome } from "./utils.js"
 import { AndroidObserve } from "./observe.js"
+import { promises as fs } from "fs"
+import { spawn, execSync } from "child_process"
+import path from "path"
+import { existsSync } from "fs"
+
 
 export class AndroidInteract {
   private observe = new AndroidObserve();
@@ -91,8 +96,90 @@ export class AndroidInteract {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
+    // Helper to recursively find first APK under a directory
+    async function findApk(dir: string): Promise<string | undefined> {
+      const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => [])
+      for (const e of entries) {
+        const full = path.join(dir, e.name)
+        if (e.isDirectory()) {
+          const found = await findApk(full)
+          if (found) return found
+        } else if (e.isFile() && full.endsWith('.apk')) {
+          return full
+        }
+      }
+      return undefined
+    }
+
     try {
-      const output = await execAdb(['install', '-r', apkPath], deviceId)
+      let apkToInstall = apkPath
+
+      // If a directory is provided, attempt to build via Gradle
+      const stat = await fs.stat(apkPath).catch(() => null)
+      if (stat && stat.isDirectory()) {
+        const gradlewPath = path.join(apkPath, 'gradlew')
+        const gradleCmd = existsSync(gradlewPath) ? './gradlew' : 'gradle'
+
+        await new Promise<void>(async (resolve, reject) => {
+          // Auto-detect and set JAVA_HOME (prefer JDK 17) so builds don't require manual environment setup
+          const detectedJavaHome = await detectJavaHome().catch(() => undefined)
+          const env = Object.assign({}, process.env)
+          if (detectedJavaHome) {
+            // Override existing JAVA_HOME if detection found a preferably compatible JDK (e.g., JDK 17).
+            if (env.JAVA_HOME !== detectedJavaHome) {
+              env.JAVA_HOME = detectedJavaHome
+              // Also ensure the JDK bin is on PATH so tools like jlink/javac are resolved from the detected JDK
+              env.PATH = `${path.join(detectedJavaHome, 'bin')}${path.delimiter}${env.PATH || ''}`
+              console.debug('[android] Overriding JAVA_HOME with detected path:', detectedJavaHome)
+            }
+          }
+
+          // Sanitize environment so user shell init scripts are less likely to override our JAVA_HOME.
+          try {
+            // Remove obvious shell profile hints; avoid touching SDKMAN symlinks or on-disk state.
+            delete env.SHELL
+          } catch (e) {}
+
+          // If we detected a compatible JDK, instruct Gradle to use it and avoid daemon reuse
+          // Prepare gradle invocation
+          const gradleArgs = ['assembleDebug']
+          if (detectedJavaHome) {
+            gradleArgs.push(`-Dorg.gradle.java.home=${detectedJavaHome}`)
+            gradleArgs.push('--no-daemon')
+            env.GRADLE_JAVA_HOME = detectedJavaHome
+          }
+
+          // Prefer invoking the wrapper directly without a shell to avoid user profile shims (sdkman) re-setting JAVA_HOME
+          const wrapperPath = path.join(apkPath, 'gradlew')
+          const useWrapper = existsSync(wrapperPath)
+          const execCmd = useWrapper ? wrapperPath : gradleCmd
+          const spawnOpts: any = { cwd: apkPath, env }
+          // When using wrapper, ensure it's executable and invoke directly (no shell)
+          if (useWrapper) {
+            // Ensure the wrapper is executable; swallow errors from chmod (best-effort).
+            await fs.chmod(wrapperPath, 0o755).catch(() => {})
+            spawnOpts.shell = false
+          } else {
+            // if using system 'gradle' allow shell to resolve platform PATH
+            spawnOpts.shell = true
+          }
+
+          const proc = spawn(execCmd, gradleArgs, spawnOpts)
+          let stderr = ''
+          proc.stderr?.on('data', d => stderr += d.toString())
+          proc.on('close', code => {
+            if (code === 0) resolve()
+            else reject(new Error(stderr || `Gradle build failed with code ${code}`))
+          })
+          proc.on('error', err => reject(err))
+        })
+
+        const built = await findApk(apkPath)
+        if (!built) throw new Error('Could not locate built APK after running Gradle')
+        apkToInstall = built
+      }
+
+      const output = await execAdb(['install', '-r', apkToInstall], deviceId)
       return { device: deviceInfo, installed: true, output }
     } catch (e) {
       return { device: deviceInfo, installed: false, error: e instanceof Error ? e.message : String(e) }
