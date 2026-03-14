@@ -2,13 +2,11 @@ import assert from 'assert'
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
+import { createRequire } from 'module'
 
-import { AndroidInteract } from '../../src/android/interact.js'
-
-// Monkeypatch installApp to avoid running real adb/gradle
-(AndroidInteract as any).prototype.installApp = async function (apkPath: string, deviceId?: string) {
-  return { device: { platform: 'android', id: deviceId || 'default' }, installed: true, output: 'mock-adb-install' }
-}
+// This test mocks child_process.spawn and simulates a Gradle build producing an APK
+// and an adb install. It does not patch AndroidInteract.installApp itself so the
+// internal build-and-install logic is exercised.
 
 async function makeTempFile(ext: string) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mcp-test-'))
@@ -24,23 +22,61 @@ async function makeTempDirWith(name: string) {
 }
 
 export async function run() {
-  // Test: install with .apk file
-  const { dir: d1, file: apk } = await makeTempFile('.apk')
-  const ai = new AndroidInteract()
-  const res1 = await ai.installApp(apk)
-  assert.ok(res1.installed === true, 'APK install should succeed')
+  // Create a fake adb executable in a temporary bin dir and prepend to PATH so
+  // execAdb's spawn('adb', ...) will find it. This avoids requiring a real adb
+  // binary during unit tests and exercises the installApp logic.
+  const binDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mcp-adb-bin-'))
+  const adbPath = path.join(binDir, 'adb')
+  const adbScript = `#!/usr/bin/env node
+console.log('Performing Streamed Install')
+console.log('Success')
+process.exit(0)
+`
+  await fs.writeFile(adbPath, adbScript, { mode: 0o755 })
+  const origPath = process.env.PATH || ''
+  process.env.PATH = `${binDir}:${origPath}`
 
-  // Test: project directory detection for Android (gradlew present)
-  const dirGradle = await makeTempDirWith('gradlew')
-  const res2 = await ai.installApp(dirGradle)
-  assert.ok(res2.installed === true, 'Project dir (gradle) install should succeed')
+  // Import the module under test after PATH is adjusted
+  const { AndroidInteract } = await import('../../src/android/interact.js')
 
-  // cleanup
-  await fs.rm(d1, { recursive: true, force: true }).catch(() => {})
-  await fs.rm(dirGradle, { recursive: true, force: true }).catch(() => {})
+  try {
+    // Test: install with .apk file should call adb install
+    const { dir: d1, file: apk } = await makeTempFile('.apk')
+    const ai = new AndroidInteract()
+    const res1 = await ai.installApp(apk)
+    console.log('res1', res1)
+    assert.ok(res1.installed === true, 'APK install should succeed')
 
+    // Test: project directory detection for Android (gradlew present as a simple wrapper script)
+    const dirGradle = await fs.mkdtemp(path.join(os.tmpdir(), 'mcp-test-'))
+    const gradlewPath = path.join(dirGradle, 'gradlew')
+    const gradlewScript = `#!/usr/bin/env node
+const fs = require('fs')
+const path = require('path')
+const apkPath = path.join(process.cwd(), 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk')
+fs.mkdirSync(path.dirname(apkPath), { recursive: true })
+fs.writeFileSync(apkPath, 'fake-apk-binary')
+console.log('BUILD SUCCESS')
+process.exit(0)
+`
+    await fs.writeFile(gradlewPath, gradlewScript, { mode: 0o755 })
 
-  console.log('install tests passed')
+    const res2 = await ai.installApp(dirGradle)
+    console.log('res2', res2)
+    assert.ok(res2.installed === true, 'Project dir (gradle) install should succeed')
+
+    // cleanup
+    await fs.rm(d1, { recursive: true, force: true }).catch(() => {})
+    await fs.rm(dirGradle, { recursive: true, force: true }).catch(() => {})
+
+    // restore PATH
+    process.env.PATH = origPath
+
+    console.log('install tests passed')
+  } finally {
+    // ensure PATH restored even on failure
+    process.env.PATH = origPath
+  }
 }
 
 run().catch((e) => { console.error(e); process.exit(1) })

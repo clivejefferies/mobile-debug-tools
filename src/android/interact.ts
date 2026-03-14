@@ -156,7 +156,8 @@ export class AndroidInteract {
           const spawnOpts: any = { cwd: apkPath, env }
           // When using wrapper, ensure it's executable and invoke directly (no shell)
           if (useWrapper) {
-            try { await fs.chmod(wrapperPath, 0o755).catch(()=>{}) } catch {}
+            // Ensure the wrapper is executable; swallow errors from chmod (best-effort).
+            await fs.chmod(wrapperPath, 0o755).catch(() => {})
             spawnOpts.shell = false
           } else {
             // if using system 'gradle' allow shell to resolve platform PATH

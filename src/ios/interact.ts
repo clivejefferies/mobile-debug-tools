@@ -112,15 +112,25 @@ export class iOSInteract {
         } else {
           // Attempt to locate an Xcode project and build for simulator
           const files = await fs.readdir(appPath).catch(() => [])
+          // Prefer workspace when present (CocoaPods / multi-project setups)
+          const workspace = files.find(f => f.endsWith('.xcworkspace'))
           const proj = files.find(f => f.endsWith('.xcodeproj'))
-          if (!proj) throw new Error('No .app bundle or Xcode project found in directory')
+          if (!workspace && !proj) throw new Error('No .app bundle, .xcworkspace or .xcodeproj found in directory')
 
-          const projectPath = path.join(appPath, proj)
-          const scheme = proj.replace(/\.xcodeproj$/, '')
+          let buildArgs: string[]
+          let scheme: string
+          if (workspace) {
+            const workspacePath = path.join(appPath, workspace)
+            scheme = workspace.replace(/\.xcworkspace$/, '')
+            buildArgs = ['-workspace', workspacePath, '-scheme', scheme, '-configuration', 'Debug', '-sdk', 'iphonesimulator', 'build', '-quiet']
+          } else {
+            const projectPath = path.join(appPath, proj!)
+            scheme = proj!.replace(/\.xcodeproj$/, '')
+            buildArgs = ['-project', projectPath, '-scheme', scheme, '-configuration', 'Debug', '-sdk', 'iphonesimulator', 'build', '-quiet']
+          }
 
           await new Promise<void>((resolve, reject) => {
-            const args = ['-project', projectPath, '-scheme', scheme, '-configuration', 'Debug', '-sdk', 'iphonesimulator', 'build', '-quiet']
-            const proc = spawn('xcodebuild', args, { cwd: appPath })
+            const proc = spawn('xcodebuild', buildArgs, { cwd: appPath })
             let stderr = ''
             proc.stderr?.on('data', d => stderr += d.toString())
             proc.on('close', code => {
