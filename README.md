@@ -25,6 +25,10 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 }
 ```
 ## Usage
+
+Example: 
+After a crash tell the agent the following:
+
 I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
 
 ## Docs
