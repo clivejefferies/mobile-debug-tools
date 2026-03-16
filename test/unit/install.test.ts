@@ -31,12 +31,12 @@ process.exit(0)
   process.env.PATH = `${binDir}:${origPath}`
 
   // Import the module under test after PATH is adjusted
-  const { AndroidInteract } = await import('../../src/android/interact.js')
+  const { AndroidManage } = await import('../../src/android/manage.js')
 
   try {
     // Test: install with .apk file should call adb install
     const { dir: d1, file: apk } = await makeTempFile('.apk')
-    const ai = new AndroidInteract()
+    const ai = new AndroidManage()
     const res1 = await ai.installApp(apk)
     console.log('res1', res1)
     assert.ok(res1.installed === true, 'APK install should succeed')

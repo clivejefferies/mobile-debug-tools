@@ -1,104 +1,14 @@
 import { spawn } from "child_process"
 import { XMLParser } from "fast-xml-parser"
 import { GetLogsResponse, CaptureAndroidScreenResponse, GetUITreeResponse, GetCurrentScreenResponse, UIElement, DeviceInfo } from "../types.js"
-import { ADB, execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "./utils.js"
+import { ADB, execAdb, getAndroidDeviceMetadata, getDeviceInfo, delay, parseBounds, getCenter, getScreenResolution, traverseNode, parseLogLine } from "./utils.js"
+import { createWriteStream } from "fs"
+import { promises as fsPromises } from "fs"
+import path from "path"
 
-// --- Helper Functions Specific to Observe ---
+const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-function parseBounds(bounds: string): [number, number, number, number] {
-  const match = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  if (match) {
-    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), parseInt(match[4])];
-  }
-  return [0, 0, 0, 0];
-}
-
-function getCenter(bounds: [number, number, number, number]): [number, number] {
-  const [x1, y1, x2, y2] = bounds;
-  return [Math.floor((x1 + x2) / 2), Math.floor((y1 + y2) / 2)];
-}
-
-async function getScreenResolution(deviceId?: string): Promise<{ width: number; height: number }> {
-  try {
-    const output = await execAdb(['shell', 'wm', 'size'], deviceId);
-    const match = output.match(/Physical size: (\d+)x(\d+)/);
-    if (match) {
-      return { width: parseInt(match[1]), height: parseInt(match[2]) };
-    }
-  } catch {
-    // ignore
-  }
-  return { width: 0, height: 0 };
-}
-
-function traverseNode(node: any, elements: UIElement[], parentIndex: number = -1, depth: number = 0): number {
-  if (!node) return -1;
-
-  let currentIndex = -1;
-
-  // Check if it's a valid node with attributes we care about
-  if (node['@_class']) {
-    const text = node['@_text'] || null;
-    const contentDescription = node['@_content-desc'] || null;
-    const clickable = node['@_clickable'] === 'true';
-    const bounds = parseBounds(node['@_bounds'] || '[0,0][0,0]');
-    
-    // Filtering Logic:
-    // Keep if clickable OR has visible text OR has content description
-    const isUseful = clickable || (text && text.length > 0) || (contentDescription && contentDescription.length > 0);
-
-    if (isUseful) {
-      const element: UIElement = {
-        text,
-        contentDescription,
-        type: node['@_class'] || 'unknown',
-        resourceId: node['@_resource-id'] || null,
-        clickable,
-        enabled: node['@_enabled'] === 'true',
-        visible: true, 
-        bounds,
-        center: getCenter(bounds),
-        depth
-      };
-      
-      if (parentIndex !== -1) {
-        element.parentId = parentIndex;
-      }
-      
-      elements.push(element);
-      currentIndex = elements.length - 1;
-    }
-  }
-
-  // If current node was skipped (not useful or no class), children inherit parentIndex
-  // If current node was added, children use currentIndex
-  const nextParentIndex = currentIndex !== -1 ? currentIndex : parentIndex;
-  const nextDepth = currentIndex !== -1 ? depth + 1 : depth; 
-  
-  const childrenIndices: number[] = [];
-
-  // Traverse children
-  if (node.node) {
-      if (Array.isArray(node.node)) {
-          node.node.forEach((child: any) => {
-            const childIndex = traverseNode(child, elements, nextParentIndex, nextDepth);
-            if (childIndex !== -1) childrenIndices.push(childIndex);
-          });
-      } else {
-          const childIndex = traverseNode(node.node, elements, nextParentIndex, nextDepth);
-          if (childIndex !== -1) childrenIndices.push(childIndex);
-      }
-  }
-  
-  // Update current element with children if it was added
-  if (currentIndex !== -1 && childrenIndices.length > 0) {
-      elements[currentIndex].children = childrenIndices;
-  }
-  
-  return currentIndex;
-}
 
 export class AndroidObserve {
   async getDeviceMetadata(appId: string, deviceId?: string): Promise<DeviceInfo> {
@@ -355,6 +265,128 @@ export class AndroidObserve {
           shortActivity: "",
           error: e instanceof Error ? e.message : String(e)
       };
+    }
+  }
+
+  async startLogStream(packageName: string, level: 'error' | 'warn' | 'info' | 'debug' = 'error', deviceId?: string, sessionId: string = 'default') {
+    try {
+      const pidOutput = await execAdb(['shell', 'pidof', packageName], deviceId).catch(() => '')
+      const pid = (pidOutput || '').trim()
+      if (!pid) return { success: false, error: 'app_not_running' }
+
+      const levelMap: Record<string, string> = { error: '*:E', warn: '*:W', info: '*:I', debug: '*:D' }
+      const filter = levelMap[level] || levelMap['error']
+
+      if (activeLogStreams.has(sessionId)) {
+        try { activeLogStreams.get(sessionId)!.proc.kill() } catch {}
+        activeLogStreams.delete(sessionId)
+      }
+
+      const args = ['logcat', `--pid=${pid}`, filter]
+      const proc = spawn(ADB, args)
+
+      const tmpDir = process.env.TMPDIR || '/tmp'
+      const file = path.join(tmpDir, `mobile-debug-log-${sessionId}.ndjson`)
+      const stream = createWriteStream(file, { flags: 'a' })
+
+      proc.stdout.on('data', (chunk) => {
+        const text = chunk.toString()
+        const lines = text.split(/\r?\n/).filter(Boolean)
+        for (const l of lines) {
+          const entry = parseLogLine(l)
+          stream.write(JSON.stringify(entry) + '\n')
+        }
+      })
+
+      proc.stderr.on('data', (chunk) => {
+        const text = chunk.toString()
+        const lines = text.split(/\r?\n/).filter(Boolean)
+        for (const l of lines) {
+          const entry = { timestamp: '', level: 'E', tag: 'adb', message: l }
+          stream.write(JSON.stringify(entry) + '\n')
+        }
+      })
+
+      proc.on('close', () => {
+        stream.end()
+        activeLogStreams.delete(sessionId)
+      })
+
+      activeLogStreams.set(sessionId, { proc, file })
+      return { success: true, stream_started: true }
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  async stopLogStream(sessionId: string = 'default') {
+    const entry = activeLogStreams.get(sessionId)
+    if (!entry) return { success: true }
+    try { entry.proc.kill() } catch {}
+    activeLogStreams.delete(sessionId)
+    return { success: true }
+  }
+
+  async readLogStream(sessionId: string = 'default', limit: number = 100, since?: string) {
+    // Prefer active stream if present, otherwise fall back to a well-known NDJSON file for the session
+    const entry = activeLogStreams.get(sessionId)
+    let file: string | undefined
+    if (entry && entry.file) file = entry.file
+    else {
+      const tmpDir = process.env.TMPDIR || '/tmp'
+      const candidate = path.join(tmpDir, `mobile-debug-log-${sessionId}.ndjson`)
+      file = candidate
+    }
+
+    try {
+      const data = await fsPromises.readFile(file, 'utf8').catch(() => '')
+      if (!data) return { entries: [], crash_summary: { crash_detected: false } }
+      const lines = data.split(/\r?\n/).filter(Boolean)
+
+      const parsed = lines.map(l => {
+        try {
+          const obj: any = JSON.parse(l)
+          if (typeof obj._iso === 'undefined') {
+            let iso: string | null = null
+            if (obj.timestamp) {
+              const d = new Date(obj.timestamp)
+              if (!isNaN(d.getTime())) iso = d.toISOString()
+            }
+            obj._iso = iso
+          }
+          if (typeof obj.crash === 'undefined') {
+            const msg = (obj.message || '').toString()
+            const exMatch = msg.match(/\b([A-Za-z0-9_$.]+Exception)\b/)
+            if (/FATAL EXCEPTION/i.test(msg) || exMatch) {
+              obj.crash = true
+              if (exMatch) obj.exception = exMatch[1]
+            } else {
+              obj.crash = false
+            }
+          }
+          return obj
+        } catch {
+          return { message: l, _iso: null, crash: false }
+        }
+      })
+
+      let filtered = parsed
+      if (since) {
+        let sinceMs: number | null = null
+        if (/^\d+$/.test(since)) sinceMs = Number(since)
+        else {
+          const sDate = new Date(since)
+          if (!isNaN(sDate.getTime())) sinceMs = sDate.getTime()
+        }
+        if (sinceMs !== null) filtered = parsed.filter(p => p._iso && (new Date(p._iso).getTime() >= sinceMs))
+      }
+
+      const entries = filtered.slice(-Math.max(0, limit))
+      const crashEntry = entries.find(e => e.crash)
+      const crash_summary = crashEntry ? { crash_detected: true, exception: crashEntry.exception, sample: crashEntry.message } : { crash_detected: false }
+      return { entries, crash_summary }
+    } catch (e) {
+      return { entries: [], crash_summary: { crash_detected: false } }
     }
   }
 }

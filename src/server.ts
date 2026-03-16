@@ -14,10 +14,11 @@ import {
   InstallAppResponse
 } from "./types.js"
 
+import { ToolsManage } from './tools/manage.js'
 import { ToolsInteract } from './tools/interact.js'
 import { ToolsObserve } from './tools/observe.js'
-import { AndroidInteract } from './android/interact.js'
-import { iOSInteract } from './ios/interact.js'
+import { AndroidManage } from './android/manage.js'
+import { iOSManage } from './ios/manage.js'
 import { AndroidObserve } from './android/observe.js'
 import { iOSObserve } from './ios/observe.js'
 
@@ -397,7 +398,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     if (name === "start_app") {
       const { platform, appId, deviceId } = args as any
-      const res = await (platform === 'android' ? new AndroidInteract().startApp(appId, deviceId) : new iOSInteract().startApp(appId, deviceId))
+      const res = await (platform === 'android' ? new AndroidManage().startApp(appId, deviceId) : new iOSManage().startApp(appId, deviceId))
       const response: StartAppResponse = {
         device: res.device,
         appStarted: res.appStarted,
@@ -408,28 +409,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "terminate_app") {
       const { platform, appId, deviceId } = args as any
-      const res = await (platform === 'android' ? new AndroidInteract().terminateApp(appId, deviceId) : new iOSInteract().terminateApp(appId, deviceId))
+      const res = await (platform === 'android' ? new AndroidManage().terminateApp(appId, deviceId) : new iOSManage().terminateApp(appId, deviceId))
       const response: TerminateAppResponse = { device: res.device, appTerminated: res.appTerminated }
       return wrapResponse(response)
     }
 
     if (name === "restart_app") {
       const { platform, appId, deviceId } = args as any
-      const res = await (platform === 'android' ? new AndroidInteract().restartApp(appId, deviceId) : new iOSInteract().restartApp(appId, deviceId))
+      const res = await (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId) : new iOSManage().restartApp(appId, deviceId))
       const response: RestartAppResponse = { device: res.device, appRestarted: res.appRestarted, launchTimeMs: res.launchTimeMs }
       return wrapResponse(response)
     }
 
     if (name === "reset_app_data") {
       const { platform, appId, deviceId } = args as any
-      const res = await (platform === 'android' ? new AndroidInteract().resetAppData(appId, deviceId) : new iOSInteract().resetAppData(appId, deviceId))
+      const res = await (platform === 'android' ? new AndroidManage().resetAppData(appId, deviceId) : new iOSManage().resetAppData(appId, deviceId))
       const response: ResetAppDataResponse = { device: res.device, dataCleared: res.dataCleared }
       return wrapResponse(response)
     }
 
     if (name === "install_app") {
         const { platform, appPath, deviceId } = args as any
-        const res = await ToolsInteract.installAppHandler({ platform, appPath, deviceId })
+        const res = await ToolsManage.installAppHandler({ platform, appPath, deviceId })
         const response: InstallAppResponse = {
           device: res.device,
           installed: res.installed,
@@ -441,7 +442,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       if (name === 'build_and_install') {
         const { platform, projectPath, deviceId, timeout } = args as any
-        const res = await ToolsInteract.buildAndInstallHandler({ platform, projectPath, deviceId, timeout })
+        const res = await ToolsManage.buildAndInstallHandler({ platform, projectPath, deviceId, timeout })
         // res: { ndjson, result }
         return {
           content: [
@@ -465,7 +466,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "list_devices") {
       const { platform, appId } = (args || {}) as any
-      const res = await ToolsObserve.listDevicesHandler({ platform, appId })
+      const res = await ToolsManage.listDevicesHandler({ platform, appId })
       return wrapResponse(res)
     }
 
@@ -483,43 +484,43 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "get_ui_tree") {
       const { platform, deviceId } = args as any
-      const res = await (platform === 'android' ? new AndroidObserve().getUITree(deviceId) : new iOSObserve().getUITree(deviceId))
+      const res = await ToolsObserve.getUITreeHandler({ platform, deviceId })
       return wrapResponse(res)
     }
 
     if (name === "get_current_screen") {
       const { deviceId } = (args || {}) as any
-      const res = await new AndroidObserve().getCurrentScreen(deviceId)
+      const res = await ToolsObserve.getCurrentScreenHandler({ deviceId })
       return wrapResponse(res)
     }
 
     if (name === "wait_for_element") {
       const { platform, text, timeout, deviceId } = (args || {}) as any
-      const res = await (platform === 'android' ? new AndroidInteract().waitForElement(text, timeout, deviceId) : new iOSInteract().waitForElement(text, timeout, deviceId))
+      const res = await ToolsInteract.waitForElementHandler({ platform, text, timeout, deviceId })
       return wrapResponse(res)
     }
 
     if (name === "tap") {
       const { platform, x, y, deviceId } = (args || {}) as any
-      const res = await (platform === 'android' ? new AndroidInteract().tap(x, y, deviceId) : new iOSInteract().tap(x, y, deviceId))
+      const res = await ToolsInteract.tapHandler({ platform, x, y, deviceId })
       return wrapResponse(res)
     }
 
     if (name === "swipe") {
       const { x1, y1, x2, y2, duration, deviceId } = (args || {}) as any
-      const res = await new AndroidInteract().swipe(x1, y1, x2, y2, duration, deviceId)
+      const res = await ToolsInteract.swipeHandler({ x1, y1, x2, y2, duration, deviceId })
       return wrapResponse(res)
     }
 
     if (name === "type_text") {
       const { text, deviceId } = (args || {}) as any
-      const res = await new AndroidInteract().typeText(text, deviceId)
+      const res = await ToolsInteract.typeTextHandler({ text, deviceId })
       return wrapResponse(res)
     }
 
     if (name === "press_back") {
       const { deviceId } = (args || {}) as any
-      const res = await new AndroidInteract().pressBack(deviceId)
+      const res = await ToolsInteract.pressBackHandler({ deviceId })
       return wrapResponse(res)
     }
 

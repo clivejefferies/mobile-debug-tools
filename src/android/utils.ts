@@ -1,5 +1,5 @@
 import { spawn } from 'child_process'
-import { DeviceInfo } from "../types.js"
+import { DeviceInfo, UIElement } from "../types.js"
 import { createWriteStream, promises as fsPromises, existsSync } from 'fs'
 import path from 'path'
 import { detectJavaHome } from '../utils/java.js'
@@ -236,22 +236,101 @@ export async function listAndroidDevices(appId?: string): Promise<DeviceInfo[]> 
   }
 }
 
+// UI helper utilities shared by observe/interact
+export const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export function parseBounds(bounds: string): [number, number, number, number] {
+  const match = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+  if (match) {
+    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), parseInt(match[4])];
+  }
+  return [0, 0, 0, 0];
+}
+
+export function getCenter(bounds: [number, number, number, number]): [number, number] {
+  const [x1, y1, x2, y2] = bounds;
+  return [Math.floor((x1 + x2) / 2), Math.floor((y1 + y2) / 2)];
+}
+
+export async function getScreenResolution(deviceId?: string): Promise<{ width: number; height: number }> {
+  try {
+    const output = await execAdb(['shell', 'wm', 'size'], deviceId);
+    const match = output.match(/Physical size: (\d+)x(\d+)/);
+    if (match) {
+      return { width: parseInt(match[1]), height: parseInt(match[2]) };
+    }
+  } catch {
+    // ignore
+  }
+  return { width: 0, height: 0 };
+}
+
+export function traverseNode(node: any, elements: UIElement[], parentIndex: number = -1, depth: number = 0): number {
+  if (!node) return -1;
+
+  let currentIndex = -1;
+
+  if (node['@_class']) {
+    const text = node['@_text'] || null;
+    const contentDescription = node['@_content-desc'] || null;
+    const clickable = node['@_clickable'] === 'true';
+    const bounds = parseBounds(node['@_bounds'] || '[0,0][0,0]');
+
+    const isUseful = clickable || (text && text.length > 0) || (contentDescription && contentDescription.length > 0);
+
+    if (isUseful) {
+      const element: UIElement = {
+        text,
+        contentDescription,
+        type: node['@_class'] || 'unknown',
+        resourceId: node['@_resource-id'] || null,
+        clickable,
+        enabled: node['@_enabled'] === 'true',
+        visible: true,
+        bounds,
+        center: getCenter(bounds),
+        depth
+      };
+
+      if (parentIndex !== -1) {
+        element.parentId = parentIndex;
+      }
+
+      elements.push(element);
+      currentIndex = elements.length - 1;
+    }
+  }
+
+  const nextParentIndex = currentIndex !== -1 ? currentIndex : parentIndex;
+  const nextDepth = currentIndex !== -1 ? depth + 1 : depth;
+
+  const childrenIndices: number[] = [];
+
+  if (node.node) {
+    if (Array.isArray(node.node)) {
+      node.node.forEach((child: any) => {
+        const childIndex = traverseNode(child, elements, nextParentIndex, nextDepth);
+        if (childIndex !== -1) childrenIndices.push(childIndex);
+      });
+    } else {
+      const childIndex = traverseNode(node.node, elements, nextParentIndex, nextDepth);
+      if (childIndex !== -1) childrenIndices.push(childIndex);
+    }
+  }
+
+  if (currentIndex !== -1 && childrenIndices.length > 0) {
+    elements[currentIndex].children = childrenIndices;
+  }
+
+  return currentIndex;
+}
+
 // Log stream management (one stream per session)
 
-const activeLogStreams: Map<string, { proc: { kill: () => void } | ReturnType<typeof import('child_process').spawn>, file: string }> = new Map()
-
-// Test helper to register a pre-existing NDJSON file as the active stream for a session (used by unit tests)
-export function _setActiveLogStream(sessionId: string, file: string) {
-  activeLogStreams.set(sessionId, { proc: { kill: () => {} }, file })
-}
-
-export function _clearActiveLogStream(sessionId: string) {
-  activeLogStreams.delete(sessionId)
-}
+const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
 // Robust log line parser supporting multiple logcat formats
-export function parseLogLine(line: string) {
-  // Collapse internal newlines so multiline stack traces are parseable as a single entry
+export function parseLogLine(line: string) {  // Collapse internal newlines so multiline stack traces are parseable as a single entry
   const rawLine = line
   const normalizedLine = rawLine.replace(/\r?\n/g, ' ')
   const entry: any = { timestamp: '', level: '', tag: '', message: rawLine, _iso: null, crash: false }
@@ -351,139 +430,5 @@ export function parseLogLine(line: string) {
   return entry
 }
 
-export async function startAndroidLogStream(packageName: string, level: 'error' | 'warn' | 'info' | 'debug' = 'error', deviceId?: string, sessionId: string = 'default'): Promise<{ success: boolean; stream_started?: boolean; error?: string }> {
-  try {
-    // Determine PID
-    const pidOutput = await execAdb(['shell', 'pidof', packageName], deviceId).catch(() => '')
-    const pid = (pidOutput || '').trim()
-    if (!pid) {
-      return { success: false, error: 'app_not_running' }
-    }
+// Legacy readLogStreamLines shim removed. Use AndroidObserve.readLogStream(sessionId, limit, since) instead.
 
-    // Map level to logcat filter
-    const levelMap: Record<string, string> = { error: '*:E', warn: '*:W', info: '*:I', debug: '*:D' }
-    const filter = levelMap[level] || levelMap['error']
-
-    // Prevent multiple streams per session
-    if (activeLogStreams.has(sessionId)) {
-      // stop existing
-      try { activeLogStreams.get(sessionId)!.proc.kill() } catch {}
-      activeLogStreams.delete(sessionId)
-    }
-
-    // Start logcat process
-    const args = ['logcat', `--pid=${pid}`, filter]
-    const proc = spawn(ADB, args)
-
-    // Prepare output file
-    const tmpDir = process.env.TMPDIR || '/tmp'
-    const file = path.join(tmpDir, `mobile-debug-log-${sessionId}.ndjson`)
-    const stream = createWriteStream(file, { flags: 'a' })
-
-    proc.stdout.on('data', (chunk) => {
-      const text = chunk.toString()
-      const lines = text.split(/\r?\n/).filter(Boolean)
-      for (const l of lines) {
-        const entry = parseLogLine(l)
-        stream.write(JSON.stringify(entry) + '\n')
-      }
-    })
-
-    proc.stderr.on('data', (chunk) => {
-      // write stderr lines as message with level 'E'
-      const text = chunk.toString()
-      const lines = text.split(/\r?\n/).filter(Boolean)
-      for (const l of lines) {
-        const entry = { timestamp: '', level: 'E', tag: 'adb', message: l }
-        stream.write(JSON.stringify(entry) + '\n')
-      }
-    })
-
-    proc.on('close', () => {
-      stream.end()
-      activeLogStreams.delete(sessionId)
-    })
-
-    activeLogStreams.set(sessionId, { proc, file })
-
-    return { success: true, stream_started: true }
-  } catch {
-    return { success: false, error: 'log_stream_start_failed' }
-  }
-}
-
-export async function stopAndroidLogStream(sessionId: string = 'default'): Promise<{ success: boolean }> {
-  const entry = activeLogStreams.get(sessionId)
-  if (!entry) return { success: true }
-  try {
-    entry.proc.kill()
-  } catch {}
-  activeLogStreams.delete(sessionId)
-  return { success: true }
-}
-
-export async function readLogStreamLines(sessionId: string = 'default', limit: number = 100, since?: string): Promise<{ entries: any[], crash_summary?: { crash_detected: boolean, exception?: string, sample?: string } }> {
-  const entry = activeLogStreams.get(sessionId)
-  if (!entry) return { entries: [] }
-  try {
-    const data = await fsPromises.readFile(entry.file, 'utf8').catch(() => '')
-    if (!data) return { entries: [], crash_summary: { crash_detected: false } }
-    const lines = data.split(/\r?\n/).filter(Boolean)
-
-    // Parse NDJSON lines into objects. Prefer fields written by parseLogLine. For backward compatibility, if _iso or crash are missing, enrich minimally here (avoid duplicating full parse logic).
-    const parsed = lines.map(l => {
-      try {
-        const obj: any = JSON.parse(l)
-        // Ensure _iso: if missing, try to derive using Date()
-        if (typeof obj._iso === 'undefined') {
-          let iso: string | null = null
-          if (obj.timestamp) {
-            const d = new Date(obj.timestamp)
-            if (!isNaN(d.getTime())) iso = d.toISOString()
-          }
-          obj._iso = iso
-        }
-        // Ensure crash flag: if missing, run minimal heuristic
-        if (typeof obj.crash === 'undefined') {
-          const msg = (obj.message || '').toString()
-          const exMatch = msg.match(/\b([A-Za-z0-9_$.]+Exception)\b/)
-          if (/FATAL EXCEPTION/i.test(msg) || exMatch) {
-            obj.crash = true
-            if (exMatch) obj.exception = exMatch[1]
-          } else {
-            obj.crash = false
-          }
-        }
-        return obj
-      } catch {
-        return { message: l, _iso: null, crash: false }
-      }
-    })
-
-    // Filter by since if provided (accept ISO or epoch ms)
-    let filtered = parsed
-    if (since) {
-      let sinceMs: number | null = null
-      // If numeric string
-      if (/^\d+$/.test(since)) sinceMs = Number(since)
-      else {
-        const sDate = new Date(since)
-        if (!isNaN(sDate.getTime())) sinceMs = sDate.getTime()
-      }
-      if (sinceMs !== null) {
-        filtered = parsed.filter(p => p._iso && (new Date(p._iso).getTime() >= sinceMs))
-      }
-    }
-
-    // Return the last `limit` entries (most recent)
-    const entries = filtered.slice(-Math.max(0, limit))
-
-    // Crash summary
-    const crashEntry = entries.find(e => e.crash)
-    const crash_summary = crashEntry ? { crash_detected: true, exception: crashEntry.exception, sample: crashEntry.message } : { crash_detected: false }
-
-    return { entries, crash_summary }
-  } catch {
-    return { entries: [], crash_summary: { crash_detected: false } }
-  }
-}

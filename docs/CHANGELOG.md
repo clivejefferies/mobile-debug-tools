@@ -2,6 +2,8 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.11.0]
+
 ## [0.10.0]
 
 ### Added / Changed

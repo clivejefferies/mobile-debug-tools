@@ -2,6 +2,8 @@
 
 A minimal, secure MCP server for AI-assisted mobile development. Build, install, and inspect Android/iOS apps from an MCP-compatible client.
 
+> **Note:** iOS support is currently an untested Work In Progress (WIP). Please use with caution and report any issues.
+
 ## Requirements
 
 - Node.js >= 18
@@ -23,7 +25,7 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 }
 ```
 ## Usage
-//TODO add examples
+I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
 
 ## Docs
 

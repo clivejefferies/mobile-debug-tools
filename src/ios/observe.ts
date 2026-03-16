@@ -1,7 +1,10 @@
 import { spawn } from "child_process"
 import { promises as fs } from "fs"
 import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo } from "../types.js"
-import { execCommand, getIOSDeviceMetadata, validateBundleId, IDB } from "./utils.js"
+import { execCommand, getIOSDeviceMetadata, validateBundleId, IDB, XCRUN } from "./utils.js"
+import { createWriteStream, promises as fsPromises } from 'fs'
+import path from 'path'
+import { parseLogLine } from '../android/utils.js'
 
 // --- Helper Functions Specific to Observe ---
 
@@ -107,6 +110,18 @@ async function isIDBInstalled(): Promise<boolean> {
     child.on('error', () => resolve(false));
     child.on('close', (code) => resolve(code === 0));
   });
+}
+
+// iOS live log stream support (moved from ios/utils to observe)
+const iosActiveLogStreams: Map<string, { proc: ReturnType<typeof import('child_process').spawn>, file: string }> = new Map()
+
+// Test helpers
+export function _setIOSActiveLogStream(sessionId: string, file: string) {
+  iosActiveLogStreams.set(sessionId, { proc: {} as any, file })
+}
+
+export function _clearIOSActiveLogStream(sessionId: string) {
+  iosActiveLogStreams.delete(sessionId)
 }
 
 export class iOSObserve {
@@ -264,6 +279,99 @@ export class iOSObserve {
             elements: [],
             error: `Failed to parse idb output: ${e instanceof Error ? e.message : String(e)}`
          };
+    }
+  }
+
+  // --- Log stream methods ---
+  async startLogStream(bundleId: string, deviceId: string = 'booted', sessionId: string = 'default') : Promise<{ success: boolean; stream_started?: boolean; error?: string }> {
+    try {
+      const predicate = `process == "${bundleId}" or subsystem contains "${bundleId}"`
+
+      if (iosActiveLogStreams.has(sessionId)) {
+        try { iosActiveLogStreams.get(sessionId)!.proc.kill() } catch {}
+        iosActiveLogStreams.delete(sessionId)
+      }
+
+      const args = ['simctl', 'spawn', deviceId, 'log', 'stream', '--style', 'syslog', '--predicate', predicate]
+      const proc = spawn(XCRUN, args)
+
+      // Prepare output file
+      const tmpDir = process.env.TMPDIR || '/tmp'
+      const file = path.join(tmpDir, `mobile-debug-ios-log-${sessionId}.ndjson`)
+      const stream = createWriteStream(file, { flags: 'a' })
+
+      proc.stdout.on('data', (chunk) => {
+        const text = chunk.toString()
+        const lines = text.split(/\r?\n/).filter(Boolean)
+        for (const l of lines) {
+          const entry = parseLogLine(l)
+          stream.write(JSON.stringify(entry) + '\n')
+        }
+      })
+
+      proc.stderr.on('data', (chunk) => {
+        const text = chunk.toString()
+        const lines = text.split(/\r?\n/).filter(Boolean)
+        for (const l of lines) {
+          const entry = { timestamp: '', level: 'E', tag: 'xcrun', message: l }
+          stream.write(JSON.stringify(entry) + '\n')
+        }
+      })
+
+      proc.on('close', () => {
+        stream.end()
+        iosActiveLogStreams.delete(sessionId)
+      })
+
+      iosActiveLogStreams.set(sessionId, { proc, file })
+      return { success: true, stream_started: true }
+    } catch {
+      return { success: false, error: 'log_stream_start_failed' }
+    }
+  }
+
+  async stopLogStream(sessionId: string = 'default'): Promise<{ success: boolean }> {
+    const entry = iosActiveLogStreams.get(sessionId)
+    if (!entry) return { success: true }
+    try { entry.proc.kill() } catch {}
+    iosActiveLogStreams.delete(sessionId)
+    return { success: true }
+  }
+
+  async readLogStream(sessionId: string = 'default', limit: number = 100, since?: string): Promise<{ entries: any[], crash_summary?: { crash_detected: boolean, exception?: string, sample?: string } }> {
+    const entry = iosActiveLogStreams.get(sessionId)
+    if (!entry) return { entries: [] }
+    try {
+      const data = await fsPromises.readFile(entry.file, 'utf8').catch(() => '')
+      if (!data) return { entries: [], crash_summary: { crash_detected: false } }
+      const lines = data.split(/\r?\n/).filter(Boolean)
+      const parsed = lines.map(l => {
+        try {
+          return JSON.parse(l)
+        } catch {
+          return { message: l, _iso: null, crash: false }
+        }
+      })
+
+      let filtered = parsed
+      if (since) {
+        let sinceMs: number | null = null
+        if (/^\d+$/.test(since)) sinceMs = Number(since)
+        else {
+          const sDate = new Date(since)
+          if (!isNaN(sDate.getTime())) sinceMs = sDate.getTime()
+        }
+        if (sinceMs !== null) {
+          filtered = parsed.filter(p => p._iso && (new Date(p._iso).getTime() >= sinceMs))
+        }
+      }
+
+      const entries = filtered.slice(-Math.max(0, limit))
+      const crashEntry = entries.find(e => e.crash)
+      const crash_summary = crashEntry ? { crash_detected: true, exception: crashEntry.exception, sample: crashEntry.message } : { crash_detected: false }
+      return { entries, crash_summary }
+    } catch {
+      return { entries: [], crash_summary: { crash_detected: false } }
     }
   }
 }
