@@ -3,6 +3,8 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## [0.11.0]
+- Tools refactor - broke functions into 3 distinct class types; interact (for UI manipulation), manage (for build, installing etc) and observe (observing the app whilst running)
+- Add convenience method to build and install
 
 ## [0.10.0]
 
