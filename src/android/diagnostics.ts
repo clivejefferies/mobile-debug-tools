@@ -15,18 +15,18 @@ export function makeEnvSnapshot(keys: string[]) {
 }
 
 import { spawnSync } from 'child_process'
-import { ADB } from './utils.js'
+import { getAdbCmd } from './utils.js'
 
 export function execAdbWithDiagnostics(args: string[], deviceId?: string) {
   const adbArgs = deviceId ? ['-s', deviceId, ...args] : args
   const timeout = 120000
-  const res = spawnSync(ADB, adbArgs, { encoding: 'utf8', timeout }) as any
+  const res = spawnSync(getAdbCmd(), adbArgs, { encoding: 'utf8', timeout }) as any
   const runResult: RunResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,
     stdout: res.stdout || '',
     stderr: res.stderr || '',
     envSnapshot: makeEnvSnapshot(['PATH','ADB_PATH','HOME','JAVA_HOME']),
-    command: ADB,
+    command: getAdbCmd(),
     args: adbArgs,
     suggestedFixes: []
   }

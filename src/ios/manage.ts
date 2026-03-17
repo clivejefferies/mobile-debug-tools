@@ -1,7 +1,7 @@
 import { promises as fs } from "fs"
 import { spawn } from "child_process"
 import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, InstallAppResponse } from "../types.js"
-import { execCommand, execCommandWithDiagnostics, getIOSDeviceMetadata, validateBundleId, IDB, findAppBundle } from "./utils.js"
+import { execCommand, execCommandWithDiagnostics, getIOSDeviceMetadata, validateBundleId, getIdbCmd, findAppBundle } from "./utils.js"
 import path from "path"
 
 export class iOSManage {
@@ -73,7 +73,7 @@ export class iOSManage {
           // Gather diagnostics for simctl failure
           const diag = execCommandWithDiagnostics(['simctl', 'install', deviceId, toInstall], deviceId)
           try {
-            const child = spawn(IDB, ['--version'])
+            const child = spawn(getIdbCmd(), ['--version'])
             const idbExists = await new Promise<boolean>((resolve) => {
               child.on('error', () => resolve(false));
               child.on('close', (code) => resolve(code === 0));
@@ -81,7 +81,7 @@ export class iOSManage {
             if (idbExists) {
               // attempt idb install via spawn but include diagnostics
               await new Promise<void>((resolve, reject) => {
-                const proc = spawn(IDB, ['install', toInstall, '--udid', device.id]);
+                const proc = spawn(getIdbCmd(), ['install', toInstall, '--udid', device.id]);
                 let stderr = '';
                 proc.stderr.on('data', d => stderr += d.toString());
                 proc.on('close', code => {

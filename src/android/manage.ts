@@ -36,8 +36,8 @@ export class AndroidManage {
     const metadata = await getAndroidDeviceMetadata('', deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
+    let apkToInstall: string = apkPath
     try {
-      let apkToInstall = apkPath
       const stat = await fs.stat(apkPath).catch(() => null)
       if (stat && stat.isDirectory()) {
         const detectedJavaHome = await detectJavaHome().catch(() => undefined)
@@ -105,7 +105,7 @@ export class AndroidManage {
       const installDiag = execAdbWithDiagnostics(['install', '-r', apkToInstall], deviceId)
       const pushDiag = execAdbWithDiagnostics(['push', apkToInstall, remotePath], deviceId)
       const pmDiag = execAdbWithDiagnostics(['shell', 'pm', 'install', '-r', remotePath], deviceId)
-      return { device: deviceInfo, installed: false, error: e instanceof Error ? e.message : String(e), diagnostics: { installDiag, pushDiag, pmDiag, installAttemptDiag } }
+      return { device: deviceInfo, installed: false, error: e instanceof Error ? e.message : String(e), diagnostics: { installDiag, pushDiag, pmDiag } }
     }
   }
 

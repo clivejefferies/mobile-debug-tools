@@ -1,10 +1,11 @@
-import { execFile, spawn, execSync } from "child_process"
+import { execFile, spawn, execSync, spawnSync } from "child_process"
 import { DeviceInfo } from "../types.js"
 import { promises as fsPromises } from 'fs'
 import path from 'path'
 
-export const XCRUN = process.env.XCRUN_PATH || "xcrun"
-export const IDB = process.env.IDB_PATH || (() => {
+export function getXcrunCmd() { return process.env.XCRUN_PATH || 'xcrun' }
+export function getIdbCmd() {
+  if (process.env.IDB_PATH) return process.env.IDB_PATH
   try {
     const p = execSync('which idb', { stdio: ['ignore','pipe','ignore'] }).toString().trim()
     if (p) return p
@@ -24,7 +25,7 @@ export const IDB = process.env.IDB_PATH || (() => {
     try { execSync(`test -x ${c}`, { stdio: ['ignore','pipe','ignore'] }); return c } catch {}
   }
   return 'idb'
-})()
+}
 
 export interface IOSResult {
   output: string
@@ -43,7 +44,7 @@ export function validateBundleId(bundleId: string) {
 export function execCommand(args: string[], deviceId: string = "booted"): Promise<IOSResult> {
   return new Promise((resolve, reject) => {
     // Use spawn for better stream control and consistency with Android implementation
-    const child = spawn(XCRUN, args)
+    const child = spawn(getXcrunCmd(), args)
     
     let stdout = ''
     let stderr = ''
@@ -63,7 +64,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
     const timeoutMs = args.includes('log') ? 10000 : 5000 // 10s for logs, 5s for others
     const timeout = setTimeout(() => {
       child.kill()
-      reject(new Error(`Command timed out after ${timeoutMs}ms: ${XCRUN} ${args.join(' ')}`))
+      reject(new Error(`Command timed out after ${timeoutMs}ms: ${getXcrunCmd()} ${args.join(' ')}`))
     }, timeoutMs)
 
     child.on('close', (code) => {
@@ -85,7 +86,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
 export function execCommandWithDiagnostics(args: string[], deviceId: string = "booted") {
   // Run synchronously to capture stdout/stderr and exitCode reliably for diagnostics
   const timeoutMs = args.includes('log') ? 10000 : 5000
-  const res = spawnSync(XCRUN, args, { encoding: 'utf8', timeout: timeoutMs }) as any
+  const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs }) as any
   const runResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,
     stdout: res.stdout || '',
@@ -96,7 +97,7 @@ export function execCommandWithDiagnostics(args: string[], deviceId: string = "b
       JAVA_HOME: process.env.JAVA_HOME,
       HOME: process.env.HOME
     },
-    command: XCRUN,
+    command: getXcrunCmd(),
     args,
     deviceId
   }
@@ -155,7 +156,7 @@ export async function findAppBundle(dir: string): Promise<string | undefined> {
 export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise<DeviceInfo> {
   return new Promise((resolve) => {
     // If deviceId is provided (and not "booted"), attempt to find that device among booted simulators.
-    execFile(XCRUN, ['simctl', 'list', 'devices', 'booted', '--json'], (err, stdout) => {
+    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], (err, stdout) => {
       const fallback: DeviceInfo = {
         platform: "ios",
         id: deviceId,
@@ -201,7 +202,7 @@ export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise
 
 export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
   return new Promise((resolve) => {
-    execFile(XCRUN, ['simctl', 'list', 'devices', '--json'], (err, stdout) => {
+    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', '--json'], (err, stdout) => {
       if (err || !stdout) return resolve([])
       try {
         const data = JSON.parse(stdout)
