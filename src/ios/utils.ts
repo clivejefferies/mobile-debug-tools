@@ -246,6 +246,7 @@ export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise
 
 export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
   return new Promise((resolve) => {
+    // Query all devices and separately query booted devices to mark them
     execFile(getXcrunCmd(), ['simctl', 'list', 'devices', '--json'], (err, stdout) => {
       if (err || !stdout) return resolve([])
       try {
@@ -254,33 +255,49 @@ export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
         const out: DeviceInfo[] = []
         const checks: Promise<void>[] = []
 
-        for (const runtime in devicesMap) {
-          const devices = devicesMap[runtime]
-          if (Array.isArray(devices)) {
-            for (const device of devices) {
-              const info: any = {
-                platform: 'ios',
-                id: device.udid,
-                osVersion: parseRuntimeName(runtime),
-                model: device.name,
-                simulator: true
+        // Get booted devices set
+        execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], (err2, stdout2) => {
+          const bootedSet = new Set<string>()
+          if (!err2 && stdout2) {
+            try {
+              const bdata = JSON.parse(stdout2)
+              const bmap = bdata.devices || {}
+              for (const rt in bmap) {
+                const devs = bmap[rt]
+                if (Array.isArray(devs)) for (const d of devs) bootedSet.add(d.udid)
               }
+            } catch {}
+          }
 
-              if (appId) {
-                // check if installed
-                const p = execCommand(['simctl', 'get_app_container', device.udid, appId, 'data'], device.udid)
-                  .then(() => { info.appInstalled = true })
-                  .catch(() => { info.appInstalled = false })
-                  .then(() => { out.push(info) })
-                checks.push(p)
-              } else {
-                out.push(info)
+          for (const runtime in devicesMap) {
+            const devices = devicesMap[runtime]
+            if (Array.isArray(devices)) {
+              for (const device of devices) {
+                const info: any = {
+                  platform: 'ios',
+                  id: device.udid,
+                  osVersion: parseRuntimeName(runtime),
+                  model: device.name,
+                  simulator: true,
+                  booted: bootedSet.has(device.udid)
+                }
+
+                if (appId) {
+                  // check if installed
+                  const p = execCommand(['simctl', 'get_app_container', device.udid, appId, 'data'], device.udid)
+                    .then(() => { info.appInstalled = true })
+                    .catch(() => { info.appInstalled = false })
+                    .then(() => { out.push(info) })
+                  checks.push(p)
+                } else {
+                  out.push(info)
+                }
               }
             }
           }
-        }
 
-        Promise.all(checks).then(() => resolve(out)).catch(() => resolve(out))
+          Promise.all(checks).then(() => resolve(out)).catch(() => resolve(out))
+        })
       } catch {
         resolve([])
       }

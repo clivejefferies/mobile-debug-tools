@@ -57,6 +57,13 @@ export async function resolveTargetDevice(opts: ResolveOptions): Promise<DeviceI
       if (physical.length > 1) candidates = physical
     }
 
+    // Prefer booted iOS simulators if present
+    if (platform === 'ios') {
+      const booted = candidates.filter((d: any) => !!d.booted)
+      if (booted.length === 1) return booted[0]
+      if (booted.length > 1) return booted[0] // if multiple booted, pick the first
+    }
+
     candidates.sort((a, b) => parseNumericVersion(b.osVersion) - parseNumericVersion(a.osVersion))
     if (candidates.length > 1 && parseNumericVersion(candidates[0].osVersion) > parseNumericVersion(candidates[1].osVersion)) {
       return candidates[0]

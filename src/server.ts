@@ -139,6 +139,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: "object",
         properties: {
           platform: { type: "string", enum: ["android", "ios"], description: "Optional. If omitted the server will attempt to detect platform from appPath/project files." },
+          projectType: { type: "string", enum: ["native","kmp","react-native","flutter"], description: "Optional project type to guide build tool selection (e.g., kmp, react-native)." },
           appPath: { type: "string", description: "Path to APK, .app, .ipa, or project directory" },
           deviceId: { type: "string", description: "Device UDID (iOS) or Serial (Android). Defaults to booted/connected." }
         },
@@ -152,12 +153,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: "object",
         properties: {
           platform: { type: "string", enum: ["android", "ios"], description: "Optional. If omitted the server will attempt to detect platform from projectPath files." },
+          projectType: { type: "string", enum: ["native","kmp","react-native","flutter"], description: "Optional project type to guide build tool selection (e.g., kmp, react-native)." },
           projectPath: { type: "string", description: "Path to project directory (contains gradlew or xcodeproj/xcworkspace)" },
           variant: { type: "string", description: "Optional build variant (e.g., Debug/Release)" }
         },
         required: ["projectPath"]
       }
     },
+
     {
       name: "get_logs",
       description: "Get recent logs from Android or iOS simulator. Returns device metadata and the log output.",
@@ -440,8 +443,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "install_app") {
-        const { platform, appPath, deviceId } = args as any
-        const res = await ToolsManage.installAppHandler({ platform, appPath, deviceId })
+        const { platform, projectType, appPath, deviceId } = args as any
+        const res = await ToolsManage.installAppHandler({ platform, appPath, deviceId, projectType })
         const response: InstallAppResponse = {
           device: res.device,
           installed: res.installed,
@@ -452,14 +455,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       if (name === "build_app") {
-        const { platform, projectPath, variant } = args as any
-        const res = await ToolsManage.buildAppHandler({ platform, projectPath, variant })
+        const { platform, projectType, projectPath, variant } = args as any
+        const res = await ToolsManage.buildAppHandler({ platform, projectPath, variant, projectType })
         return wrapResponse(res)
       }
 
       if (name === 'build_and_install') {
-        const { platform, projectPath, deviceId, timeout } = args as any
-        const res = await ToolsManage.buildAndInstallHandler({ platform, projectPath, deviceId, timeout })
+        const { platform, projectType, projectPath, deviceId, timeout } = args as any
+        const res = await ToolsManage.buildAndInstallHandler({ platform, projectPath, deviceId, timeout, projectType })
         // res: { ndjson, result }
         return {
           content: [

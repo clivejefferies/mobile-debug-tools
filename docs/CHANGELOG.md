@@ -2,6 +2,13 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.12.3]
+- Now supports native and cross platform development platforms for building
+- Add MCP_DISABLE_AUTODETECT env var to require explicit platform/projectType for deterministic agent runs. When set to 1, build/install handlers will fail if platform is not provided.
+- Add unit test covering MCP_DISABLE_AUTODETECT behaviour and ambiguous project detection (test/unit/manage/mcp_disable_autodetect.test.ts).
+- Improve build_and_install handler to emit a clear NDJSON event when autodetect is disabled and platform was not supplied.
+
+
 ## [0.12.1]
 - Improve iOS build/install reliability: project auto-scan, explicit simulator destination, configurable watchdog timeout (MCP_XCODEBUILD_TIMEOUT) and retries (MCP_XCODEBUILD_RETRIES), and DerivedData fallback for locating .app artifacts.
 - Make install_app capable of building iOS projects before installing so agents can autonomously fix, build, install and validate apps.

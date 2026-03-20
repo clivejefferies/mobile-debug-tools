@@ -15,7 +15,19 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
   const gradleCmd = existsSync(gradlewPath) ? './gradlew' : 'gradle'
   const execCmd = existsSync(gradlewPath) ? gradlewPath : gradleCmd
 
-  const gradleArgs: string[] = ['assembleDebug']
+  // Start with a default task; callers may append/override via env flags
+  const gradleArgs: string[] = [ process.env.MCP_GRADLE_TASK || 'assembleDebug' ]
+
+  // Respect generic MCP_BUILD_JOBS and Android-specific MCP_GRADLE_WORKERS
+  const workers = process.env.MCP_GRADLE_WORKERS || process.env.MCP_BUILD_JOBS
+  if (workers) {
+    gradleArgs.push(`--max-workers=${workers}`)
+  }
+
+  // Respect gradle cache env: default enabled; set MCP_GRADLE_CACHE=0 to disable
+  if (process.env.MCP_GRADLE_CACHE === '0') {
+    gradleArgs.push('-Dorg.gradle.caching=false')
+  }
 
   const detectedJavaHome = await detectJavaHome().catch(() => undefined)
   const env = Object.assign({}, process.env)

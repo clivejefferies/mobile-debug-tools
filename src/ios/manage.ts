@@ -71,8 +71,20 @@ export class iOSManage {
         return null
       }
 
+      // Prepare build flags and paths (support incremental builds)
       let buildArgs: string[]
       let chosenScheme: string | null = null
+
+      // Derived data and result bundle (agent-configurable)
+      const derivedDataPath = process.env.MCP_DERIVED_DATA || path.join(projectRootDir, 'build', 'DerivedData')
+      const resultBundlePath = path.join(projectRootDir, 'build', 'xcresults', 'ResultBundle.xcresult')
+      const xcodeJobs = parseInt(process.env.MCP_XCODE_JOBS || '', 10) || 4
+      const forceClean = process.env.MCP_FORCE_CLEAN === '1'
+
+      // ensure result dirs exist
+      await fs.mkdir(path.dirname(resultBundlePath), { recursive: true }).catch(() => {})
+      await fs.mkdir(derivedDataPath, { recursive: true }).catch(() => {})
+
       if (workspace) {
         const workspacePath = path.join(projectRootDir, workspace)
         chosenScheme = await detectScheme(xcodeCmd, workspacePath, undefined, projectRootDir)
@@ -85,17 +97,29 @@ export class iOSManage {
         buildArgs = ['-project', projectPathFull, '-scheme', scheme, '-configuration', 'Debug', '-sdk', 'iphonesimulator', 'build']
       }
 
+      // Insert clean if explicitly requested via env
+      if (forceClean) {
+        const idx = buildArgs.indexOf('build')
+        if (idx >= 0) buildArgs.splice(idx, 0, 'clean')
+      }
+
       // If we have a destination UDID, add an explicit destination to avoid xcodebuild picking an ambiguous target
       if (destinationUDID) {
         buildArgs.push('-destination', `platform=iOS Simulator,id=${destinationUDID}`)
       }
 
-      // Add result bundle path for diagnostics
+      // Add derived data and result bundle for diagnostics and faster incremental builds
+      buildArgs.push('-derivedDataPath', derivedDataPath)
+      buildArgs.push('-resultBundlePath', resultBundlePath)
+      // parallelisation and jobs
+      buildArgs.push('-parallelizeTargets')
+      buildArgs.push('-jobs', String(xcodeJobs))
+
+      // Prepare results directory for backwards-compatible logs
       const resultsDir = path.join(projectPath, 'build-results')
       // Remove any stale results to avoid xcodebuild complaining about existing result bundles
       await fs.rm(resultsDir, { recursive: true, force: true }).catch(() => {})
       await fs.mkdir(resultsDir, { recursive: true }).catch(() => {})
-      // Skip specifying -resultBundlePath to avoid platform-specific collisions; rely on stdout/stderr logs
 
 
       const XCODEBUILD_TIMEOUT = parseInt(process.env.MCP_XCODEBUILD_TIMEOUT || '', 10) || 180000 // default 3 minutes
