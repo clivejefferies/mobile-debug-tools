@@ -4,7 +4,7 @@ This repository groups tool docs into three areas aligned with the codebase: man
 
 See:
 
-- docs/manage.md — build, install and device management tools
+- [mange](manage.md) — build, install and device management tools
 - docs/observe.md — logs, screenshots and UI inspection tools
 - docs/interact.md — UI interaction tools (tap, swipe, type, wait)
 
