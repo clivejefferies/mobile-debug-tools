@@ -412,6 +412,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     if (name === "start_app") {
       const { platform, appId, deviceId } = args as any
+      // Defensive validation: ensure caller provided platform and appId.
+      if (!platform || !appId) {
+        const msg = 'Both platform and appId parameters are required (platform: ios|android, appId: bundle id or package name).'
+        try {
+          const diag = require('./utils/diagnostics.js')
+          if (diag && diag.appendDiagnosticFile) diag.appendDiagnosticFile('bad_requests.log', { ts: new Date().toISOString(), tool: 'start_app', args })
+        } catch {
+          try { require('fs').appendFileSync('/tmp/mcp_bad_requests.log', JSON.stringify({ ts: new Date().toISOString(), tool: 'start_app', args }) + '\n') } catch {}
+        }
+        return wrapResponse({ error: msg })
+      }
+
       const res = await (platform === 'android' ? new AndroidManage().startApp(appId, deviceId) : new iOSManage().startApp(appId, deviceId))
       const response: StartAppResponse = {
         device: res.device,

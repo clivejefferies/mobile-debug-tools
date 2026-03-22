@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.13.0]
+- fixed missing appid issue
+
 ## [0.12.4]
 - Made projectType and platform mandatory
 
