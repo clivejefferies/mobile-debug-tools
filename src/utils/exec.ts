@@ -14,7 +14,7 @@ export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {
     let timedOut = false
     const timer = timeout && timeout > 0 ? setTimeout(() => {
       timedOut = true
-      try { child.kill() } catch (e) {}
+      try { child.kill() } catch { }
       resolve({ exitCode: null, stdout: stdout.trim(), stderr: stderr.trim() })
     }, timeout) : null
 

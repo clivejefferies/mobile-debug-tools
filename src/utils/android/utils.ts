@@ -1,4 +1,3 @@
-import { spawn } from 'child_process'
 import { DeviceInfo, UIElement } from "../../types.js"
 import { promises as fsPromises, existsSync } from 'fs'
 import path from 'path'

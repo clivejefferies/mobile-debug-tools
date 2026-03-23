@@ -72,3 +72,32 @@ Notes:
 - Android swipe uses `adb shell input swipe` with screen percentage coordinates. iOS swipe uses `idb ui swipe` command; note `idb` swipe does not accept a duration argument.
 - Unit tests are located at `test/unit/observe/scroll_to_element.test.ts` and device runners at `test/device/observe/`.
 
+---
+
+## wait_for_screen_change
+
+Description:
+- Waits until the current screen fingerprint differs from the provided `previousFingerprint`. Useful after taps, navigation, or other interactions that should change the visible UI.
+
+Input example:
+```
+{ "platform": "android", "previousFingerprint": "<hex-fingerprint>", "timeoutMs": 5000, "pollIntervalMs": 300, "deviceId": "emulator-5554" }
+```
+
+Success response example:
+```
+{ "success": true, "newFingerprint": "<hex-fingerprint>", "elapsedMs": 420 }
+```
+
+Failure (timeout) example:
+```
+{ "success": false, "reason": "timeout", "lastFingerprint": "<hex-fingerprint>", "elapsedMs": 5000 }
+```
+
+Notes:
+- Always compares to the original `previousFingerprint` (baseline is not updated during polling).
+- Treats `null` fingerprints as transient; continues polling rather than returning success.
+- Includes a stability confirmation: after detecting a different fingerprint it waits one additional poll interval and confirms the fingerprint is stable before returning success to avoid reacting to transient flickers or animation frames.
+- Default `timeoutMs` is 5000ms and default `pollIntervalMs` is 300ms; callers may override these.
+- Implemented as an interact-level tool and delegates platform-specific fingerprint calculation to the observe layer (`get_screen_fingerprint`).
+
