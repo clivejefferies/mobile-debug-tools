@@ -9,5 +9,6 @@ import './manage/build_and_install.test.ts'
 import './manage/diagnostics.test.ts'
 import './manage/detection.test.ts'
 import './manage/mcp_disable_autodetect.test.ts'
+import './observe/get_screen_fingerprint.test.ts'
 
 console.log('Unit tests loaded.')

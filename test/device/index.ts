@@ -14,6 +14,7 @@ import './utils/test-dist';
       import('./manage/run-install-ios'),
       import('./observe/logstream-real'),
       import('./observe/test-ui-tree'),
+      import('./observe/run-screen-fingerprint'),
       import('./observe/wait_for_element_real'),
       import('./interact/run-real-test'),
       import('./interact/smoke-test')

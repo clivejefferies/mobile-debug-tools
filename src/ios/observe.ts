@@ -328,7 +328,10 @@ export class iOSObserve {
         bounds: Array.isArray(e.bounds) ? e.bounds.slice(0,4).map((n:any)=>Number(n)||0) : [0,0,0,0]
       }))
 
-      normalized.sort((a:any,b:any) => {
+      // Filter out elements with no identifying fields (e.g., pure dynamic timestamps)
+      const filteredNormalized = normalized.filter((e:any) => (e.text && e.text.length > 0) || (e.resourceId && e.resourceId.length > 0) || (e.contentDesc && e.contentDesc.length > 0))
+
+      filteredNormalized.sort((a:any,b:any) => {
         const ay = (a.bounds && a.bounds[1]) || 0
         const by = (b.bounds && b.bounds[1]) || 0
         if (ay !== by) return ay - by
@@ -337,7 +340,7 @@ export class iOSObserve {
         return ax - bx
       })
 
-      const limited = normalized.slice(0,50)
+      const limited = filteredNormalized.slice(0,50)
       const payload = { activity: (activity || ''), resolution: (tree as any).resolution || { width:0, height:0 }, elements: limited.map((e:any)=>({ type: e.type, resourceId: e.resourceId, text: e.text, contentDesc: e.contentDesc })) }
       const combined = JSON.stringify(payload)
       const hash = crypto.createHash('sha256').update(combined).digest('hex')
