@@ -3,6 +3,7 @@ import { iOSInteract } from './ios.js';
 export { AndroidInteract, iOSInteract };
 
 import { resolveTargetDevice } from '../utils/resolve-device.js'
+import { ToolsObserve } from '../observe/index.js'
 
 export class ToolsInteract {
 
@@ -42,6 +43,48 @@ export class ToolsInteract {
   static async scrollToElementHandler({ platform, selector, direction = 'down', maxScrolls = 10, scrollAmount = 0.7, deviceId }: { platform: 'android' | 'ios', selector: { text?: string, resourceId?: string, contentDesc?: string, className?: string }, direction?: 'down' | 'up', maxScrolls?: number, scrollAmount?: number, deviceId?: string }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
     return await interact.scrollToElement(selector, direction, maxScrolls, scrollAmount, resolved.id)
+  }
+
+  static async waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs = 5000, pollIntervalMs = 300, deviceId }: { platform?: 'android' | 'ios', previousFingerprint: string, timeoutMs?: number, pollIntervalMs?: number, deviceId?: string }) {
+    const start = Date.now()
+    let lastFingerprint: string | null = null
+
+    while (Date.now() - start < (timeoutMs || 5000)) {
+      try {
+        const res = await (await import('../observe/index.js')).ToolsObserve.getScreenFingerprintHandler({ platform, deviceId })
+        const fp = (res && (res as any).fingerprint) ? (res as any).fingerprint : null
+        if (fp === null || fp === undefined) {
+          lastFingerprint = null
+          await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+          continue
+        }
+
+        lastFingerprint = fp
+
+        if (fp !== previousFingerprint) {
+          // Stability confirmation
+          await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+              try {
+            const confirmRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId })
+            const confirmFp = (confirmRes && (confirmRes as any).fingerprint) ? (confirmRes as any).fingerprint : null
+            if (confirmFp === fp) {
+              return { success: true, newFingerprint: fp, elapsedMs: Date.now() - start }
+            }
+            lastFingerprint = confirmFp
+            continue
+          } catch {
+            // ignore and continue polling
+            continue
+          }
+        }
+      } catch {
+        // ignore transient errors
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+    }
+
+    return { success: false, reason: 'timeout', lastFingerprint, elapsedMs: Date.now() - start }
   }
 
 }

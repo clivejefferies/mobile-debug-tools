@@ -295,6 +295,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
+      name: "wait_for_screen_change",
+      description: "Wait until the current screen fingerprint differs from a provided previousFingerprint. Useful to wait for navigation/animation completion.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["android", "ios"], description: "Optional platform override (android|ios)" },
+          previousFingerprint: { type: "string", description: "The fingerprint to compare against (required)" },
+          timeoutMs: { type: "number", description: "Timeout in ms to wait for change (default 5000)", default: 5000 },
+          pollIntervalMs: { type: "number", description: "Polling interval in ms (default 300)", default: 300 },
+          deviceId: { type: "string", description: "Optional device id/udid to target" }
+        },
+        required: ["previousFingerprint"]
+      }
+    },
+    {
       name: "wait_for_element",
       description: "Wait until a UI element with matching text appears on screen or timeout is reached.",
       inputSchema: {
@@ -322,6 +337,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["platform", "text"]
       }
     },
+
     {
       name: "tap",
       description: "Simulate a finger tap on the device screen at specific coordinates.",
@@ -593,6 +609,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === "get_screen_fingerprint") {
       const { platform, deviceId } = (args || {}) as any
       const res = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId })
+      return wrapResponse(res)
+    }
+
+    if (name === "wait_for_screen_change") {
+      const { platform, previousFingerprint, timeoutMs, pollIntervalMs, deviceId } = (args || {}) as any
+      const res = await ToolsInteract.waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs, pollIntervalMs, deviceId })
       return wrapResponse(res)
     }
 

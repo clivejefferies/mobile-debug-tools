@@ -1,8 +1,8 @@
-import { spawn } from 'child_process'
 import { DeviceInfo, UIElement } from "../../types.js"
 import { promises as fsPromises, existsSync } from 'fs'
 import path from 'path'
 import { detectJavaHome } from '../java.js'
+import { execCmd } from '../exec.js'
 
 export function getAdbCmd() { return process.env.ADB_PATH || 'adb' }
 
@@ -83,87 +83,20 @@ import type { SpawnOptions } from 'child_process'
 
 export type SpawnOptionsWithTimeout = SpawnOptions & { timeout?: number }
 
-export function execAdb(args: string[], deviceId?: string, options: SpawnOptionsWithTimeout = {}): Promise<string> {
+export async function execAdb(args: string[], deviceId?: string, options: SpawnOptionsWithTimeout = {}): Promise<string> {
   const adbArgs = getAdbArgs(args, deviceId)
-  return new Promise((resolve, reject) => {
-    // Extract timeout from options if present, otherwise pass options to spawn
-    const { timeout: customTimeout, ...spawnOptions } = options;
-    
-    // Use spawn instead of execFile for better stream control and to avoid potential buffering hangs
-    const child = spawn(getAdbCmd(), adbArgs, spawnOptions)
-    
-    let stdout = ''
-    let stderr = ''
-
-    if (child.stdout) {
-      child.stdout.on('data', (data) => {
-        stdout += data.toString()
-      })
-    }
-
-    if (child.stderr) {
-      child.stderr.on('data', (data) => {
-        stderr += data.toString()
-      })
-    }
-
-    const timeoutMs = getAdbTimeout(args, customTimeout)
-
-
-    const timeout = setTimeout(() => {
-      child.kill()
-      reject(new Error(`ADB command timed out after ${timeoutMs}ms: ${args.join(' ')}`))
-    }, timeoutMs)
-
-    child.on('close', (code) => {
-      clearTimeout(timeout)
-      if (code !== 0) {
-        // If there's an actual error (non-zero exit code), reject
-        reject(new Error(stderr.trim() || `Command failed with code ${code}`))
-      } else {
-        // If exit code is 0, resolve with stdout
-        resolve(stdout.trim())
-      }
-    })
-
-    child.on('error', (err) => {
-      clearTimeout(timeout)
-      reject(err)
-    })
-  })
+  const timeoutMs = getAdbTimeout(args, options.timeout)
+  const res = await execCmd(getAdbCmd(), adbArgs, { timeout: timeoutMs, env: options.env as any, cwd: typeof options.cwd === 'string' ? options.cwd : undefined, shell: !!options.shell })
+  if (res.exitCode !== 0) throw new Error(res.stderr || `Command failed with code ${res.exitCode}`)
+  return res.stdout
 }
 
 // Spawn adb but return full streams and exit code so callers can implement fallbacks or stream output
-export function spawnAdb(args: string[], deviceId?: string, options: SpawnOptionsWithTimeout = {}): Promise<{ stdout: string, stderr: string, code: number | null }> {
+export async function spawnAdb(args: string[], deviceId?: string, options: SpawnOptionsWithTimeout = {}): Promise<{ stdout: string, stderr: string, code: number | null }> {
   const adbArgs = getAdbArgs(args, deviceId)
-  return new Promise((resolve, reject) => {
-    const { timeout: customTimeout, ...spawnOptions } = options
-    const child = spawn(getAdbCmd(), adbArgs, spawnOptions)
-
-    let stdout = ''
-    let stderr = ''
-
-    if (child.stdout) child.stdout.on('data', d => { stdout += d.toString() })
-    if (child.stderr) child.stderr.on('data', d => { stderr += d.toString() })
-
-    const timeoutMs = getAdbTimeout(args, customTimeout)
-
-
-    const timeout = setTimeout(() => {
-      try { child.kill() } catch {}
-      reject(new Error(`ADB command timed out after ${timeoutMs}ms: ${args.join(' ')}`))
-    }, timeoutMs)
-
-    child.on('close', (code) => {
-      clearTimeout(timeout)
-      resolve({ stdout: stdout.trim(), stderr: stderr.trim(), code })
-    })
-
-    child.on('error', (err) => {
-      clearTimeout(timeout)
-      reject(err)
-    })
-  })
+  const timeoutMs = getAdbTimeout(args, options.timeout)
+  const res = await execCmd(getAdbCmd(), adbArgs, { timeout: timeoutMs, env: options.env as any, cwd: typeof options.cwd === 'string' ? options.cwd : undefined, shell: !!options.shell })
+  return { stdout: res.stdout, stderr: res.stderr, code: res.exitCode }
 }
 
 export function getDeviceInfo(deviceId: string, metadata: Partial<DeviceInfo> = {}): DeviceInfo {

@@ -5,7 +5,7 @@ import { execCommand, getIOSDeviceMetadata, validateBundleId, getIdbCmd, getXcru
 import { createWriteStream, promises as fsPromises } from 'fs'
 import path from 'path'
 import { parseLogLine } from '../utils/android/utils.js'
-import { computeScreenFingerprint } from '../interact/shared/fingerprint.js'
+import { computeScreenFingerprint } from '../utils/ui/index.js'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

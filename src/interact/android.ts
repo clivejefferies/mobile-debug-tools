@@ -1,7 +1,7 @@
 import { WaitForElementResponse, TapResponse, SwipeResponse, TypeTextResponse, PressBackResponse } from "../types.js"
 import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "../utils/android/utils.js"
 import { AndroidObserve } from "../observe/index.js"
-import { scrollToElementShared } from "../interact/shared/scroll_to_element.js"
+import { scrollToElementShared } from "../utils/ui/index.js"
 
 
 export class AndroidInteract {

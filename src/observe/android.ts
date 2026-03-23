@@ -5,7 +5,7 @@ import { getAdbCmd, execAdb, getAndroidDeviceMetadata, getDeviceInfo, delay, get
 import { createWriteStream } from "fs"
 import { promises as fsPromises } from "fs"
 import path from "path"
-import { computeScreenFingerprint } from "../interact/shared/fingerprint.js"
+import { computeScreenFingerprint } from "../utils/ui/index.js"
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
