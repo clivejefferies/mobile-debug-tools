@@ -612,7 +612,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === "capture_debug_snapshot") {
-      const { reason, includeLogs = true, logLines = 200, platform, appId, deviceId, sessionId } = args as any
+      const { reason, includeLogs, logLines, platform, appId, deviceId, sessionId } = args as any
       const res = await ToolsObserve.captureDebugSnapshotHandler({ reason, includeLogs, logLines, platform, appId, deviceId, sessionId })
       return wrapResponse(res)
     }

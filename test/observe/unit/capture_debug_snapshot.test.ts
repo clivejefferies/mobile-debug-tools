@@ -3,13 +3,6 @@ import { ToolsObserve, AndroidObserve } from '../../../src/observe/index.js'
 async function run() {
   console.log('Starting capture_debug_snapshot unit tests...')
 
-  const origCapture = (AndroidObserve as any).prototype.captureScreen
-  const origGetCurrent = (AndroidObserve as any).prototype.getCurrentScreen
-  const origGetFp = (AndroidObserve as any).prototype.getScreenFingerprint
-  const origGetTree = (AndroidObserve as any).prototype.getUITree
-  const origReadLogStream = (AndroidObserve as any).prototype.readLogStream
-  const origGetLogs = (AndroidObserve as any).prototype.getLogs
-
   // Save original ToolsObserve handlers
   const origCaptureHandler = (ToolsObserve as any).captureScreenshotHandler
   const origGetCurrentHandler = (ToolsObserve as any).getCurrentScreenHandler
@@ -84,13 +77,6 @@ async function run() {
     console.log('Test 3:', pass3 ? 'PASS' : 'FAIL')
 
   } finally {
-    ;(AndroidObserve as any).prototype.captureScreen = origCapture
-    ;(AndroidObserve as any).prototype.getCurrentScreen = origGetCurrent
-    ;(AndroidObserve as any).prototype.getScreenFingerprint = origGetFp
-    ;(AndroidObserve as any).prototype.getUITree = origGetTree
-    ;(AndroidObserve as any).prototype.readLogStream = origReadLogStream
-    ;(AndroidObserve as any).prototype.getLogs = origGetLogs
-
     ;(ToolsObserve as any).captureScreenshotHandler = origCaptureHandler
     ;(ToolsObserve as any).getCurrentScreenHandler = origGetCurrentHandler
     ;(ToolsObserve as any).getScreenFingerprintHandler = origGetFpHandler

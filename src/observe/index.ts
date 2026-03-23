@@ -94,56 +94,56 @@ export class ToolsObserve {
     const timestamp = Date.now()
     const out: any = { timestamp, reason: reason || '', activity: null, fingerprint: null, screenshot: null, ui_tree: null, logs: [] }
 
-    // 1. Screenshot
-    try {
-      const ss = await ToolsObserve.captureScreenshotHandler({ platform, deviceId })
-      out.screenshot = ss && (ss as any).screenshot ? (ss as any).screenshot : null
-    } catch (e) {
-      out.screenshot = null
-      out.screenshot_error = e instanceof Error ? e.message : String(e)
+    // Parallel fetches for performance: screenshot, current screen, fingerprint, ui tree, and log stream/get logs
+    const sid = sessionId || 'default'
+    const tasks = {
+      screenshot: ToolsObserve.captureScreenshotHandler({ platform, deviceId }),
+      currentScreen: (!platform || platform === 'android') ? ToolsObserve.getCurrentScreenHandler({ deviceId }) : Promise.resolve(null),
+      fingerprint: ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }),
+      uiTree: ToolsObserve.getUITreeHandler({ platform, deviceId }),
+      readLogStream: includeLogs ? ToolsObserve.readLogStreamHandler({ platform, sessionId: sid, limit: logLines }) : Promise.resolve({ entries: [] }),
     }
 
-    // 2. Current Activity (Android-specific)
-    try {
-      if (!platform || platform === 'android') {
-        const cs = await ToolsObserve.getCurrentScreenHandler({ deviceId })
-        out.activity = (cs && ((cs as any).activity || (cs as any).shortActivity)) ? ((cs as any).activity || (cs as any).shortActivity) : ''
+    const results = await Promise.allSettled(Object.values(tasks))
+    const keys = Object.keys(tasks)
+
+    // Map results back to keys
+    for (let i = 0; i < results.length; i++) {
+      const key = keys[i]
+      const res = results[i] as PromiseSettledResult<any>
+      if (res.status === 'fulfilled') {
+        const val = res.value
+        if (key === 'screenshot') {
+          out.screenshot = val && val.screenshot ? val.screenshot : null
+        } else if (key === 'currentScreen') {
+          out.activity = val && ((val.activity || val.shortActivity)) ? (val.activity || val.shortActivity) : out.activity || ''
+        } else if (key === 'fingerprint') {
+          if (val && val.fingerprint) out.fingerprint = val.fingerprint
+          if (val && val.activity) out.activity = out.activity || val.activity
+          if (val && val.error) out.fingerprint_error = val.error
+        } else if (key === 'uiTree') {
+          out.ui_tree = val
+          if (val && val.error) out.ui_tree_error = val.error
+        } else if (key === 'readLogStream') {
+          // handle below after evaluating fallback
+          // temporarily attach to out._streamEntries
+          out._streamEntries = val && val.entries ? val.entries : []
+        }
+      } else {
+        const errMsg = res.reason instanceof Error ? res.reason.message : String(res.reason)
+        if (key === 'screenshot') out.screenshot_error = errMsg
+        if (key === 'currentScreen') out.activity_error = errMsg
+        if (key === 'fingerprint') { out.fingerprint = null; out.fingerprint_error = errMsg }
+        if (key === 'uiTree') { out.ui_tree = null; out.ui_tree_error = errMsg }
+        if (key === 'readLogStream') { out._streamEntries = [] ; out.logs_error = errMsg }
       }
-    } catch (e) {
-      out.activity = out.activity || ''
-      out.activity_error = e instanceof Error ? e.message : String(e)
     }
 
-    // 3. Screen Fingerprint
-    try {
-      const fpRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId })
-      if (fpRes && (fpRes as any).fingerprint) out.fingerprint = (fpRes as any).fingerprint
-      if (fpRes && (fpRes as any).activity) out.activity = out.activity || (fpRes as any).activity
-      if (fpRes && (fpRes as any).error) out.fingerprint_error = (fpRes as any).error
-    } catch (e) {
-      out.fingerprint = null
-      out.fingerprint_error = e instanceof Error ? e.message : String(e)
-    }
-
-    // 4. UI Tree
-    try {
-      const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId })
-      out.ui_tree = tree
-      if (tree && (tree as any).error) out.ui_tree_error = (tree as any).error
-    } catch (e) {
-      out.ui_tree = null
-      out.ui_tree_error = e instanceof Error ? e.message : String(e)
-    }
-
-    // 5. Logs (optional)
+    // Logs: prefer stream entries, fallback to snapshot logs when empty
     if (includeLogs) {
       try {
-        const sid = sessionId || 'default'
-        const streamRes = await ToolsObserve.readLogStreamHandler({ platform, sessionId: sid, limit: logLines })
-        let entries: any[] = (streamRes && (streamRes as any).entries) ? (streamRes as any).entries : []
-
+        let entries: any[] = Array.isArray(out._streamEntries) ? out._streamEntries : []
         if (!entries || entries.length === 0) {
-          // Fallback to snapshot logs
           const gl = await ToolsObserve.getLogsHandler({ platform, appId, deviceId, lines: logLines })
           const raw: string[] = (gl && (gl as any).logs) ? (gl as any).logs : []
           entries = raw.slice(-Math.max(0, logLines)).map(line => {
@@ -151,7 +151,7 @@ export class ToolsObserve {
             return { timestamp: null, level, message: line }
           })
         } else {
-          entries = entries.slice(-Math.max(0, logLines)).map(ent => {
+          entries = entries.map(ent => {
             const msg = (ent && (ent.message || ent.msg)) ? (ent.message || ent.msg) : (typeof ent === 'string' ? ent : JSON.stringify(ent))
             const levelRaw = (ent && (ent.level || ent.levelName || ent._level)) ? (ent.level || ent.levelName || ent._level) : ''
             const level = (levelRaw && String(levelRaw)).toString().toUpperCase() || (/\bERROR\b/i.test(msg) ? 'ERROR' : /\bWARN\b/i.test(msg) ? 'WARN' : 'INFO')
@@ -171,6 +171,9 @@ export class ToolsObserve {
         out.logs_error = e instanceof Error ? e.message : String(e)
       }
     }
+
+    // Clean up internal temporary field
+    delete out._streamEntries
 
     return out
   }
