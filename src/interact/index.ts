@@ -7,6 +7,28 @@ import { ToolsObserve } from '../observe/index.js'
 
 interface ScreenFingerprintResponse { fingerprint: string | null }
 
+interface UiElement {
+  text?: string | null
+  label?: string | null
+  value?: string | null
+  contentDescription?: string | null
+  contentDesc?: string | null
+  accessibilityLabel?: string | null
+  resourceId?: string | null
+  resourceID?: string | null
+  id?: string | null
+  type?: string | null
+  class?: string | null
+  bounds?: number[] | null
+  clickable?: boolean
+  enabled?: boolean
+  focusable?: boolean
+  visible?: boolean
+  parentId?: number | string | null
+  _index?: number
+  _interactable?: boolean
+}
+
 export class ToolsInteract {
 
   private static async getInteractionService(platform?: 'android' | 'ios', deviceId?: string) {
@@ -50,23 +72,23 @@ export class ToolsInteract {
   static async findElementHandler({ query, exact = false, timeoutMs = 3000, platform, deviceId }: { query: string, exact?: boolean, timeoutMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
     // Try to use observe layer to fetch the current UI tree and perform a fast semantic search
     const start = Date.now()
-    const deadline = start + (timeoutMs || 3000)
+    const deadline = start + timeoutMs
     const normalize = (s: any) => (s === null || s === undefined) ? '' : String(s).toLowerCase().trim()
 
     const q = normalize(query)
     if (!q) return { found: false, error: 'Empty query' }
 
-    let best: any = null
+    let best: UiElement | null = null
     let bestScore = 0
 
-    const scoreElement = (el: any) => {
+    const scoreElement = (el: UiElement | null) => {
       if (!el || !el.visible) return 0
       const bounds = el.bounds || [0,0,0,0]
       if (!Array.isArray(bounds) || bounds.length < 4) return 0
       const [l,t,r,b] = bounds
       if (r <= l || b <= t) return 0
       // Do not early-return on non-interactable elements — score them so we can locate their clickable ancestor later
-      const interactable = !!(el.clickable || el.enabled || (el as any).focusable)
+      const interactable = !!(el.clickable || el.enabled || el.focusable)
 
       const text = normalize(el.text ?? el.label ?? el.value ?? '')
       const content = normalize(el.contentDescription ?? el.contentDesc ?? el.accessibilityLabel ?? '')
@@ -93,21 +115,23 @@ export class ToolsInteract {
       try {
         const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId })
         if (tree && Array.isArray((tree as any).elements)) {
-          const elements = (tree as any).elements
+          const elements = ((tree as any).elements as UiElement[])
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i]
             try {
               const s = scoreElement(el)
               const interactable = !!(el.clickable || el.enabled || (el as any).focusable)
-              if (s > bestScore) { bestScore = s; best = el; (best as any)._index = i; (best as any)._interactable = interactable }
+              if (s > bestScore) {
+                bestScore = s
+                best = el as UiElement
+                if (best) { best._index = i; best._interactable = interactable }
+              }
               if (bestScore >= 0.95) break
-            } catch {}
+            } catch (e) { console.error('Error scoring element:', e) }
           }
           if (bestScore >= 0.95) break
         }
-      } catch {
-        // ignore transient error
-      }
+      } catch (e) { console.error('Error fetching UI tree:', e) }
       if (Date.now() > deadline) break
       await new Promise(r => setTimeout(r, 100))
     }
@@ -117,7 +141,7 @@ export class ToolsInteract {
     // If the best match is not interactable, try to resolve an actionable ancestor.
     try {
       const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
-      const elements = (tree && Array.isArray(tree.elements)) ? tree.elements : []
+      const elements = (tree && Array.isArray(tree.elements)) ? (tree.elements as UiElement[]) : []
       let chosen = best as any
       const childBounds = Array.isArray(chosen?.bounds) ? chosen.bounds : null
 
@@ -137,7 +161,7 @@ export class ToolsInteract {
             if (cur && (cur.clickable || cur.enabled || cur.focusable)) { resolvedAncestor = cur; break }
           } else if (typeof pid === 'string') {
             // fallback: search elements for matching resourceId or id
-            const found = elements.find((el:any)=> (el.resourceId === pid || el.id === pid))
+            const found = elements.find((el: UiElement)=> (el.resourceId === pid || el.id === pid))
             if (found) {
               cur = found
               if (cur && (cur.clickable || cur.enabled || cur.focusable)) { resolvedAncestor = cur; break }
@@ -156,7 +180,7 @@ export class ToolsInteract {
       if (!resolvedAncestor && childBounds) {
         const [cl,ct,cr,cb] = childBounds
         // find candidates that are clickable and contain the child bounds
-        const candidates = elements.filter((el:any)=> el && (el.clickable || el.focusable) && Array.isArray(el.bounds) && el.bounds.length>=4).map((el:any)=>({el, bounds: el.bounds}))
+        const candidates = elements.filter((el: UiElement)=> el && (el.clickable || el.focusable) && Array.isArray(el.bounds) && el.bounds!.length>=4).map((el: UiElement)=>({el, bounds: el.bounds! as number[]}))
         let bestCandidate: any = null
         let bestCandidateArea = Infinity
         for (const c of candidates) {
@@ -174,9 +198,7 @@ export class ToolsInteract {
         // small score bump to reflect actionability
         bestScore = Math.min(1, bestScore + 0.02)
       }
-    } catch {
-      // ignore parent-walk errors
-    }
+    } catch (e) { console.error('Error resolving ancestor:', e) }
 
     const boundsObj = Array.isArray(best.bounds) ? { left: best.bounds[0], top: best.bounds[1], right: best.bounds[2], bottom: best.bounds[3] } : null
     const tapCoordinates = boundsObj ? { x: Math.floor((boundsObj.left + boundsObj.right) / 2), y: Math.floor((boundsObj.top + boundsObj.bottom) / 2) } : null
@@ -191,8 +213,8 @@ export class ToolsInteract {
       enabled: !!best.enabled,
       tapCoordinates,
       telemetry: {
-        matchedIndex: (best as any)?._index ?? null,
-        matchedInteractable: !!(best as any)?._interactable
+        matchedIndex: best?._index ?? null,
+        matchedInteractable: !!best?._interactable
       }
     }
     const scoreVal = Math.min(1, Number(bestScore.toFixed(3)))
@@ -226,14 +248,9 @@ export class ToolsInteract {
             }
             lastFingerprint = confirmFp
             continue
-          } catch {
-            // ignore and continue polling
-            continue
-          }
+          } catch (e) { console.error('Error confirming fingerprint:', e); continue }
         }
-      } catch {
-        // ignore transient errors
-      }
+      } catch (e) { console.error('Error getting screen fingerprint:', e) }
 
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
     }
