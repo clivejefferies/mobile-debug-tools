@@ -2,6 +2,10 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.19.2]
+- Added healthcheck improvments
+- Added skills 
+
 ## [0.19.1]
 
 - Fixed Android install issues
