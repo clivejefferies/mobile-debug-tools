@@ -20,10 +20,6 @@ import { ToolsInteract } from './interact/index.js'
 import { ToolsObserve } from './observe/index.js'
 import { AndroidManage } from './manage/index.js'
 import { iOSManage } from './manage/index.js'
-import { ensureAdbAvailable } from './utils/android/utils.js'
-import { getIdbCmd, isIDBInstalled } from './utils/ios/utils.js'
-import { getXcrunCmd } from './utils/ios/utils.js'
-import { execSync } from 'child_process'
 
 
 const server = new Server(
@@ -38,44 +34,14 @@ const server = new Server(
   }
 );
 
-// Startup healthchecks (non-fatal) — verify adb availability and log chosen command
-(async () => {
-  try {
-    const adbCheck = ensureAdbAvailable()
-    if (adbCheck.ok) console.debug('[startup] adb available:', adbCheck.adbCmd, adbCheck.version)
-    else console.warn('[startup] adb not available or failed to run:', adbCheck.adbCmd, adbCheck.error)
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      console.warn('[startup] error during adb healthcheck:', e.message)
-    } else {
-      console.warn('[startup] error during adb healthcheck:', String(e))
-    }
-  }
+import { getSystemStatus } from './tools/system_status/index.js'
 
-  // Check idb availability (non-fatal)
+// Run a quick startup healthcheck (non-fatal) by calling getSystemStatus directly and log a short summary
+getSystemStatus().then(res => {
   try {
-    const idbInstalled = await isIDBInstalled()
-    const idbCmd = getIdbCmd()
-    if (idbInstalled) console.debug('[startup] idb available:', idbCmd)
-    else console.debug('[startup] idb not available or failed to run:', idbCmd)
-  } catch (e: unknown) {
-    console.warn('[startup] error during idb healthcheck:', e instanceof Error ? e.message : String(e))
-  }
-
-  // Check xcrun availability (non-fatal)
-  try {
-    const xcrun = getXcrunCmd()
-    try {
-      const out = execSync(`${xcrun} --version`, { stdio: ['ignore','pipe','ignore'] }).toString().trim()
-      console.debug('[startup] xcrun available:', xcrun, out.split('\n')[0])
-    } catch (err: unknown) {
-      console.warn('[startup] xcrun not available or failed to run:', xcrun, err instanceof Error ? err.message : String(err))
-    }
-  } catch (e: unknown) {
-    console.warn('[startup] error during xcrun healthcheck:', e instanceof Error ? e.message : String(e))
-  }
-
-})()
+    console.debug('[startup] system status summary:', { adb: res.adbAvailable, ios: res.iosAvailable, devices: res.devices, iosDevices: res.iosDevices })
+  } catch {}
+}).catch(e => console.warn('[startup] healthcheck failed:', e instanceof Error ? e.message : String(e)))
 
 function wrapResponse<T>(data: T) {
   return {
@@ -240,6 +206,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           platform: { type: "string", enum: ["android", "ios"] }
         }
       }
+    },
+    {
+      name: "get_system_status",
+      description: "Quick healthcheck of local mobile debugging environment (adb, devices, logs, env, iOS).",
+      inputSchema: { type: "object", properties: {} }
     },
     {
       name: "capture_screenshot",
@@ -656,6 +627,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typ
       const { platform, appId } = (args || {}) as any
       const res = await ToolsManage.listDevicesHandler({ platform, appId })
       return wrapResponse(res)
+    }
+
+    if (name === "get_system_status") {
+      const result = await getSystemStatus()
+      return wrapResponse(result)
     }
 
 
