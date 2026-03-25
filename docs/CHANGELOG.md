@@ -2,6 +2,10 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.19.1]
+
+- Fixed Android install issues
+
 ## [0.19.0]
 
 - Added `observe_until` interaction tool: waits for UI, log, screen fingerprint or idle conditions with configurable polling and timeout. Returns rich details on match (element info, log line, new fingerprint).

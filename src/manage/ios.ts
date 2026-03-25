@@ -302,7 +302,7 @@ export class iOSManage {
       const result = await execCommand(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appStarted: !!result.output, launchTimeMs: 1000 }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execCommandWithDiagnostics(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appStarted: false, launchTimeMs: 0, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
@@ -315,7 +315,7 @@ export class iOSManage {
       await execCommand(['simctl', 'terminate', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appTerminated: true }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execCommandWithDiagnostics(['simctl', 'terminate', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appTerminated: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
@@ -351,7 +351,7 @@ export class iOSManage {
       } catch (e) {
         throw new Error(`Failed to clear data for ${bundleId}: ${e instanceof Error ? e.message : String(e)}`)
       }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execCommandWithDiagnostics(['simctl', 'get_app_container', deviceId, bundleId, 'data'], deviceId)
       return { device, dataCleared: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
     }

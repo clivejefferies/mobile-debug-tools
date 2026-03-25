@@ -115,7 +115,7 @@ export class AndroidManage {
     try {
       await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
       return { device: deviceInfo, appStarted: true, launchTimeMs: 1000 }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execAdbWithDiagnostics(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
       return { device: deviceInfo, appStarted: false, launchTimeMs: 0, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
     }
@@ -127,7 +127,7 @@ export class AndroidManage {
     try {
       await execAdb(['shell', 'am', 'force-stop', appId], deviceId)
       return { device: deviceInfo, appTerminated: true }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execAdbWithDiagnostics(['shell', 'am', 'force-stop', appId], deviceId)
       return { device: deviceInfo, appTerminated: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
     }
@@ -149,7 +149,7 @@ export class AndroidManage {
     try {
       const output = await execAdb(['shell', 'pm', 'clear', appId], deviceId)
       return { device: deviceInfo, dataCleared: output === 'Success' }
-    } catch (e:any) {
+    } catch (e: unknown) {
       const diag = execAdbWithDiagnostics(['shell', 'pm', 'clear', appId], deviceId)
       return { device: deviceInfo, dataCleared: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
     }

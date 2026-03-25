@@ -18,9 +18,7 @@ function javaVersionOf(javaBin: string): string | undefined {
     // Java prints version to stderr traditionally
     const out = (res.stdout || '') + (res.stderr || '')
     return out || undefined
-  } catch {
-    return undefined
-  }
+  } catch (e: unknown) { console.debug('[javaVersionOf] java -version failed: ' + String(e)); return undefined }
 }
 
 export async function detectJavaHome(): Promise<string | undefined> {
@@ -81,11 +79,11 @@ export async function detectJavaHome(): Promise<string | undefined> {
     try {
       const out17 = execSync('/usr/libexec/java_home -v 17', { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim()
       if (out17) return out17
-    } catch {}
+    } catch (e: unknown) { console.debug('[java.detect] /usr/libexec/java_home -v 17 failed: ' + String(e)) }
     try {
       const out21 = execSync('/usr/libexec/java_home -v 21', { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim()
       if (out21) return out21
-    } catch {}
+    } catch (e: unknown) { console.debug('[java.detect] /usr/libexec/java_home -v 21 failed: ' + String(e)) }
 
     // 6) macOS common JDK locations
     try {
@@ -96,7 +94,7 @@ export async function detectJavaHome(): Promise<string | undefined> {
           return candidate
         }
       }
-    } catch {}
+    } catch (e: unknown) { console.debug('[java.detect] listing /Library/Java/JavaVirtualMachines failed: ' + String(e)) }
 
     // 7) Linux locations
     const linuxCandidates = [
@@ -108,10 +106,10 @@ export async function detectJavaHome(): Promise<string | undefined> {
       '/usr/lib/jvm/java-21-openjdk-amd64'
     ]
     for (const p of linuxCandidates) {
-      try { if (existsSync(p)) return p } catch {}
+      try { if (existsSync(p)) return p } catch (e: unknown) { console.debug(`[java.detect] checking linux candidate ${p} failed: ${String(e)}`) }
     }
-  } catch (e:any) {
-    console.debug('[java.detect] error detecting java home:', e?.message || String(e))
+  } catch (e: unknown) {
+    console.debug('[java.detect] error detecting java home:', e instanceof Error ? e.message : String(e))
   }
   return undefined
 }

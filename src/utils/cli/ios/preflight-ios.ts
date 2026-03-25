@@ -40,8 +40,8 @@ function startCompanionIfNeeded(companionPath: string | null, udid: string | nul
     const child = spawn(companionPath, ['--udid', udid], { detached: true, stdio: 'ignore' })
     child.unref()
     return { started: true }
-  } catch (e:any) {
-    return { started: false, error: e.message }
+  } catch (e: unknown) {
+    return { started: false, error: e instanceof Error ? e.message : String(e) }
   }
 }
 
