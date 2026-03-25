@@ -62,11 +62,12 @@ export async function isIDBInstalled(): Promise<boolean> {
   try {
     execSync(`command -v ${cmd}`, { stdio: ['ignore','pipe','ignore'] })
     return true
-  } catch {
+  } catch (e: unknown) {
     try {
       execSync(`${cmd} list-targets --json`, { stdio: ['ignore','pipe','ignore'], timeout: 2000 })
       return true
-    } catch {
+    } catch (e2: unknown) {
+      console.debug(`[isIDBInstalled] idb presence check failed for '${cmd}': ${e instanceof Error ? e.message : String(e2)}`)
       return false
     }
   }

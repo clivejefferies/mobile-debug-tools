@@ -21,6 +21,9 @@ import { ToolsObserve } from './observe/index.js'
 import { AndroidManage } from './manage/index.js'
 import { iOSManage } from './manage/index.js'
 import { ensureAdbAvailable } from './utils/android/utils.js'
+import { getIdbCmd, isIDBInstalled } from './utils/ios/utils.js'
+import { getXcrunCmd } from './utils/ios/utils.js'
+import { execSync } from 'child_process'
 
 
 const server = new Server(
@@ -48,6 +51,30 @@ const server = new Server(
       console.warn('[startup] error during adb healthcheck:', String(e))
     }
   }
+
+  // Check idb availability (non-fatal)
+  try {
+    const idbInstalled = await isIDBInstalled()
+    const idbCmd = getIdbCmd()
+    if (idbInstalled) console.debug('[startup] idb available:', idbCmd)
+    else console.debug('[startup] idb not available or failed to run:', idbCmd)
+  } catch (e: unknown) {
+    console.warn('[startup] error during idb healthcheck:', e instanceof Error ? e.message : String(e))
+  }
+
+  // Check xcrun availability (non-fatal)
+  try {
+    const xcrun = getXcrunCmd()
+    try {
+      const out = execSync(`${xcrun} --version`, { stdio: ['ignore','pipe','ignore'] }).toString().trim()
+      console.debug('[startup] xcrun available:', xcrun, out.split('\n')[0])
+    } catch (err: unknown) {
+      console.warn('[startup] xcrun not available or failed to run:', xcrun, err instanceof Error ? err.message : String(err))
+    }
+  } catch (e: unknown) {
+    console.warn('[startup] error during xcrun healthcheck:', e instanceof Error ? e.message : String(e))
+  }
+
 })()
 
 function wrapResponse<T>(data: T) {
