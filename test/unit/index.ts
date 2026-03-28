@@ -14,5 +14,6 @@ import '../interact/unit/wait_for_screen_change.test.ts'
 import '../observe/unit/capture_debug_snapshot.test.ts'
 import '../observe/unit/find_element.test.ts'
 import '../interact/unit/observe_until.test.ts'
+import '../interact/unit/observe_until_delay.test.ts'
 
 console.log('Unit tests loaded.')

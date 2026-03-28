@@ -17,7 +17,7 @@ function readPropertiesFile(p: string): Record<string,string> {
       out[k] = v
     }
     return out
-  } catch (e: unknown) {
+  } catch {
     return {}
   }
 }
@@ -30,7 +30,7 @@ function javaBinExists(p?: string): boolean {
     const alt = path.join(p, 'Contents', 'Home', 'bin', 'java')
     if (existsSync(alt)) return true
     return false
-  } catch (e: unknown) { return false }
+  } catch { return false }
 }
 
 export async function checkGradle(): Promise<{ gradleJavaHome?: string; gradleValid: boolean; filesChecked: string[]; issues: string[]; suggestedFixes?: string[] }> {
@@ -62,7 +62,7 @@ export async function checkGradle(): Promise<{ gradleJavaHome?: string; gradleVa
         suggestedFixes.push(`Edit ${userProps} to remove or correct org.gradle.java.home`)
       }
     }
-  } catch (e: unknown) { /* ignore */ }
+  } catch { }
 
   // 3) system gradle.properties
   const systemProps = '/etc/gradle/gradle.properties'
@@ -77,7 +77,7 @@ export async function checkGradle(): Promise<{ gradleJavaHome?: string; gradleVa
         suggestedFixes.push(`Edit ${systemProps} to remove or correct org.gradle.java.home`)
       }
     }
-  } catch (e: unknown) { /* ignore */ }
+  } catch { }
 
   // 4) GRADLE_HOME fallback
   if (!gradleJavaHome && process.env.GRADLE_HOME) {

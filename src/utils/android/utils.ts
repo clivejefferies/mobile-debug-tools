@@ -78,7 +78,7 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
   let gradleCheck
   try {
     gradleCheck = await checkGradle()
-  } catch (e: unknown) {
+  } catch {
     gradleCheck = { gradleJavaHome: undefined, gradleValid: false, filesChecked: [], issues: [] }
   }
 
@@ -117,7 +117,7 @@ export async function prepareGradle(projectPath: string): Promise<{ execCmd: str
     } else {
       // Invalid gradle java home detected: avoid passing it to Gradle and remove from spawn env
       console.debug(`[prepareGradle] Invalid org.gradle.java.home detected (${gradleCheck.gradleJavaHome}); removing from spawn env to avoid Gradle error.`)
-      try { delete env.GRADLE_JAVA_HOME } catch (e: unknown) { }
+      try { delete env.GRADLE_JAVA_HOME } catch { }
     }
   }
 
