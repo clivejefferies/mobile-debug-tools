@@ -48,6 +48,10 @@ export interface GetLogsResponse {
   device: DeviceInfo;
   logs: StructuredLogEntry[];
   logCount: number;
+  // Source indicates the filtering method used: 'pid', 'package'/'process', or 'broad'
+  source?: string;
+  // Meta contains debugging information about how logs were collected and filters applied
+  meta?: Record<string, any>;
 }
 
 export interface GetCrashResponse {

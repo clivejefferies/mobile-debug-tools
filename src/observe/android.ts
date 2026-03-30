@@ -183,10 +183,12 @@ export class AndroidObserve {
 
       const limited = filtered.slice(-Math.max(0, effectiveLimit))
 
-      return { device: deviceInfo, logs: limited, logCount: limited.length }
+      const source = pidArg ? 'pid' : (appId ? 'package' : 'broad')
+      const meta = { pidArg, appIdProvided: !!appId, filters: { tag, level, contains, since_seconds, limit: effectiveLimit }, pidExplicit: !!pid }
+      return { device: deviceInfo, logs: limited, logCount: limited.length, source, meta }
     } catch (e) {
       console.error("Error fetching logs:", e)
-      return { device: deviceInfo, logs: [], logCount: 0 }
+      return { device: deviceInfo, logs: [], logCount: 0, source: 'broad', meta: { error: e instanceof Error ? e.message : String(e) } }
     }
   }
 

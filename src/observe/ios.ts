@@ -241,12 +241,14 @@ export class iOSObserve {
         return ta - tb
       })
 
+      const source = appId ? 'process' : 'broad'
+      const meta = { appIdProvided: !!appId, filters: { tag, level, contains, since_seconds, limit: effectiveLimit }, pidExplicit: !!pid }
       const limited = filtered.slice(-Math.max(0, effectiveLimit))
-      return { device, logs: limited, logCount: limited.length }
+      return { device, logs: limited, logCount: limited.length, source, meta }
     } catch (err) {
       console.error('iOS getLogs failed:', err)
       const device = await getIOSDeviceMetadata(deviceId)
-      return { device, logs: [], logCount: 0 }
+      return { device, logs: [], logCount: 0, source: 'broad', meta: { error: err instanceof Error ? err.message : String(err) } }
     }
   }
 

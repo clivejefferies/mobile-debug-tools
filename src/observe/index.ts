@@ -52,15 +52,15 @@ export class ToolsObserve {
       const logs = Array.isArray(response.logs) ? response.logs : []
       const crashLines = logs.filter(entry => /FATAL EXCEPTION/i.test(entry.message))
       const anyFilterApplied = !!(appId || pid || tag || level || contains || since_seconds)
-      if (anyFilterApplied && logs.length === 0) return { device: response.device, logs: [], crashLines: [], logCount: 0, error: { code: 'LOGS_UNAVAILABLE', message: 'No logs match filters' } } as any
-      return { device: response.device, logs, crashLines, logCount: response.logCount }
+      if (anyFilterApplied && logs.length === 0) return { device: response.device, logs: [], crashLines: [], logCount: 0, source: response.source, meta: response.meta, error: { code: 'LOGS_UNAVAILABLE', message: 'No logs match filters' } } as any
+      return { device: response.device, logs, crashLines, logCount: response.logCount, source: response.source, meta: response.meta }
     } else {
       const resp = await (observe as iOSObserve).getLogs(filters)
       const logs = Array.isArray(resp.logs) ? resp.logs : []
       const crashLines = logs.filter(entry => /FATAL EXCEPTION/i.test(entry.message))
       const anyFilterApplied = !!(appId || pid || tag || level || contains || since_seconds)
-      if (anyFilterApplied && logs.length === 0) return { device: resp.device, logs: [], crashLines: [], logCount: 0, error: { code: 'LOGS_UNAVAILABLE', message: 'No logs match filters' } } as any
-      return { device: resp.device, logs, crashLines, logCount: resp.logCount }
+      if (anyFilterApplied && logs.length === 0) return { device: resp.device, logs: [], crashLines: [], logCount: 0, source: resp.source, meta: resp.meta, error: { code: 'LOGS_UNAVAILABLE', message: 'No logs match filters' } } as any
+      return { device: resp.device, logs, crashLines, logCount: resp.logCount, source: resp.source, meta: resp.meta }
     }
   }
 
