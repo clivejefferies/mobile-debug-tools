@@ -3,7 +3,7 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## [0.21.2]
-- Fixed screenshots not working
+- Fixed screenshots not working, imnproved tool
 
 ## [0.21.1]
 - Removed wait_for_element and renamed observe_until to wait_for_ui (obsolete references removed)
