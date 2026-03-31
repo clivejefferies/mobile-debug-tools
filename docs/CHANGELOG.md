@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.21.5]
+- Fixed incorrect timeout
+
 ## [0.21.4]
 - updated `wait_for_ui` with better contract and observability
 - update `get_logs` to get better output
