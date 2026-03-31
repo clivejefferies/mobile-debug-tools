@@ -32,8 +32,12 @@ You will need to add ADB_PATH for Android and XCRUN_PATH and IDB_PATH for iOS.
 ## Usage
 
 Examples: 
-* I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
-* Add a button, hook into the repository and confirm API request successful
+
+Crash fixing:
+> I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
+
+Feature building:
+> Add a button, hook into the repository and confirm API request successful
 
 ## Docs
 
