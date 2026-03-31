@@ -347,22 +347,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "wait_for_ui",
-      description: "Wait for a UI/log/screen/idle condition with a stability window before returning success.",
+      description: "Deterministic UI wait primitive. Waits for selector condition with retries and backoff.",
       inputSchema: {
         type: "object",
         properties: {
-          type: { type: "string", enum: ["ui","log","screen","idle"], description: "Condition type to observe", default: "ui" },
-          query: { type: "string", description: "Optional query string for ui/log/screen types" },
-          timeoutMs: { type: "number", description: "Timeout in ms to wait for condition (default 30000)", default: 30000 },
-          pollIntervalMs: { type: "number", description: "Polling interval in ms (default 300, clamped to 250-500)", default: 300 },
-          match: { type: "string", enum: ["present","absent"], description: "Match mode for UI checks: 'present' or 'absent' (default 'present')", default: "present" },
-          stability_ms: { type: "number", description: "Stability window in ms that the condition must hold before returning success (default 700)", default: 700 },
-          includeSnapshotOnFailure: { type: "boolean", description: "Whether to include a debug snapshot on timeout (default true)", default: true },
+          selector: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              resource_id: { type: "string" },
+              accessibility_id: { type: "string" },
+              contains: { type: "boolean", description: "When true, perform substring matching", default: false }
+            }
+          },
+          condition: { type: "string", enum: ["exists","not_exists","visible","clickable"], default: "exists" },
+          timeout_ms: { type: "number", default: 60000 },
+          poll_interval_ms: { type: "number", default: 300 },
+          match: { type: "object", properties: { index: { type: "number" } } },
+          retry: { type: "object", properties: { max_attempts: { type: "number", default: 1 }, backoff_ms: { type: "number", default: 0 } } },
           platform: { type: "string", enum: ["android","ios"], description: "Optional platform override" },
           deviceId: { type: "string", description: "Optional device serial/udid" }
         }
       }
     },
+
 
 
     {
@@ -614,7 +622,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typ
       const filtered = !!(pid || tag || level || contains || since_seconds || appId)
       return {
         content: [
-          { type: 'text', text: JSON.stringify({ device: res.device, result: { count: res.logCount, filtered, crashLines: (res.crashLines || []) } }, null, 2) },
+          { type: 'text', text: JSON.stringify({ device: res.device, result: { count: res.logCount, filtered, crashLines: (res.crashLines || []), source: res.source, meta: res.meta || {} } }, null, 2) },
           { type: 'text', text: JSON.stringify({ logs: res.logs }, null, 2) }
         ]
       }
@@ -680,8 +688,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typ
 
 
     if (name === "wait_for_ui") {
-      const { type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId } = (args || {}) as any
-      const res = await ToolsInteract.waitForUIHandler({ type, query, timeoutMs, pollIntervalMs, includeSnapshotOnFailure, match, stability_ms, observationDelayMs, platform, deviceId })
+      const { selector, condition = 'exists', timeout_ms = 5000, poll_interval_ms = 300, match, retry, platform, deviceId } = (args || {}) as any
+      const res = await ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform, deviceId })
       return wrapResponse(res)
     }
 

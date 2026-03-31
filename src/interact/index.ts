@@ -218,9 +218,164 @@ export class ToolsInteract {
     return { found: true, element: outEl, score: scoreVal, confidence: scoreVal }
   }
 
-  static async waitForUIHandler({ type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId }: { type?: 'ui' | 'log' | 'screen' | 'idle', query?: string, timeoutMs?: number, pollIntervalMs?: number, includeSnapshotOnFailure?: boolean, match?: 'present'|'absent', stability_ms?: number, observationDelayMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {
-    // Backwards-compatible wrapper that delegates to the core waitForUICore implementation
-    return await ToolsInteract.waitForUICore({ type, query, timeoutMs, pollIntervalMs, includeSnapshotOnFailure, match, stability_ms, observationDelayMs, platform, deviceId })
+  static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string }) {
+    const overallStart = Date.now()
+
+    // Validate selector
+    if (!selector || (typeof selector === 'object' && Object.keys(selector).length === 0)) {
+      return { status: 'timeout', error: { code: 'INVALID_SELECTOR', message: 'At least one selector field must be provided' }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 } }
+    }
+
+    // Validate condition
+    if (!['exists','not_exists','visible','clickable'].includes(condition)) {
+      return { status: 'timeout', error: { code: 'INVALID_CONDITION', message: `Unsupported condition: ${condition}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 } }
+    }
+
+    // Platform check
+    if (platform && !['android','ios'].includes(platform)) {
+      return { status: 'timeout', error: { code: 'PLATFORM_NOT_SUPPORTED', message: `Unsupported platform: ${platform}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 } }
+    }
+
+    const effectivePoll = Math.max(50, Math.min(poll_interval_ms || 300, 2000))
+    const maxAttempts = (retry && retry.max_attempts) ? Math.max(1, retry.max_attempts) : 1
+    const backoff = (retry && retry.backoff_ms) ? Math.max(0, retry.backoff_ms) : 0
+
+    let attempts = 0
+    let totalPollCount = 0
+
+    try {
+      while (attempts < maxAttempts) {
+        attempts++
+        const attemptStart = Date.now()
+        const deadline = attemptStart + (timeout_ms || 0)
+
+        while (Date.now() <= deadline) {
+          totalPollCount++
+          try {
+            const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+            const elements = (tree && Array.isArray(tree.elements)) ? tree.elements as any[] : []
+
+            // Normalize selector checks
+            const containsFlag = !!selector.contains
+            const matches: { el: any, idx: number }[] = []
+
+            const normalize = (s: any) => (s === null || s === undefined) ? '' : String(s).toLowerCase().trim()
+            const selText = normalize(selector.text)
+            const selRid = normalize(selector.resource_id)
+            const selAid = normalize(selector.accessibility_id)
+
+            for (let i = 0; i < elements.length; i++) {
+              const el = elements[i]
+              let ok = true
+
+              // text
+              if (selector.text !== undefined && selector.text !== null) {
+                const val = normalize(el.text || el.label || el.value || '')
+                if (containsFlag) {
+                  if (!val.includes(selText)) ok = false
+                } else {
+                  if (val !== selText) ok = false
+                }
+              }
+
+              // resource_id
+              if (ok && selector.resource_id !== undefined && selector.resource_id !== null) {
+                const rid = normalize(el.resourceId || el.resourceID || el.id || '')
+                if (containsFlag) {
+                  if (!rid.includes(selRid)) ok = false
+                } else {
+                  if (rid !== selRid) ok = false
+                }
+              }
+
+              // accessibility_id
+              if (ok && selector.accessibility_id !== undefined && selector.accessibility_id !== null) {
+                const aid = normalize(el.contentDescription || el.contentDesc || el.accessibilityLabel || el.label || '')
+                if (containsFlag) {
+                  if (!aid.includes(selAid)) ok = false
+                } else {
+                  if (aid !== selAid) ok = false
+                }
+              }
+
+              if (ok) matches.push({ el, idx: i })
+            }
+
+            // Evaluate condition
+            const matchedCount = matches.length
+            const pickIndex = (match && typeof match.index === 'number') ? match.index : 0
+            const chosen = matches.length > 0 && matches[pickIndex] ? matches[pickIndex] : (matches.length > 0 ? matches[0] : null)
+
+            let conditionMet = false
+            if (condition === 'exists') conditionMet = matchedCount >= 1
+            else if (condition === 'not_exists') conditionMet = matchedCount === 0
+            else if (condition === 'visible') {
+              if (chosen) {
+                const b = chosen.el.bounds
+                const visibleFlag = !!chosen.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
+                conditionMet = visibleFlag
+              } else conditionMet = false
+            } else if (condition === 'clickable') {
+              if (chosen) {
+                const b = chosen.el.bounds
+                const visibleFlag = !!chosen.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
+                const enabled = !!chosen.el.enabled
+                const clickable = !!chosen.el.clickable || !!chosen.el._interactable
+                conditionMet = visibleFlag && enabled && clickable
+              } else conditionMet = false
+            }
+
+            if (conditionMet) {
+              const now = Date.now()
+              const latency_ms = now - overallStart
+              // Build element output per spec
+              const outEl = chosen ? {
+                text: chosen.el.text ?? null,
+                resource_id: chosen.el.resourceId ?? chosen.el.resourceID ?? chosen.el.id ?? null,
+                accessibility_id: chosen.el.contentDescription ?? chosen.el.contentDesc ?? chosen.el.accessibilityLabel ?? chosen.el.label ?? null,
+                class: chosen.el.type ?? chosen.el.class ?? null,
+                bounds: Array.isArray(chosen.el.bounds) && chosen.el.bounds.length >= 4 ? chosen.el.bounds : null,
+                index: chosen.idx
+              } : null
+
+              return {
+                status: 'success',
+                matched: matchedCount,
+                element: outEl,
+                metrics: { latency_ms, poll_count: totalPollCount, attempts }
+              }
+            }
+
+          } catch (e) {
+            // Non-fatal per-poll error; record and continue
+            console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
+          }
+
+          // Sleep until next poll
+          await new Promise(r => setTimeout(r, effectivePoll || 50))
+        }
+
+        // Attempt timed out; if more attempts allowed, backoff then retry
+        if (attempts < maxAttempts) {
+          if (backoff > 0) await new Promise(r => setTimeout(r, backoff))
+          continue
+        }
+
+        // Final failure for this call
+        const elapsed = Date.now() - overallStart
+        return {
+          status: 'timeout',
+          error: { code: 'ELEMENT_NOT_FOUND', message: `Condition ${condition} not satisfied within timeout` },
+          metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts }
+        }
+      }
+
+      // Should not reach here
+      return { status: 'timeout', error: { code: 'ELEMENT_NOT_FOUND', message: 'Condition not satisfied' }, metrics: { latency_ms: Date.now() - overallStart, poll_count: totalPollCount, attempts } }
+    } catch (err) {
+      const elapsed = Date.now() - overallStart
+      return { status: 'timeout', error: { code: 'INTERNAL_ERROR', message: err instanceof Error ? err.message : String(err) }, metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts } }
+    }
   }
 
   // Helper: normalize various log objects into plain message strings for comparison

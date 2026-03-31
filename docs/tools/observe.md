@@ -4,7 +4,7 @@ Tools that retrieve device state, logs, screenshots and UI hierarchies.
 
 ## get_logs
 
-Fetch recent logs as structured entries optimized for AI agents.
+Fetch recent logs as structured entries optimized for AI agents. Use logs as a debugging aid only — prefer UI validation (wait_for_ui) first.
 
 Input (example):
 
@@ -16,16 +16,26 @@ Defaults:
 
 - No filters → return the most recent 50 log entries (app-scoped if appId provided), across all levels.
 
+When to use get_logs:
+
+- After a UI validation (wait_for_ui) fails to confirm the expected outcome.
+- When you suspect a crash, error, or silent failure that the UI doesn't expose.
+- To provide additional debugging context correlated with an action.
+
+Do NOT use get_logs as the primary signal for success/failure, or call it repeatedly without new actions.
+
 Response (structured):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "logs": [ { "timestamp": "2026-03-30T16:00:00.000Z", "level": "ERROR", "tag": "MyTag", "pid": 1234, "message": "Something failed" } ], "count": 1, "filtered": true }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "logs": [ { "timestamp": "2026-03-30T16:00:00.000Z", "level": "ERROR", "tag": "MyTag", "pid": 1234, "message": "Something failed" } ], "logCount": 1, "source": "pid|package|process|broad", "meta": { "filters": { "tag": "MyTag", "level": "ERROR" }, "pidArg": 1234 } }
 ```
 
 Notes:
 
 - Each log entry: timestamp (ISO), level (VERBOSE|DEBUG|INFO|WARN|ERROR), tag (string), pid (number|null), message (string).
-- Logs ordered oldest → newest. count equals number of entries returned. filtered is true if any filter was applied.
+- Logs ordered oldest → newest. logCount equals number of entries returned.
+- `source`: indicates how logs were filtered at collection time. Values: `pid` (filtered by process id), `package` / `process` (filtered by app/package/bundle), or `broad` (unfiltered system logs).
+- `meta`: debugging information about filters and collection method (e.g., pid detection, effective limit).
 - Supported filters: pid, tag, level, contains, since_seconds, limit.
 - Platform behaviour: Android uses `adb logcat` with source-side filters where possible; iOS uses unified logging (`log show`/simctl) and maps subsystem/category → tag.
 - Errors are returned as structured objects with `error.code` and `error.message`. Possible codes: LOGS_UNAVAILABLE, INVALID_FILTER, PLATFORM_NOT_SUPPORTED, INTERNAL_ERROR.
