@@ -136,16 +136,39 @@ export class iOSObserve {
       args.push('--last', '60s')
     }
 
+    let processNameUsed: string | undefined = undefined
     if (appId) {
       validateBundleId(appId)
-      // constrain to subsystem or process matching appId
-      args.push('--predicate', `subsystem contains "${appId}" or process == "${appId}"`)
+      // prefer matching the simple process name (last segment of bundle id), but also match full bundle id in subsystem
+      const parts = appId.split('.')
+      const simpleName = parts[parts.length - 1]
+      processNameUsed = simpleName
+      // predicate: match process by simple name or full bundle id, or subsystem contains bundle id
+      args.push('--predicate', `process == "${simpleName}" or process == "${appId}" or subsystem contains "${appId}"`)
     } else if (tag) {
       // predicate by subsystem/category
       args.push('--predicate', `subsystem contains "${tag}"`)
     }
 
     try {
+      // Attempt pid detection if appId provided and no explicit pid supplied — prefer process name derived from bundle id
+      let detectedPid: number | null = null
+      if (appId && !pid) {
+        const parts = appId.split('.')
+        const simpleName = parts[parts.length - 1]
+        try {
+          const pgrepRes = await execCommand(['simctl','spawn', deviceId, 'pgrep', '-f', simpleName], deviceId)
+          const out = pgrepRes && pgrepRes.output ? pgrepRes.output.trim() : ''
+          const firstLine = out.split(/\r?\n/).find(Boolean)
+          if (firstLine) {
+            const n = Number(firstLine.trim())
+            if (!isNaN(n) && n > 0) detectedPid = n
+          }
+        } catch {
+          // ignore pgrep failures — we'll fall back to process/bundle matching
+        }
+      }
+      const effectivePid = pid || detectedPid || null
       const result = await execCommand(args, deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       const rawLines = result.output ? result.output.split(/\r?\n/).filter(Boolean) : []
@@ -225,12 +248,13 @@ export class iOSObserve {
       // tag filter
       if (tag) filtered = filtered.filter(e => e.tag && e.tag.includes(tag))
 
-      // pid filter
-      if (pid) filtered = filtered.filter(e => e.pid === pid)
+      // pid filter (use detected/effective pid if available)
+      const pidToFilter = effectivePid
+      if (pidToFilter) filtered = filtered.filter(e => e.pid === pidToFilter)
 
       // If appId present but no predicate returned lines, try substring match
       if (appId && filtered.length === 0) {
-        const matched = parsed.filter(e => (e.message && e.message.includes(appId)) || (e.tag && e.tag.includes(appId)))
+        const matched = parsed.filter(e => (e.message && e.message.includes(appId)) || (e.tag && e.tag.includes(appId)) || (e.message && processNameUsed && e.message.includes(processNameUsed)))
         if (matched.length > 0) filtered = matched
       }
 
@@ -241,8 +265,8 @@ export class iOSObserve {
         return ta - tb
       })
 
-      const source = appId ? 'process' : 'broad'
-      const meta = { appIdProvided: !!appId, filters: { tag, level, contains, since_seconds, limit: effectiveLimit }, pidExplicit: !!pid }
+      const source = pidToFilter ? 'pid' : (appId ? 'process' : 'broad')
+      const meta = { appIdProvided: !!appId, processNameUsed: processNameUsed || null, detectedPid: detectedPid || null, filters: { tag, level, contains, since_seconds, limit: effectiveLimit }, pidExplicit: !!pid }
       const limited = filtered.slice(-Math.max(0, effectiveLimit))
       return { device, logs: limited, logCount: limited.length, source, meta }
     } catch (err) {
@@ -441,7 +465,8 @@ export class iOSObserve {
 
   async startLogStream(bundleId: string, deviceId: string = 'booted', sessionId: string = 'default') : Promise<{ success: boolean; stream_started?: boolean; error?: string }> {
     try {
-      const predicate = `process == "${bundleId}" or subsystem contains "${bundleId}"`
+      const simple = bundleId.split('.').pop() || bundleId
+      const predicate = `process == "${simple}" or process == "${bundleId}" or subsystem contains "${bundleId}"`
 
       if (iosActiveLogStreams.has(sessionId)) {
         try { iosActiveLogStreams.get(sessionId)!.proc.kill() } catch {}
