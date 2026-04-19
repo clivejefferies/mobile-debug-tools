@@ -36,10 +36,12 @@ interface ResolvedUiElementContext {
   platform: 'android' | 'ios'
   deviceId?: string
   bounds: [number, number, number, number] | null
+  index: number
 }
 
 
 export class ToolsInteract {
+  private static readonly _maxResolvedUiElements = 256
   private static _resolvedUiElements = new Map<string, ResolvedUiElementContext>()
 
   private static _normalize(s: any): string {
@@ -77,11 +79,12 @@ export class ToolsInteract {
     const bounds = ToolsInteract._normalizeBounds(el.bounds)
     const elementId = ToolsInteract._computeElementId(platform, deviceId, el, index)
 
-    ToolsInteract._resolvedUiElements.set(elementId, {
+    ToolsInteract._rememberResolvedElement(elementId, {
       elementId,
       platform,
       deviceId,
-      bounds
+      bounds,
+      index
     })
 
     return {
@@ -93,6 +96,38 @@ export class ToolsInteract {
       index,
       elementId
     }
+  }
+
+  private static _rememberResolvedElement(elementId: string, context: ResolvedUiElementContext) {
+    if (ToolsInteract._resolvedUiElements.has(elementId)) {
+      ToolsInteract._resolvedUiElements.delete(elementId)
+    }
+
+    ToolsInteract._resolvedUiElements.set(elementId, context)
+
+    while (ToolsInteract._resolvedUiElements.size > ToolsInteract._maxResolvedUiElements) {
+      const oldestElementId = ToolsInteract._resolvedUiElements.keys().next().value
+      if (!oldestElementId) break
+      ToolsInteract._resolvedUiElements.delete(oldestElementId)
+    }
+  }
+
+  static _resetResolvedUiElementsForTests() {
+    ToolsInteract._resolvedUiElements.clear()
+  }
+
+  private static _findCurrentResolvedElement(
+    elements: UiElement[],
+    platform: 'android' | 'ios',
+    deviceId: string | undefined,
+    resolved: ResolvedUiElementContext
+  ): { el: UiElement, index: number } | null {
+    const indexedCandidate = elements[resolved.index]
+    if (indexedCandidate && ToolsInteract._computeElementId(platform, deviceId, indexedCandidate, resolved.index) === resolved.elementId) {
+      return { el: indexedCandidate, index: resolved.index }
+    }
+
+    return null
   }
 
   private static _resolveActionableAncestor(elements: UiElement[], chosen: { el: UiElement, idx: number } | null): { el: UiElement, idx: number } | null {
@@ -181,9 +216,7 @@ export class ToolsInteract {
     const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : resolved.platform
     const treeDeviceId = tree?.device?.id || resolved.deviceId
     const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
-    const currentMatch = elements
-      .map((el, index) => ({ el, index }))
-      .find(({ el, index }) => ToolsInteract._computeElementId(treePlatform, treeDeviceId, el, index) === elementId)
+    const currentMatch = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
 
     if (!currentMatch) {
       return {
