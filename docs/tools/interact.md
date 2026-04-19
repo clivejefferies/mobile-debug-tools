@@ -136,38 +136,37 @@ Notes:
 ## wait_for_ui
 
 Purpose:
-- Wait for a condition to occur on the device: UI element appearance, a log line, a screen fingerprint change, or an idle/stable screen state.
-
-Supported types and behavior:
-- ui: Delegates to `find_element` to perform a semantic search of the UI tree. Returns the matched element descriptor (including tapCoordinates) when found.
-- log: Reads the active log stream (via `start_log_stream`/`readLogStreamHandler`) and falls back to a snapshot of recent logs (`getLogsHandler`). Matches when the query substring appears in a new log line after a captured baseline.
-- screen: Compares screen fingerprints (visual checks) against an initial baseline and returns when fingerprint changes. If `query` is provided it will attempt a `find_element` on the new screen to validate the expected content.
-- idle: Waits until the screen fingerprint remains stable for a short stability window (default 1000ms).
+- Deterministically wait for a UI selector match and return the matched element metadata.
 
 Input (ToolsInteract.waitForUIHandler):
 ```
-{ "type": "ui|log|screen|idle", "query": "optional string", "timeoutMs": 5000, "pollIntervalMs": 200, "platform": "android|ios", "deviceId": "optional device id" }
+{
+  "selector": { "text": "optional", "resource_id": "optional", "accessibility_id": "optional", "contains": false },
+  "condition": "exists|not_exists|visible|clickable",
+  "timeout_ms": 60000,
+  "poll_interval_ms": 300,
+  "match": { "index": 0 },
+  "retry": { "max_attempts": 1, "backoff_ms": 0 },
+  "platform": "android|ios",
+  "deviceId": "optional device id"
+}
 ```
 
 Success response highlights:
-- success: true
-- type: requested type
-- matched: true
-- details: human-friendly explanation
-- timestamp: epoch ms
-- element: (for ui/screen when matched) actionable element metadata with tapCoordinates
-- log: (for log) matched log message and raw entry
-- newFingerprint: (for screen) new fingerprint value
+- status: `success`
+- matched: number of matches found in the current poll
+- element: matched element metadata including `elementId`
+- metrics: latency, poll count, attempts
 
 Failure/timeout response:
-- success: false
-- error or reason: explanation
-- type: requested type
-- timeoutMs: value used
+- status: `timeout`
+- error: structured error with `code` and `message`
+- metrics: latency, poll count, attempts
 
 Notes & tips:
-- Defaults (timeoutMs=5000, pollIntervalMs=200) balance responsiveness with device query overhead; adjust in tests or scripts as needed.
-- For UI-sensitive flows prefer type='ui' rather than relying solely on visual fingerprint changes, as some UI updates don't alter the fingerprint.
+- `wait_for_ui` is responsible for **resolution only**.
+- Successful responses now include an `elementId` that can be passed to `tap_element`.
+- This enables the deterministic loop: **observe -> act -> verify**.
 
 Tests:
 - Unit: `test/unit/interact/wait_for_ui_contract.test.ts` and `test/unit/interact/wait_for_ui_selector_matching.test.ts`
@@ -175,10 +174,51 @@ Tests:
 
 Example:
 ```
-// Wait up to 5s for a button labeled "Generate Session" on Android
-ToolsInteract.waitForUIHandler({ type: 'ui', query: 'Generate Session', timeoutMs: 5000, platform: 'android' })
+ToolsInteract.waitForUIHandler({
+  selector: { text: 'Generate Session' },
+  condition: 'clickable',
+  timeout_ms: 5000,
+  platform: 'android'
+})
 ```
 
 Troubleshooting:
-- If wait_for_ui(log) never matches, ensure log streaming is started for the target package and baseline logs captured correctly.
-- If wait_for_ui(screen) times out despite visible UI change, try type='ui' to validate content-level changes.
+- If `wait_for_ui` times out, confirm the selector is precise and that the current UI tree exposes the expected text, resource ID, or accessibility ID.
+
+## tap_element
+
+Purpose:
+- Execute a tap against a UI element that has already been resolved by `wait_for_ui`.
+
+Input:
+```
+{ "elementId": "el_..." }
+```
+
+Behavior:
+- validates that the element still exists in the current UI context
+- validates that the element is visible
+- validates that the element is enabled
+- performs the tap using the resolved element bounds
+
+Success response:
+```
+{ "success": true, "elementId": "el_123", "action": "tap" }
+```
+
+Failure response:
+```
+{
+  "success": false,
+  "elementId": "el_123",
+  "action": "tap",
+  "error": { "code": "element_not_found|element_not_visible|element_not_enabled", "message": "..." }
+}
+```
+
+Notes:
+- `tap_element` does **not** accept selectors.
+- `tap_element` does **not** perform lookup, waiting, retries, or ambiguity resolution.
+- Migration pattern for selector-based flows is:
+  1. `wait_for_ui(selector)`
+  2. `tap_element(elementId)`

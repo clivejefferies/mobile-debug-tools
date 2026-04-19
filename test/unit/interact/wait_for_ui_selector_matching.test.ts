@@ -10,14 +10,14 @@ async function run() {
     // Test 1: exact text match -> exists
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [ { text: 'Hello', resourceId: 'rid1', contentDescription: 'acc1', type: 'Button', bounds: [0,0,10,10], visible: true, clickable: false, enabled: true } ] })
     const r1 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Hello' }, condition: 'exists', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
-    const ok1 = r1 && r1.status === 'success' && r1.matched === 1 && r1.element && r1.element.text === 'Hello'
+    const ok1 = r1 && r1.status === 'success' && r1.matched === 1 && r1.element && r1.element.text === 'Hello' && typeof r1.element.elementId === 'string'
     assert.ok(ok1, 'Exact match should satisfy exists condition')
     console.log('Exact match exists:', ok1 ? 'PASS' : 'FAIL', JSON.stringify(r1, null, 2))
 
     // Test 2: contains matching
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [ { text: 'Welcome User', resourceId: 'rid2', contentDescription: 'acc2', type: 'TextView', bounds: [0,0,50,10], visible: true } ] })
     const r2 = await ToolsInteract.waitForUIHandler({ selector: { text: 'User', contains: true }, condition: 'exists', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
-    const ok2 = r2 && r2.status === 'success' && r2.matched === 1 && r2.element && r2.element.text && r2.element.text.includes('Welcome')
+    const ok2 = r2 && r2.status === 'success' && r2.matched === 1 && r2.element && r2.element.text && r2.element.text.includes('Welcome') && typeof r2.element.elementId === 'string'
     assert.ok(ok2, 'Contains matching should succeed')
     console.log('Contains match:', ok2 ? 'PASS' : 'FAIL', JSON.stringify(r2, null, 2))
 
@@ -31,11 +31,23 @@ async function run() {
     // Test 4: clickable condition
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [ { text: 'TapMe', resourceId: 'rid4', bounds: [0,0,20,20], visible: true, clickable: true, enabled: true } ] })
     const r4 = await ToolsInteract.waitForUIHandler({ selector: { text: 'TapMe' }, condition: 'clickable', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
-    const ok4 = r4 && r4.status === 'success' && r4.matched === 1 && r4.element && r4.element.index === 0
+    const ok4 = r4 && r4.status === 'success' && r4.matched === 1 && r4.element && r4.element.index === 0 && typeof r4.element.elementId === 'string'
     assert.ok(ok4, 'Clickable element should satisfy clickable condition')
     console.log('Clickable match:', ok4 ? 'PASS' : 'FAIL', JSON.stringify(r4, null, 2))
 
-    // Test 5: retry behavior - first attempt times out, second attempt succeeds
+    // Test 5: clickable condition should resolve a clickable parent for matching text
+    ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
+      elements: [
+        { bounds: [100, 100, 300, 220], visible: true, clickable: true, enabled: true, children: [1] },
+        { text: 'Play session', bounds: [140, 130, 260, 180], visible: true, clickable: false, enabled: true, parentId: 0 }
+      ]
+    })
+    const r5 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Play Session', contains: true }, condition: 'clickable', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
+    const ok5 = r5 && r5.status === 'success' && r5.element && r5.element.index === 0
+    assert.ok(ok5, 'Clickable parent should satisfy clickable condition for child label text')
+    console.log('Clickable parent resolution:', ok5 ? 'PASS' : 'FAIL', JSON.stringify(r5, null, 2))
+
+    // Test 6: retry behavior - first attempt times out, second attempt succeeds
     const start = Date.now()
     let seqTree = async () => {
       const now = Date.now()
@@ -44,17 +56,17 @@ async function run() {
       return { elements: [ { text: 'Retried', resourceId: 'rid5', bounds: [0,0,10,10], visible: true } ] }
     }
     ;(Observe as any).ToolsObserve.getUITreeHandler = seqTree
-    const r5 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Retried' }, condition: 'exists', timeout_ms: 200, poll_interval_ms: 50, match: undefined, retry: { max_attempts: 3, backoff_ms: 150 }, platform: 'android' })
-    const ok5 = r5 && r5.status === 'success' && r5.metrics && r5.metrics.attempts >= 2
-    assert.ok(ok5, 'Retry path should eventually succeed')
-    console.log('Retry behavior:', ok5 ? 'PASS' : 'FAIL', JSON.stringify(r5, null, 2))
+    const r6 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Retried' }, condition: 'exists', timeout_ms: 200, poll_interval_ms: 50, match: undefined, retry: { max_attempts: 3, backoff_ms: 150 }, platform: 'android' })
+    const ok6 = r6 && r6.status === 'success' && r6.metrics && r6.metrics.attempts >= 2
+    assert.ok(ok6, 'Retry path should eventually succeed')
+    console.log('Retry behavior:', ok6 ? 'PASS' : 'FAIL', JSON.stringify(r6, null, 2))
 
-    // Test 6: timeout with no selector match -> correct error code
+    // Test 7: timeout with no selector match -> correct error code
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [] })
-    const r6 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Nope' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, retry: { max_attempts: 1 }, platform: 'android' })
-    const ok6 = r6 && r6.status === 'timeout' && r6.error && r6.error.code === 'ELEMENT_NOT_FOUND'
-    assert.ok(ok6, 'Missing selector should time out with ELEMENT_NOT_FOUND')
-    console.log('Timeout no match:', ok6 ? 'PASS' : 'FAIL', JSON.stringify(r6, null, 2))
+    const r7 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Nope' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, retry: { max_attempts: 1 }, platform: 'android' })
+    const ok7 = r7 && r7.status === 'timeout' && r7.error && r7.error.code === 'ELEMENT_NOT_FOUND'
+    assert.ok(ok7, 'Missing selector should time out with ELEMENT_NOT_FOUND')
+    console.log('Timeout no match:', ok7 ? 'PASS' : 'FAIL', JSON.stringify(r7, null, 2))
 
   } finally {
     ;(Observe as any).ToolsObserve.getUITreeHandler = origGetUITree

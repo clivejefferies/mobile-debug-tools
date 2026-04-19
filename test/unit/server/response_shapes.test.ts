@@ -7,6 +7,7 @@ import { ToolsObserve } from '../../../src/observe/index.js'
 async function run() {
   const originalInstallAppHandler = (ToolsManage as any).installAppHandler
   const originalWaitForUIHandler = (ToolsInteract as any).waitForUIHandler
+  const originalTapElementHandler = (ToolsInteract as any).tapElementHandler
   const originalCaptureScreenshotHandler = (ToolsObserve as any).captureScreenshotHandler
   const originalGetUITreeHandler = (ToolsObserve as any).getUITreeHandler
 
@@ -27,7 +28,7 @@ async function run() {
     ;(ToolsInteract as any).waitForUIHandler = async () => ({
       status: 'success',
       matched: 1,
-      element: { text: 'Ready', bounds: [0, 0, 10, 10], index: 0 },
+      element: { text: 'Ready', bounds: [0, 0, 10, 10], index: 0, elementId: 'el_ready' },
       metrics: { latency_ms: 12, poll_count: 1, attempts: 1 }
     })
 
@@ -36,6 +37,19 @@ async function run() {
     assert.strictEqual(waitForUIPayload.status, 'success')
     assert.strictEqual(waitForUIPayload.metrics.poll_count, 1)
     assert.strictEqual(waitForUIPayload.element.text, 'Ready')
+    assert.strictEqual(waitForUIPayload.element.elementId, 'el_ready')
+
+    ;(ToolsInteract as any).tapElementHandler = async () => ({
+      success: true,
+      elementId: 'el_ready',
+      action: 'tap'
+    })
+
+    const tapElementResponse = await handleToolCall('tap_element', { elementId: 'el_ready' })
+    const tapElementPayload = JSON.parse((tapElementResponse as any).content[0].text)
+    assert.strictEqual(tapElementPayload.success, true)
+    assert.strictEqual(tapElementPayload.elementId, 'el_ready')
+    assert.strictEqual(tapElementPayload.action, 'tap')
 
     ;(ToolsObserve as any).captureScreenshotHandler = async () => ({
       device: { platform: 'ios', id: 'booted', osVersion: '18.0', model: 'Simulator', simulator: true },
@@ -67,6 +81,7 @@ async function run() {
   } finally {
     ;(ToolsManage as any).installAppHandler = originalInstallAppHandler
     ;(ToolsInteract as any).waitForUIHandler = originalWaitForUIHandler
+    ;(ToolsInteract as any).tapElementHandler = originalTapElementHandler
     ;(ToolsObserve as any).captureScreenshotHandler = originalCaptureScreenshotHandler
     ;(ToolsObserve as any).getUITreeHandler = originalGetUITreeHandler
   }

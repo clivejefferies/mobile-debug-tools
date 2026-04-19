@@ -393,6 +393,20 @@ export const toolDefinitions = [
     }
   },
   {
+    name: 'tap_element',
+    description: 'Tap a previously resolved UI element using its elementId.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        elementId: {
+          type: 'string',
+          description: 'A unique element identifier returned by wait_for_ui'
+        }
+      },
+      required: ['elementId']
+    }
+  },
+  {
     name: 'swipe',
     description: 'Simulate a swipe gesture on an Android device.',
     inputSchema: {
@@ -634,6 +648,12 @@ async function handleTap(args: ToolCallArgs) {
   return wrapResponse(res)
 }
 
+async function handleTapElement(args: ToolCallArgs) {
+  const { elementId } = args as any
+  const res = await ToolsInteract.tapElementHandler({ elementId })
+  return wrapResponse(res)
+}
+
 async function handleSwipe(args: ToolCallArgs) {
   const { platform = 'android', x1, y1, x2, y2, duration, deviceId } = args as any
   const res = await ToolsInteract.swipeHandler({ platform, x1, y1, x2, y2, duration, deviceId })
@@ -696,6 +716,7 @@ const toolHandlers: Record<string, ToolHandler> = {
   wait_for_ui: handleWaitForUI,
   find_element: handleFindElement,
   tap: handleTap,
+  tap_element: handleTapElement,
   swipe: handleSwipe,
   scroll_to_element: handleScrollToElement,
   type_text: handleTypeText,

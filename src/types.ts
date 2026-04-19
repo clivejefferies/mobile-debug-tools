@@ -132,6 +132,16 @@ export interface TapResponse {
   error?: string;
 }
 
+export interface TapElementResponse {
+  success: boolean;
+  elementId: string;
+  action: 'tap';
+  error?: {
+    code: 'element_not_found' | 'element_not_visible' | 'element_not_enabled' | 'tap_failed';
+    message: string;
+  };
+}
+
 export interface SwipeResponse {
   device: DeviceInfo;
   success: boolean;
@@ -161,4 +171,3 @@ export interface InstallAppResponse {
   error?: string;
   diagnostics?: any;
 }
-

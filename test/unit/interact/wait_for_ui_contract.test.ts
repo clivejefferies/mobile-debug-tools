@@ -14,6 +14,7 @@ async function run() {
     assert.strictEqual(s.status, 'success', 'status must be success');
     assert.strictEqual(typeof s.matched, 'number', 'matched must be number');
     assert.ok(s.element, 'element must be present');
+    assert.strictEqual(typeof s.element.elementId, 'string', 'elementId must be present');
     assert.ok(s.metrics && typeof s.metrics.latency_ms === 'number' && typeof s.metrics.poll_count === 'number' && typeof s.metrics.attempts === 'number', 'metrics must include latency_ms, poll_count, attempts');
     assert.ok(typeof s.element.bounds !== 'undefined' && s.element.bounds !== null, 'element.bounds must be present');
 

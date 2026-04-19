@@ -1,9 +1,11 @@
+import { createHash } from 'crypto'
 import { AndroidInteract } from './android.js';
 import { iOSInteract } from './ios.js';
 export { AndroidInteract, iOSInteract };
 
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
+import type { TapElementResponse } from '../types.js'
 
 interface ScreenFingerprintResponse { fingerprint: string | null }
 
@@ -29,12 +31,157 @@ interface UiElement {
   _interactable?: boolean
 }
 
+interface ResolvedUiElementContext {
+  elementId: string
+  platform: 'android' | 'ios'
+  deviceId?: string
+  bounds: [number, number, number, number] | null
+  index: number
+}
+
 
 export class ToolsInteract {
+  private static readonly _maxResolvedUiElements = 256
+  private static _resolvedUiElements = new Map<string, ResolvedUiElementContext>()
 
   private static _normalize(s: any): string {
     if (s === null || s === undefined) return ''
     try { return String(s).toLowerCase().trim() } catch { return '' }
+  }
+
+  private static _normalizeBounds(bounds: any): [number, number, number, number] | null {
+    if (!Array.isArray(bounds) || bounds.length < 4) return null
+    const normalized = bounds.slice(0, 4).map((value: any) => Number(value))
+    if (normalized.some((value: number) => Number.isNaN(value))) return null
+    return normalized as [number, number, number, number]
+  }
+
+  private static _isVisibleElement(el: UiElement): boolean {
+    const bounds = ToolsInteract._normalizeBounds(el.bounds)
+    return !!el.visible && !!bounds && bounds[2] > bounds[0] && bounds[3] > bounds[1]
+  }
+
+  private static _computeElementId(platform: 'android' | 'ios', deviceId: string | undefined, el: UiElement, index: number): string {
+    const identity = {
+      platform,
+      deviceId: deviceId || '',
+      text: ToolsInteract._normalize(el.text ?? el.label ?? el.value ?? ''),
+      resourceId: ToolsInteract._normalize(el.resourceId ?? el.resourceID ?? el.id ?? ''),
+      accessibilityId: ToolsInteract._normalize(el.contentDescription ?? el.contentDesc ?? el.accessibilityLabel ?? el.label ?? ''),
+      class: ToolsInteract._normalize(el.type ?? el.class ?? ''),
+      bounds: ToolsInteract._normalizeBounds(el.bounds) ?? [0, 0, 0, 0],
+      index
+    }
+    return `el_${createHash('sha1').update(JSON.stringify(identity)).digest('hex').slice(0, 24)}`
+  }
+
+  private static _buildResolvedElement(platform: 'android' | 'ios', deviceId: string | undefined, el: UiElement, index: number) {
+    const bounds = ToolsInteract._normalizeBounds(el.bounds)
+    const elementId = ToolsInteract._computeElementId(platform, deviceId, el, index)
+
+    ToolsInteract._rememberResolvedElement(elementId, {
+      elementId,
+      platform,
+      deviceId,
+      bounds,
+      index
+    })
+
+    return {
+      text: el.text ?? null,
+      resource_id: el.resourceId ?? el.resourceID ?? el.id ?? null,
+      accessibility_id: el.contentDescription ?? el.contentDesc ?? el.accessibilityLabel ?? el.label ?? null,
+      class: el.type ?? el.class ?? null,
+      bounds,
+      index,
+      elementId
+    }
+  }
+
+  private static _rememberResolvedElement(elementId: string, context: ResolvedUiElementContext) {
+    if (ToolsInteract._resolvedUiElements.has(elementId)) {
+      ToolsInteract._resolvedUiElements.delete(elementId)
+    }
+
+    ToolsInteract._resolvedUiElements.set(elementId, context)
+
+    while (ToolsInteract._resolvedUiElements.size > ToolsInteract._maxResolvedUiElements) {
+      const oldestElementId = ToolsInteract._resolvedUiElements.keys().next().value
+      if (!oldestElementId) break
+      ToolsInteract._resolvedUiElements.delete(oldestElementId)
+    }
+  }
+
+  static _resetResolvedUiElementsForTests() {
+    ToolsInteract._resolvedUiElements.clear()
+  }
+
+  private static _findCurrentResolvedElement(
+    elements: UiElement[],
+    platform: 'android' | 'ios',
+    deviceId: string | undefined,
+    resolved: ResolvedUiElementContext
+  ): { el: UiElement, index: number } | null {
+    const indexedCandidate = elements[resolved.index]
+    if (indexedCandidate && ToolsInteract._computeElementId(platform, deviceId, indexedCandidate, resolved.index) === resolved.elementId) {
+      return { el: indexedCandidate, index: resolved.index }
+    }
+
+    return null
+  }
+
+  private static _resolveActionableAncestor(elements: UiElement[], chosen: { el: UiElement, idx: number } | null): { el: UiElement, idx: number } | null {
+    if (!chosen) return null
+    if (chosen.el.clickable || chosen.el.focusable) return chosen
+
+    let current = chosen
+    let safety = 0
+
+    while (safety < 20 && current.el && !(current.el.clickable || current.el.focusable) && current.el.parentId !== undefined && current.el.parentId !== null) {
+      const parentId = current.el.parentId
+      let parentIndex: number | null = null
+
+      if (typeof parentId === 'number') parentIndex = parentId
+      else if (typeof parentId === 'string' && /^\d+$/.test(parentId)) parentIndex = Number(parentId)
+
+      if (parentIndex !== null && elements[parentIndex]) {
+        current = { el: elements[parentIndex], idx: parentIndex }
+        if (current.el.clickable || current.el.focusable) return current
+      } else if (typeof parentId === 'string') {
+        const foundIndex = elements.findIndex((el) => el.resourceId === parentId || el.id === parentId)
+        if (foundIndex === -1) break
+        current = { el: elements[foundIndex], idx: foundIndex }
+        if (current.el.clickable || current.el.focusable) return current
+      } else {
+        break
+      }
+
+      safety++
+    }
+
+    const childBounds = ToolsInteract._normalizeBounds(chosen.el.bounds)
+    if (!childBounds) return null
+    const [cl, ct, cr, cb] = childBounds
+
+    let best: { el: UiElement, idx: number } | null = null
+    let bestArea = Infinity
+
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i]
+      if (!el || !(el.clickable || el.focusable)) continue
+      const bounds = ToolsInteract._normalizeBounds(el.bounds)
+      if (!bounds) continue
+      const [pl, pt, pr, pb] = bounds
+      if (pl <= cl && pt <= ct && pr >= cr && pb >= cb) {
+        const area = (pr - pl) * (pb - pt)
+        if (area < bestArea) {
+          bestArea = area
+          best = { el, idx: i }
+        }
+      }
+    }
+
+    return best
   }
 
 
@@ -48,6 +195,99 @@ export class ToolsInteract {
   static async tapHandler({ platform, x, y, deviceId }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
     return await interact.tap(x, y, resolved.id)
+  }
+
+  static async tapElementHandler({ elementId }: { elementId: string }): Promise<TapElementResponse> {
+    const action = 'tap' as const
+    const resolved = ToolsInteract._resolvedUiElements.get(elementId)
+    if (!resolved) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'element_not_found',
+          message: 'Element ID was not found in the current UI context'
+        }
+      }
+    }
+
+    const tree = await ToolsObserve.getUITreeHandler({ platform: resolved.platform, deviceId: resolved.deviceId }) as any
+    const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : resolved.platform
+    const treeDeviceId = tree?.device?.id || resolved.deviceId
+    const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
+    const currentMatch = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
+
+    if (!currentMatch) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'element_not_found',
+          message: 'Element ID is not present in the current UI context'
+        }
+      }
+    }
+
+    if (!ToolsInteract._isVisibleElement(currentMatch.el)) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'element_not_visible',
+          message: 'Element is not visible'
+        }
+      }
+    }
+
+    if (currentMatch.el.enabled === false) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'element_not_enabled',
+          message: 'Element is not enabled'
+        }
+      }
+    }
+
+    const bounds = ToolsInteract._normalizeBounds(currentMatch.el.bounds) ?? resolved.bounds
+    if (!bounds || bounds[2] <= bounds[0] || bounds[3] <= bounds[1]) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'element_not_visible',
+          message: 'Element does not have valid visible bounds'
+        }
+      }
+    }
+
+    const x = Math.floor((bounds[0] + bounds[2]) / 2)
+    const y = Math.floor((bounds[1] + bounds[3]) / 2)
+    const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId })
+
+    if (!tapResult.success) {
+      return {
+        success: false,
+        elementId,
+        action,
+        error: {
+          code: 'tap_failed',
+          message: tapResult.error || 'Tap failed'
+        }
+      }
+    }
+
+    return {
+      success: true,
+      elementId,
+      action
+    }
   }
 
   static async swipeHandler({ platform = 'android', x1, y1, x2, y2, duration, deviceId }: { platform?: 'android' | 'ios', x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string }) {
@@ -335,6 +575,7 @@ export class ToolsInteract {
             }
 
             let conditionMet = false
+            let matchedElement = chosen
             if (condition === 'exists') {
               // when an index is specified, existence requires that specific index be present
               conditionMet = (pickIndex !== undefined) ? (chosen !== null) : (matchedCount >= 1)
@@ -348,11 +589,12 @@ export class ToolsInteract {
                 conditionMet = visibleFlag
               } else conditionMet = false
             } else if (condition === 'clickable') {
-              if (chosen) {
-                const b = chosen.el.bounds
-                const visibleFlag = !!chosen.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
-                const enabled = !!chosen.el.enabled
-                const clickable = !!chosen.el.clickable || !!chosen.el._interactable
+              matchedElement = chosen ? (ToolsInteract._resolveActionableAncestor(elements, chosen as { el: UiElement, idx: number }) || chosen) : null
+              if (matchedElement) {
+                const b = matchedElement.el.bounds
+                const visibleFlag = !!matchedElement.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
+                const enabled = !!matchedElement.el.enabled
+                const clickable = !!matchedElement.el.clickable || !!matchedElement.el._interactable || !!matchedElement.el.focusable
                 conditionMet = visibleFlag && enabled && clickable
               } else conditionMet = false
             }
@@ -361,14 +603,9 @@ export class ToolsInteract {
               const now = Date.now()
               const latency_ms = now - overallStart
               // Build element output per spec
-              const outEl = chosen ? {
-                text: chosen.el.text ?? null,
-                resource_id: chosen.el.resourceId ?? chosen.el.resourceID ?? chosen.el.id ?? null,
-                accessibility_id: chosen.el.contentDescription ?? chosen.el.contentDesc ?? chosen.el.accessibilityLabel ?? chosen.el.label ?? null,
-                class: chosen.el.type ?? chosen.el.class ?? null,
-                bounds: Array.isArray(chosen.el.bounds) && chosen.el.bounds.length >= 4 ? chosen.el.bounds : null,
-                index: chosen.idx
-              } : null
+              const resolvedPlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
+              const resolvedDeviceId = tree?.device?.id || deviceId
+              const outEl = matchedElement ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, matchedElement.el, matchedElement.idx) : null
 
               return {
                 status: 'success',

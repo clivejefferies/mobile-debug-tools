@@ -10,6 +10,7 @@ async function run() {
   assert(names.includes('wait_for_ui'))
   assert(names.includes('capture_screenshot'))
   assert(names.includes('get_ui_tree'))
+  assert(names.includes('tap_element'))
 
   const waitForUI = toolDefinitions.find((tool) => tool.name === 'wait_for_ui')
   assert(waitForUI, 'wait_for_ui should be registered')
@@ -28,6 +29,10 @@ async function run() {
   const startApp = toolDefinitions.find((tool) => tool.name === 'start_app')
   assert(startApp, 'start_app should be registered')
   assert.deepStrictEqual((startApp as any).inputSchema.required, ['platform', 'appId'])
+
+  const tapElement = toolDefinitions.find((tool) => tool.name === 'tap_element')
+  assert(tapElement, 'tap_element should be registered')
+  assert.deepStrictEqual((tapElement as any).inputSchema.required, ['elementId'])
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 
