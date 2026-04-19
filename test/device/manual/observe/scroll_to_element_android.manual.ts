@@ -2,7 +2,7 @@
 import { AndroidInteract } from '../../../dist/interact/index.js'
 
 
-// Usage: tsx test/device/observe/run-scroll-test-android.ts <deviceId> <appId> <selectorText>
+// Usage: tsx test/device/manual/observe/scroll_to_element_android.manual.ts <deviceId> <appId> <selectorText>
 const args = process.argv.slice(2)
 const DEVICE_ID = args[0] || process.env.DEVICE_ID || 'emulator-5554'
 const SELECTOR = args[2] || process.env.SELECTOR || 'Generate Session'

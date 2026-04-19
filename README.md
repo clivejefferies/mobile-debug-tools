@@ -46,7 +46,12 @@ Feature building:
 - Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
 - Changelog: [Changelog](docs/CHANGELOG.md)
 
+## Testing
+
+- `npm run test:unit` runs every automated unit test under `test/unit/...`
+- `npm run test:device` runs the automated device smoke checks under `test/device/automated/...`
+- Manual and debug-oriented device scripts live under `test/device/manual/...` and are not part of the default test commands
+
 ## License
 
 MIT
-

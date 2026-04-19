@@ -4,6 +4,7 @@ import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const deviceRoot = fileURLToPath(new URL('.', import.meta.url))
+const automatedRoot = fileURLToPath(new URL('./automated', import.meta.url))
 const runnableSuffixes = ['.test.ts', '.smoke.ts', '.integration.ts']
 
 async function collectFiles(dir: string): Promise<string[]> {
@@ -22,10 +23,7 @@ async function runFile(file: string): Promise<void> {
   console.log(`Running device test: ${relativePath}`)
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn('tsx', [file], {
-      stdio: 'inherit',
-      env: { ...process.env, DEVICE_TEST_RUNNER: '1' },
-    })
+    const child = spawn('tsx', [file], { stdio: 'inherit' })
     child.on('error', reject)
     child.on('close', (code) => {
       if (code === 0) {
@@ -39,8 +37,7 @@ async function runFile(file: string): Promise<void> {
 }
 
 (async function () {
-  const allFiles = (await collectFiles(deviceRoot))
-    .filter((file) => path.basename(file) !== 'index.ts')
+  const allFiles = (await collectFiles(automatedRoot))
     .filter((file) => runnableSuffixes.some((suffix) => file.endsWith(suffix)))
     .sort()
 

@@ -9,6 +9,15 @@ import { computeScreenFingerprint } from '../utils/ui/index.js'
 import { parsePngSize } from '../utils/image.js'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+let iosExecCommand = execCommand
+
+export function _setIOSExecCommandForTests(fn: typeof execCommand) {
+  iosExecCommand = fn
+}
+
+export function _resetIOSExecCommandForTests() {
+  iosExecCommand = execCommand
+}
 
 interface IDBElement {
   AXFrame?: { x: number | string, y: number | string, width: number | string, height: number | string, w?: number | string, h?: number | string };
@@ -157,7 +166,7 @@ export class iOSObserve {
         const parts = appId.split('.')
         const simpleName = parts[parts.length - 1]
         try {
-          const pgrepRes = await execCommand(['simctl','spawn', deviceId, 'pgrep', '-f', simpleName], deviceId)
+          const pgrepRes = await iosExecCommand(['simctl','spawn', deviceId, 'pgrep', '-f', simpleName], deviceId)
           const out = pgrepRes && pgrepRes.output ? pgrepRes.output.trim() : ''
           const firstLine = out.split(/\r?\n/).find(Boolean)
           if (firstLine) {
@@ -169,7 +178,7 @@ export class iOSObserve {
         }
       }
       const effectivePid = pid || detectedPid || null
-      const result = await execCommand(args, deviceId)
+      const result = await iosExecCommand(args, deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       const rawLines = result.output ? result.output.split(/\r?\n/).filter(Boolean) : []
 
@@ -281,7 +290,7 @@ export class iOSObserve {
     const tmpFile = `/tmp/mcp-ios-screenshot-${Date.now()}.png`
 
     try {
-      await execCommand(['simctl', 'io', deviceId, 'screenshot', tmpFile], deviceId)
+      await iosExecCommand(['simctl', 'io', deviceId, 'screenshot', tmpFile], deviceId)
       
       const buffer = await fs.readFile(tmpFile)
       const base64 = buffer.toString('base64')

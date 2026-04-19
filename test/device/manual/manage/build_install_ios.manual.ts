@@ -35,7 +35,7 @@ function spawnStream(cmd: string, args: string[], opts: any = {}): Promise<numbe
 async function main() {
   const [, , projectPath, deviceId = 'booted'] = process.argv
   if (!projectPath) {
-    console.error('Usage: tsx test/device/manage/run-build-install-ios.ts <project-dir> [deviceId]')
+    console.error('Usage: tsx test/device/manual/manage/build_install_ios.manual.ts <project-dir> [deviceId]')
     process.exit(1)
   }
 

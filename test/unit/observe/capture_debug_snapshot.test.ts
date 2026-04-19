@@ -1,4 +1,5 @@
 import { ToolsObserve } from '../../../src/observe/index.js'
+import assert from 'assert'
 
 async function run() {
   console.log('Starting capture_debug_snapshot unit tests...')
@@ -35,6 +36,7 @@ async function run() {
     const res1: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: true, logLines: 50, sessionId: 's1' })
     console.log('res1:', JSON.stringify(res1, null, 2))
     const pass1 = res1 && res1.screenshot === 'BASE64PNG' && res1.activity && res1.fingerprint === 'abc123' && Array.isArray(res1.logs) && res1.logs.length === 1
+    assert.ok(pass1, 'captureDebugSnapshot should aggregate successful handler results')
     console.log('Test 1:', pass1 ? 'PASS' : 'FAIL')
 
     // Restore handlers before next test
@@ -54,6 +56,7 @@ async function run() {
     const res2: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: true, logLines: 10, appId: 'com.example' })
     console.log('res2:', JSON.stringify(res2, null, 2))
     const pass2 = res2 && res2.screenshot_error && res2.ui_tree_error && Array.isArray(res2.logs) && res2.logs.length === 2
+    assert.ok(pass2, 'captureDebugSnapshot should surface partial failures and fallback logs')
     console.log('Test 2:', pass2 ? 'PASS' : 'FAIL')
 
     // Restore handlers before next test
@@ -74,6 +77,7 @@ async function run() {
     const res3: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: false })
     console.log('res3:', JSON.stringify(res3, null, 2))
     const pass3 = res3 && typeof res3.logs !== 'undefined' && res3.logs.length === 0
+    assert.ok(pass3, 'captureDebugSnapshot should return an empty logs array when includeLogs is false')
     console.log('Test 3:', pass3 ? 'PASS' : 'FAIL')
 
   } finally {
@@ -86,4 +90,4 @@ async function run() {
   }
 }
 
-run().catch(console.error)
+run().catch((error) => { console.error(error); process.exit(1) })

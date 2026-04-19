@@ -2,11 +2,11 @@
  * Test script for verify UI Tree functionality.
  * 
  * Usage:
- *   npx tsx test-ui-tree.ts [android|ios] [deviceId]
+ *   npx tsx test/device/manual/observe/ui_tree.manual.ts [android|ios] [deviceId]
  * 
  * Examples:
- *   npx tsx test-ui-tree.ts android
- *   npx tsx test-ui-tree.ts ios booted
+ *   npx tsx test/device/manual/observe/ui_tree.manual.ts android
+ *   npx tsx test/device/manual/observe/ui_tree.manual.ts ios booted
  */
 
 import { AndroidObserve } from '../../../src/observe/index.js';
@@ -67,7 +67,7 @@ async function main() {
         console.log(`- Elements with text: ${withText}`);
     }
 
-  } catch {
+  } catch (error) {
     console.error("\n❌ Test Failed:", error);
     process.exit(1);
   }

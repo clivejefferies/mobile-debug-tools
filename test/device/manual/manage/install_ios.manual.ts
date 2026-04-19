@@ -4,7 +4,7 @@ import { iOSManage } from '../../../dist/utils/ios/manage.js'
 async function main() {
   const [, , appPath, deviceId] = process.argv
   if (!appPath) {
-    console.error('Usage: node test/device/manage/run-install-ios.ts <.app-or-project-dir> [deviceId]')
+    console.error('Usage: node test/device/manual/manage/install_ios.manual.ts <.app-or-project-dir> [deviceId]')
     process.exit(1)
   }
 

@@ -9,7 +9,7 @@ if (process.env.SKIP_DEVICE_TESTS === '1') {
 }
 
 // Ensure helper script exists
-const helperScript = 'test/device/observe/run-get-logs.ts'
+const helperScript = 'test/device/manual/observe/get_logs.manual.ts'
 if (!fs.existsSync(helperScript)) {
   console.error(`Missing ${helperScript}. Run 'npm run build' first or ensure the helper exists.`)
   process.exit(1)

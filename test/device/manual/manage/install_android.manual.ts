@@ -4,7 +4,7 @@ import { AndroidManage } from '../../../dist/utils/android/manage.js'
 async function main() {
   const [, , appPath, deviceId] = process.argv
   if (!appPath) {
-    console.error('Usage: node test/device/manage/run-install-android.ts <apk-or-project-dir> [deviceId]')
+    console.error('Usage: node test/device/manual/manage/install_android.manual.ts <apk-or-project-dir> [deviceId]')
     process.exit(1)
   }
 

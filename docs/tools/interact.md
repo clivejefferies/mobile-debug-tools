@@ -50,7 +50,7 @@ Notes:
 - Visibility check uses element.bounds intersecting the device resolution when available; falls back to the element.visible flag if bounds/resolution are missing.
 - The tool fingerprints the visible UI between scrolls; if the fingerprint doesn't change after a swipe the tool stops early assuming end-of-list.
 - Android swipe uses `adb shell input swipe` with screen percentage coordinates. iOS swipe uses `idb ui swipe` command; note `idb` swipe does not accept a duration argument.
-- Unit tests are located at `test/unit/observe/scroll_to_element.test.ts` and device runners at `test/device/observe/`.
+- Unit tests are located at `test/unit/observe/scroll_to_element.test.ts`, automated device smoke checks under `test/device/automated/...`, and manual device runners under `test/device/manual/...`.
 
 ---
 
@@ -170,8 +170,8 @@ Notes & tips:
 - For UI-sensitive flows prefer type='ui' rather than relying solely on visual fingerprint changes, as some UI updates don't alter the fingerprint.
 
 Tests:
-- Unit: `test/unit/interact/wait_for_ui.test.ts`
-- Device-oriented runners now live under `test/device/interact/` (requires devices/emulators and adb/xcrun in PATH)
+- Unit: `test/unit/interact/wait_for_ui_contract.test.ts` and `test/unit/interact/wait_for_ui_selector_matching.test.ts`
+- Automated device checks now live under `test/device/automated/...`; manual/debug runners live under `test/device/manual/...` (requires devices/emulators and adb/xcrun in PATH)
 
 Example:
 ```

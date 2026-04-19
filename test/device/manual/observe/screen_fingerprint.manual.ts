@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Device E2E: get_screen_fingerprint
- * Usage: RUN_DEVICE_TESTS=true npx tsx run-screen-fingerprint.ts [android|ios] [deviceId]
+ * Usage: RUN_DEVICE_TESTS=true npx tsx test/device/manual/observe/screen_fingerprint.manual.ts [android|ios] [deviceId]
  */
 
 import { AndroidObserve } from '../../../src/observe/index.js'

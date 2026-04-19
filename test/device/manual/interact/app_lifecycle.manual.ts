@@ -14,7 +14,7 @@ async function main() {
   const appId = args[1];
 
   if ((platform !== "android" && platform !== "ios") || !appId) {
-    console.error("Usage: npx tsx test/device/interact/smoke-test.ts <android|ios> <appId>");
+    console.error("Usage: npx tsx test/device/manual/interact/app_lifecycle.manual.ts <android|ios> <appId>");
     process.exit(1);
   }
 
@@ -104,7 +104,7 @@ async function main() {
 
     console.log(`\n✨ Smoke test COMPLETED SUCCESSFULLY! ✨\n`);
 
-  } catch {
+  } catch (error) {
     console.error(`\n❌ Smoke test FAILED:`, error);
     process.exit(1);
   }
