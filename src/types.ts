@@ -142,6 +142,75 @@ export interface TapElementResponse {
   };
 }
 
+export interface NetworkActivityRequest {
+  endpoint: string;
+  method: string;
+  statusCode: number | null;
+  networkError: 'timeout' | 'dns_error' | 'tls_error' | 'connection_refused' | 'connection_reset' | 'unknown_network_error' | null;
+  status: 'success' | 'failure' | 'retryable';
+  durationMs: number;
+}
+
+export interface GetNetworkActivityResponse {
+  requests: NetworkActivityRequest[];
+  count: number;
+  error?: 'network_capture_unavailable';
+  message?: string;
+}
+
+export interface NetworkCaptureStatusResponse {
+  mitmdumpAvailable: boolean;
+  mitmdumpPath: string;
+  running: boolean;
+  captureFileConfigured: boolean;
+  captureFile: string | null;
+  logFile: string | null;
+  captureFileExists: boolean;
+  captureFileSizeBytes: number;
+  proxyHost: string | null;
+  proxyPort: number | null;
+  startedAt: number | null;
+  recentTlsFailureHosts: string[];
+  issues: string[];
+}
+
+export interface StartNetworkCaptureResponse {
+  success: boolean;
+  started: boolean;
+  alreadyRunning?: boolean;
+  proxyHost?: string;
+  proxyPort?: number;
+  captureFile?: string;
+  mitmdumpPath?: string;
+  error?: string;
+}
+
+export interface StopNetworkCaptureResponse {
+  success: boolean;
+  stopped: boolean;
+  error?: string;
+}
+
+export interface NetworkCertificateStatusResponse {
+  certificateFileAvailable: boolean;
+  certificateFile: string | null;
+  certInstallerAvailable: boolean;
+  lockScreenDisabled: boolean | null;
+  recentTlsFailureHosts: string[];
+  issues: string[];
+}
+
+export interface PrepareNetworkCertificateInstallResponse {
+  success: boolean;
+  launched: boolean;
+  manualStepRequired: boolean;
+  certificateFile?: string;
+  devicePath?: string;
+  lockScreenConfigured?: boolean;
+  error?: string;
+  message?: string;
+}
+
 export interface SwipeResponse {
   device: DeviceInfo;
   success: boolean;

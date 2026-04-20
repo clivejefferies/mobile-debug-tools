@@ -66,6 +66,7 @@ async function run() {
   const originalEnv = {
     ADB_PATH: process.env.ADB_PATH,
     XCRUN_PATH: process.env.XCRUN_PATH,
+    MITMDUMP_PATH: process.env.MITMDUMP_PATH,
     ADB_VERSION_OUTPUT: process.env.ADB_VERSION_OUTPUT,
     ADB_VERSION_STATUS: process.env.ADB_VERSION_STATUS,
     ADB_DEVICES_OUTPUT: process.env.ADB_DEVICES_OUTPUT,
@@ -78,8 +79,17 @@ async function run() {
 
   try {
     const { adbPath, xcrunPath } = await writeFakeCommands(binDir)
+    const mitmdumpPath = path.join(binDir, 'mitmdump')
     process.env.ADB_PATH = adbPath
     process.env.XCRUN_PATH = xcrunPath
+    process.env.MITMDUMP_PATH = mitmdumpPath
+    await fs.writeFile(mitmdumpPath, `#!/bin/sh
+if [ "$1" = "--version" ]; then
+  printf '%s' "Mitmproxy: 10.0.0"
+  exit 0
+fi
+while true; do sleep 1; done
+`, { mode: 0o755 })
 
     setScenario({
       ADB_VERSION_STATUS: '0',
@@ -95,6 +105,8 @@ async function run() {
     assert.strictEqual(healthy.success, true)
     assert.strictEqual(healthy.adbAvailable, true)
     assert.strictEqual(typeof healthy.adbVersion, 'string')
+    assert.strictEqual(healthy.networkCapture.mitmdumpAvailable, true)
+    assert.strictEqual(typeof healthy.networkCertificate.certificateFileAvailable, 'boolean')
 
     setScenario({
       ADB_VERSION_STATUS: '1',

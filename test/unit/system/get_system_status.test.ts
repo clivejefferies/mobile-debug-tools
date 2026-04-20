@@ -7,6 +7,8 @@ async function run() {
   const payload = await getSystemStatus()
   assert(typeof payload.success === 'boolean')
   assert(Array.isArray(payload.issues))
+  assert(payload.networkCapture && typeof payload.networkCapture.mitmdumpAvailable === 'boolean')
+  assert(payload.networkCertificate && typeof payload.networkCertificate.certificateFileAvailable === 'boolean')
 
   const adb = ensureAdbAvailable()
   assert(adb && typeof adb.ok === 'boolean')

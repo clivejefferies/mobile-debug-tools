@@ -3,6 +3,7 @@ import { handleToolCall } from '../../../src/server-core.js'
 import { ToolsManage } from '../../../src/manage/index.js'
 import { ToolsInteract } from '../../../src/interact/index.js'
 import { ToolsObserve } from '../../../src/observe/index.js'
+import { ToolsNetwork } from '../../../src/network/index.js'
 
 async function run() {
   const originalInstallAppHandler = (ToolsManage as any).installAppHandler
@@ -10,6 +11,12 @@ async function run() {
   const originalTapElementHandler = (ToolsInteract as any).tapElementHandler
   const originalCaptureScreenshotHandler = (ToolsObserve as any).captureScreenshotHandler
   const originalGetUITreeHandler = (ToolsObserve as any).getUITreeHandler
+  const originalGetNetworkActivityHandler = (ToolsNetwork as any).getNetworkActivityHandler
+  const originalGetNetworkCaptureStatusHandler = (ToolsNetwork as any).getNetworkCaptureStatusHandler
+  const originalStartNetworkCaptureHandler = (ToolsNetwork as any).startNetworkCaptureHandler
+  const originalStopNetworkCaptureHandler = (ToolsNetwork as any).stopNetworkCaptureHandler
+  const originalGetNetworkCertificateStatusHandler = (ToolsNetwork as any).getNetworkCertificateStatusHandler
+  const originalPrepareNetworkCertificateInstallHandler = (ToolsNetwork as any).prepareNetworkCertificateInstallHandler
 
   try {
     ;(ToolsManage as any).installAppHandler = async () => ({
@@ -51,6 +58,95 @@ async function run() {
     assert.strictEqual(tapElementPayload.elementId, 'el_ready')
     assert.strictEqual(tapElementPayload.action, 'tap')
 
+    ;(ToolsNetwork as any).getNetworkActivityHandler = async () => ({
+      requests: [
+        {
+          endpoint: '/v1/login',
+          method: 'POST',
+          statusCode: 401,
+          networkError: null,
+          status: 'failure',
+          durationMs: 320
+        }
+      ],
+      count: 1
+    })
+
+    const networkActivityResponse = await handleToolCall('get_network_activity')
+    const networkActivityPayload = JSON.parse((networkActivityResponse as any).content[0].text)
+    assert.strictEqual(networkActivityPayload.count, 1)
+    assert.strictEqual(networkActivityPayload.requests[0].endpoint, '/v1/login')
+    assert.strictEqual(networkActivityPayload.requests[0].status, 'failure')
+
+    ;(ToolsNetwork as any).getNetworkCaptureStatusHandler = async () => ({
+      mitmdumpAvailable: true,
+      mitmdumpPath: 'mitmdump',
+      running: false,
+      captureFileConfigured: false,
+      captureFile: null,
+      logFile: '/tmp/mobile-debug-network-capture.log',
+      captureFileExists: false,
+      captureFileSizeBytes: 0,
+      proxyHost: null,
+      proxyPort: null,
+      startedAt: null,
+      recentTlsFailureHosts: ['api.example.com'],
+      issues: ['network capture process is not running']
+    })
+    ;(ToolsNetwork as any).startNetworkCaptureHandler = async () => ({
+      success: true,
+      started: true,
+      proxyHost: '127.0.0.1',
+      proxyPort: 8080,
+      captureFile: '/tmp/mobile-debug-network-capture.ndjson',
+      mitmdumpPath: 'mitmdump'
+    })
+    ;(ToolsNetwork as any).stopNetworkCaptureHandler = async () => ({
+      success: true,
+      stopped: true
+    })
+    ;(ToolsNetwork as any).getNetworkCertificateStatusHandler = async () => ({
+      certificateFileAvailable: true,
+      certificateFile: '/Users/test/.mitmproxy/mitmproxy-ca-cert.cer',
+      certInstallerAvailable: true,
+      lockScreenDisabled: false,
+      recentTlsFailureHosts: ['api.example.com'],
+      issues: ['recent proxy trust failures detected for: api.example.com']
+    })
+    ;(ToolsNetwork as any).prepareNetworkCertificateInstallHandler = async () => ({
+      success: true,
+      launched: true,
+      manualStepRequired: true,
+      certificateFile: '/Users/test/.mitmproxy/mitmproxy-ca-cert.cer',
+      devicePath: '/sdcard/Download/mitmproxy-ca-cert.cer',
+      lockScreenConfigured: false,
+      message: 'Certificate installer launched.'
+    })
+
+    const captureStatusResponse = await handleToolCall('get_network_capture_status')
+    const captureStatusPayload = JSON.parse((captureStatusResponse as any).content[0].text)
+    assert.strictEqual(captureStatusPayload.mitmdumpAvailable, true)
+    assert.strictEqual(captureStatusPayload.running, false)
+
+    const startCaptureResponse = await handleToolCall('start_network_capture', {})
+    const startCapturePayload = JSON.parse((startCaptureResponse as any).content[0].text)
+    assert.strictEqual(startCapturePayload.started, true)
+    assert.strictEqual(startCapturePayload.proxyPort, 8080)
+
+    const stopCaptureResponse = await handleToolCall('stop_network_capture')
+    const stopCapturePayload = JSON.parse((stopCaptureResponse as any).content[0].text)
+    assert.strictEqual(stopCapturePayload.stopped, true)
+
+    const certificateStatusResponse = await handleToolCall('get_network_certificate_status')
+    const certificateStatusPayload = JSON.parse((certificateStatusResponse as any).content[0].text)
+    assert.strictEqual(certificateStatusPayload.certificateFileAvailable, true)
+    assert.strictEqual(certificateStatusPayload.recentTlsFailureHosts[0], 'api.example.com')
+
+    const prepareCertificateResponse = await handleToolCall('prepare_network_certificate_install', {})
+    const prepareCertificatePayload = JSON.parse((prepareCertificateResponse as any).content[0].text)
+    assert.strictEqual(prepareCertificatePayload.launched, true)
+    assert.strictEqual(prepareCertificatePayload.manualStepRequired, true)
+
     ;(ToolsObserve as any).captureScreenshotHandler = async () => ({
       device: { platform: 'ios', id: 'booted', osVersion: '18.0', model: 'Simulator', simulator: true },
       screenshot: Buffer.from('png-data').toString('base64'),
@@ -84,6 +180,12 @@ async function run() {
     ;(ToolsInteract as any).tapElementHandler = originalTapElementHandler
     ;(ToolsObserve as any).captureScreenshotHandler = originalCaptureScreenshotHandler
     ;(ToolsObserve as any).getUITreeHandler = originalGetUITreeHandler
+    ;(ToolsNetwork as any).getNetworkActivityHandler = originalGetNetworkActivityHandler
+    ;(ToolsNetwork as any).getNetworkCaptureStatusHandler = originalGetNetworkCaptureStatusHandler
+    ;(ToolsNetwork as any).startNetworkCaptureHandler = originalStartNetworkCaptureHandler
+    ;(ToolsNetwork as any).stopNetworkCaptureHandler = originalStopNetworkCaptureHandler
+    ;(ToolsNetwork as any).getNetworkCertificateStatusHandler = originalGetNetworkCertificateStatusHandler
+    ;(ToolsNetwork as any).prepareNetworkCertificateInstallHandler = originalPrepareNetworkCertificateInstallHandler
   }
 }
 

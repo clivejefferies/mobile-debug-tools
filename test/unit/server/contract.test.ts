@@ -11,6 +11,12 @@ async function run() {
   assert(names.includes('capture_screenshot'))
   assert(names.includes('get_ui_tree'))
   assert(names.includes('tap_element'))
+  assert(names.includes('get_network_activity'))
+  assert(names.includes('get_network_capture_status'))
+  assert(names.includes('start_network_capture'))
+  assert(names.includes('stop_network_capture'))
+  assert(names.includes('get_network_certificate_status'))
+  assert(names.includes('prepare_network_certificate_install'))
 
   const waitForUI = toolDefinitions.find((tool) => tool.name === 'wait_for_ui')
   assert(waitForUI, 'wait_for_ui should be registered')
@@ -33,6 +39,20 @@ async function run() {
   const tapElement = toolDefinitions.find((tool) => tool.name === 'tap_element')
   assert(tapElement, 'tap_element should be registered')
   assert.deepStrictEqual((tapElement as any).inputSchema.required, ['elementId'])
+
+  const getNetworkActivity = toolDefinitions.find((tool) => tool.name === 'get_network_activity')
+  assert(getNetworkActivity, 'get_network_activity should be registered')
+  assert.deepStrictEqual((getNetworkActivity as any).inputSchema.properties, {})
+
+  const startNetworkCapture = toolDefinitions.find((tool) => tool.name === 'start_network_capture')
+  assert(startNetworkCapture, 'start_network_capture should be registered')
+  assert.strictEqual((startNetworkCapture as any).inputSchema.properties.port.default, 8080)
+
+  const getNetworkCertificateStatus = toolDefinitions.find((tool) => tool.name === 'get_network_certificate_status')
+  assert(getNetworkCertificateStatus, 'get_network_certificate_status should be registered')
+
+  const prepareNetworkCertificateInstall = toolDefinitions.find((tool) => tool.name === 'prepare_network_certificate_install')
+  assert(prepareNetworkCertificateInstall, 'prepare_network_certificate_install should be registered')
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 

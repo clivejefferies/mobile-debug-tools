@@ -46,3 +46,74 @@ Usage guidance:
 - Call before build/install flows to avoid wasted build attempts on misconfigured systems.
 - If `success: false`, attempt recovery steps or report issues to the user.
 
+## get_network_capture_status
+
+Report whether mitmdump-based capture is installed, configured, and currently running.
+
+Response highlights:
+- `mitmdumpAvailable`
+- `mitmdumpPath`
+- `running`
+- `captureFileConfigured`
+- `captureFile`
+- `logFile`
+- `proxyHost`
+- `proxyPort`
+- `recentTlsFailureHosts`
+- `issues`
+
+## start_network_capture
+
+Start mitmdump with the bundled addon and configure the capture file used by `get_network_activity`.
+
+Input example:
+
+```json
+{ "host": "127.0.0.1", "port": 8080 }
+```
+
+Response example:
+
+```json
+{
+  "success": true,
+  "started": true,
+  "proxyHost": "127.0.0.1",
+  "proxyPort": 8080,
+  "captureFile": "/tmp/mobile-debug-network-capture.ndjson",
+  "mitmdumpPath": "mitmdump"
+}
+```
+
+## stop_network_capture
+
+Stop the active mitmdump capture process started by `start_network_capture`.
+
+## get_network_certificate_status
+
+Inspect whether the local mitmproxy CA exists, whether Android can launch the certificate installer, and whether recent proxy runs hit TLS trust failures.
+
+Response highlights:
+- `certificateFileAvailable`
+- `certificateFile`
+- `certInstallerAvailable`
+- `lockScreenDisabled`
+- `recentTlsFailureHosts`
+- `issues`
+
+## prepare_network_certificate_install
+
+Push the mitmproxy CA certificate to an Android device and launch the system certificate installer.
+
+Input example:
+
+```json
+{
+  "deviceId": "emulator-5554",
+  "pin": "1234"
+}
+```
+
+Behavior notes:
+- If Android has no secure lock screen yet, provide `pin` so the tool can configure one before launching the installer.
+- On non-rooted Android devices, the final CA install confirmation still happens on-device. Android does not allow silent CA installation into the user trust store.

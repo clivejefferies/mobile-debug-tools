@@ -2,10 +2,16 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.23.0]
+- Added `get_network_activity` with deterministic post-action request windows backed by a mitmproxy NDJSON capture feed
+- Added proxy trust diagnostics to `get_network_capture_status`, including recent TLS trust-failure hosts from mitmproxy logs
+- Added `get_network_certificate_status` and `prepare_network_certificate_install` to surface and automate Android mitmproxy certificate install prerequisites
+
 ## [0.22.0]
 - Added a portable `test-authoring` skill package and documented the repository's vendor-neutral skill format
 - Added `AGENTS.md` as a top-level cold-start guide for autonomous agents entering the public repository
 - Added `tap_element` for deterministic action execution on previously resolved `wait_for_ui` elements
+
 
 ## [0.21.5]
 - Fixed incorrect timeout

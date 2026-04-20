@@ -2,6 +2,44 @@
 
 Tools that retrieve device state, logs, screenshots and UI hierarchies.
 
+## get_network_activity
+
+Return structured network requests captured after the most recent successful action.
+
+Input:
+
+```json
+{}
+```
+
+Response:
+
+```json
+{
+  "requests": [
+    {
+      "endpoint": "/v1/login",
+      "method": "POST",
+      "statusCode": 401,
+      "networkError": null,
+      "status": "failure",
+      "durationMs": 320
+    }
+  ],
+  "count": 1
+}
+```
+
+Notes:
+
+- Reads from an in-memory buffer populated by a proxy capture feed.
+- Only returns requests whose timestamps are newer than the last successful action and newer than the last consumed request.
+- Sorts requests oldest -> newest and advances the consumed cursor only when requests are returned.
+- Deterministically filters noise: if any primary requests exist in the selected window, background traffic is omitted; if only background requests exist, they are returned.
+- Returns `{ "requests": [], "count": 0 }` when no requests match the current action window.
+- Returns `{ "error": "network_capture_unavailable", "message": "..." }` when the proxy feed is not configured or cannot be read.
+- Configure `MOBILE_DEBUG_MCP_NETWORK_CAPTURE_FILE` and run `mitmdump -s src/network/mitmproxy_addon.py` to populate the buffer.
+
 ## get_logs
 
 Fetch recent logs as structured entries optimized for AI agents. Use logs as a debugging aid only — prefer UI validation (wait_for_ui) first.

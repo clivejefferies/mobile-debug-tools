@@ -5,6 +5,7 @@ export { AndroidInteract, iOSInteract };
 
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
+import { ToolsNetwork } from '../network/index.js'
 import type { TapElementResponse } from '../types.js'
 
 interface ScreenFingerprintResponse { fingerprint: string | null }
@@ -192,9 +193,11 @@ export class ToolsInteract {
     return { interact: interact as any, resolved, platform: effectivePlatform }
   }
 
-  static async tapHandler({ platform, x, y, deviceId }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string }) {
+  static async tapHandler({ platform, x, y, deviceId, recordAction = true }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string, recordAction?: boolean }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.tap(x, y, resolved.id)
+    const result = await interact.tap(x, y, resolved.id)
+    if (recordAction && result?.success) ToolsNetwork.recordActionSuccess()
+    return result
   }
 
   static async tapElementHandler({ elementId }: { elementId: string }): Promise<TapElementResponse> {
@@ -269,7 +272,7 @@ export class ToolsInteract {
 
     const x = Math.floor((bounds[0] + bounds[2]) / 2)
     const y = Math.floor((bounds[1] + bounds[3]) / 2)
-    const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId })
+    const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId, recordAction: false })
 
     if (!tapResult.success) {
       return {
@@ -283,6 +286,8 @@ export class ToolsInteract {
       }
     }
 
+    ToolsNetwork.recordActionSuccess()
+
     return {
       success: true,
       elementId,
@@ -292,22 +297,30 @@ export class ToolsInteract {
 
   static async swipeHandler({ platform = 'android', x1, y1, x2, y2, duration, deviceId }: { platform?: 'android' | 'ios', x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.swipe(x1, y1, x2, y2, duration, resolved.id)
+    const result = await interact.swipe(x1, y1, x2, y2, duration, resolved.id)
+    if (result?.success) ToolsNetwork.recordActionSuccess()
+    return result
   }
 
   static async typeTextHandler({ text, deviceId }: { text: string, deviceId?: string }) {
     const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-    return await new AndroidInteract().typeText(text, resolved.id)
+    const result = await new AndroidInteract().typeText(text, resolved.id)
+    if (result?.success) ToolsNetwork.recordActionSuccess()
+    return result
   }
 
   static async pressBackHandler({ deviceId }: { deviceId?: string }) {
     const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-    return await new AndroidInteract().pressBack(resolved.id)
+    const result = await new AndroidInteract().pressBack(resolved.id)
+    if (result?.success) ToolsNetwork.recordActionSuccess()
+    return result
   }
 
   static async scrollToElementHandler({ platform, selector, direction = 'down', maxScrolls = 10, scrollAmount = 0.7, deviceId }: { platform: 'android' | 'ios', selector: { text?: string, resourceId?: string, contentDesc?: string, className?: string }, direction?: 'down' | 'up', maxScrolls?: number, scrollAmount?: number, deviceId?: string }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.scrollToElement(selector, direction, maxScrolls, scrollAmount, resolved.id)
+    const result = await interact.scrollToElement(selector, direction, maxScrolls, scrollAmount, resolved.id)
+    if (result?.success) ToolsNetwork.recordActionSuccess()
+    return result
   }
 
   static async findElementHandler({ query, exact = false, timeoutMs = 3000, platform, deviceId }: { query: string, exact?: boolean, timeoutMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {

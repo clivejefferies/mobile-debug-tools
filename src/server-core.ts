@@ -10,12 +10,19 @@ import {
   TerminateAppResponse,
   RestartAppResponse,
   ResetAppDataResponse,
-  InstallAppResponse
+  InstallAppResponse,
+  GetNetworkActivityResponse,
+  NetworkCaptureStatusResponse,
+  NetworkCertificateStatusResponse,
+  PrepareNetworkCertificateInstallResponse,
+  StartNetworkCaptureResponse,
+  StopNetworkCaptureResponse
 } from './types.js'
 
 import { ToolsManage } from './manage/index.js'
 import { ToolsInteract } from './interact/index.js'
 import { ToolsObserve } from './observe/index.js'
+import { ToolsNetwork } from './network/index.js'
 import { AndroidManage } from './manage/index.js'
 import { iOSManage } from './manage/index.js'
 import { getSystemStatus } from './system/index.js'
@@ -197,6 +204,55 @@ export const toolDefinitions = [
     name: 'get_system_status',
     description: 'Quick healthcheck of local mobile debugging environment (adb, devices, logs, env, iOS).',
     inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'get_network_activity',
+    description: 'Return structured network requests captured after the most recent successful action.',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'get_network_capture_status',
+    description: 'Report whether network capture is configured, running, and ready to collect requests.',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'start_network_capture',
+    description: 'Start mitmdump with the bundled network capture addon and configure the capture file for get_network_activity.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        host: { type: 'string', description: 'Proxy listen host', default: '127.0.0.1' },
+        port: { type: 'number', description: 'Proxy listen port', default: 8080 },
+        captureFile: { type: 'string', description: 'Optional path for the NDJSON capture file' }
+      }
+    }
+  },
+  {
+    name: 'stop_network_capture',
+    description: 'Stop the active mitmdump network capture process.',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'get_network_certificate_status',
+    description: 'Inspect mitmproxy CA availability, Android certificate install readiness, and recent proxy trust failures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deviceId: { type: 'string', description: 'Android device serial. Defaults to the connected device.' }
+      }
+    }
+  },
+  {
+    name: 'prepare_network_certificate_install',
+    description: 'Push the mitmproxy CA certificate to Android and launch the system certificate installer. Final confirmation remains on-device.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deviceId: { type: 'string', description: 'Android device serial. Defaults to the connected device.' },
+        pin: { type: 'string', description: 'Optional PIN to configure if the device has no secure lock screen yet.' },
+        certificateFile: { type: 'string', description: 'Optional local CA certificate path. Defaults to the mitmproxy user certificate.' }
+      }
+    }
   },
   {
     name: 'capture_screenshot',
@@ -600,6 +656,39 @@ async function handleCaptureScreenshot(args: ToolCallArgs) {
   return { content }
 }
 
+async function handleGetNetworkActivity() {
+  const response: GetNetworkActivityResponse = await ToolsNetwork.getNetworkActivityHandler()
+  return wrapResponse(response)
+}
+
+async function handleGetNetworkCaptureStatus() {
+  const response: NetworkCaptureStatusResponse = await ToolsNetwork.getNetworkCaptureStatusHandler()
+  return wrapResponse(response)
+}
+
+async function handleStartNetworkCapture(args: ToolCallArgs) {
+  const { host, port, captureFile } = args as any
+  const response: StartNetworkCaptureResponse = await ToolsNetwork.startNetworkCaptureHandler({ host, port, captureFile })
+  return wrapResponse(response)
+}
+
+async function handleStopNetworkCapture() {
+  const response: StopNetworkCaptureResponse = await ToolsNetwork.stopNetworkCaptureHandler()
+  return wrapResponse(response)
+}
+
+async function handleGetNetworkCertificateStatus(args: ToolCallArgs) {
+  const { deviceId } = args as any
+  const response: NetworkCertificateStatusResponse = await ToolsNetwork.getNetworkCertificateStatusHandler({ deviceId })
+  return wrapResponse(response)
+}
+
+async function handlePrepareNetworkCertificateInstall(args: ToolCallArgs) {
+  const { deviceId, pin, certificateFile } = args as any
+  const response: PrepareNetworkCertificateInstallResponse = await ToolsNetwork.prepareNetworkCertificateInstallHandler({ deviceId, pin, certificateFile })
+  return wrapResponse(response)
+}
+
 async function handleCaptureDebugSnapshot(args: ToolCallArgs) {
   const { reason, includeLogs, logLines, platform, appId, deviceId, sessionId } = args as any
   const res = await ToolsObserve.captureDebugSnapshotHandler({ reason, includeLogs, logLines, platform, appId, deviceId, sessionId })
@@ -707,6 +796,12 @@ const toolHandlers: Record<string, ToolHandler> = {
   get_logs: handleGetLogs,
   list_devices: handleListDevices,
   get_system_status: handleGetSystemStatus,
+  get_network_activity: handleGetNetworkActivity,
+  get_network_capture_status: handleGetNetworkCaptureStatus,
+  start_network_capture: handleStartNetworkCapture,
+  stop_network_capture: handleStopNetworkCapture,
+  get_network_certificate_status: handleGetNetworkCertificateStatus,
+  prepare_network_certificate_install: handlePrepareNetworkCertificateInstall,
   capture_screenshot: handleCaptureScreenshot,
   capture_debug_snapshot: handleCaptureDebugSnapshot,
   get_ui_tree: handleGetUITree,
