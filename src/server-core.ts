@@ -16,6 +16,8 @@ import {
 import { ToolsManage } from './manage/index.js'
 import { ToolsInteract } from './interact/index.js'
 import { ToolsObserve } from './observe/index.js'
+import { classifyActionOutcome } from './interact/classify.js'
+import { ToolsNetwork } from './network/index.js'
 import { AndroidManage } from './manage/index.js'
 import { iOSManage } from './manage/index.js'
 import { getSystemStatus } from './system/index.js'
@@ -494,6 +496,94 @@ export const toolDefinitions = [
         }
       }
     }
+  },
+  {
+    name: 'classify_action_outcome',
+    description: `Classify the outcome of the most recent action into exactly one of: success, no_op, backend_failure, ui_failure, unknown.
+
+MUST be called after every action (tap, swipe, type_text, press_back, start_app, etc). Never skip.
+
+HOW TO GATHER INPUTS before calling:
+1. Call wait_for_screen_change or compare get_screen_fingerprint before/after — set uiChanged accordingly.
+2. If you checked for a specific element with wait_for_ui, set expectedElementVisible.
+3. Do NOT call get_network_activity yet — omit networkRequests on the first call.
+
+RULES (applied in order — stop at first match):
+1. If uiChanged=true OR expectedElementVisible=true → outcome=success
+2. Otherwise this tool returns nextAction="call_get_network_activity" — you MUST call get_network_activity once, then call classify_action_outcome again with the results in networkRequests.
+3. If any request has status=failure or retryable → outcome=backend_failure
+4. If no requests returned → outcome=no_op
+5. If all requests succeeded → outcome=ui_failure
+6. Otherwise → outcome=unknown
+
+BEHAVIOUR after outcome:
+- success → continue
+- no_op → retry the action once or re-resolve the element
+- backend_failure → stop and report the failing endpoint
+- ui_failure → stop and report failure
+- unknown → take one recovery step (e.g. capture_debug_snapshot), then stop`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uiChanged: {
+          type: 'boolean',
+          description: 'true if the screen fingerprint or activity changed after the action. Use wait_for_screen_change or compare get_screen_fingerprint before and after.'
+        },
+        expectedElementVisible: {
+          type: 'boolean',
+          description: 'true if the element you expected to appear is now visible (from wait_for_ui). Omit if you did not check for a specific element.'
+        },
+        networkRequests: {
+          type: 'array',
+          description: 'Pass this only after calling get_network_activity as instructed by nextAction. Map each request to endpoint + status.',
+          items: {
+            type: 'object',
+            properties: {
+              endpoint: { type: 'string', description: 'Request endpoint or full URL' },
+              status: { type: 'string', enum: ['success', 'failure', 'retryable'], description: 'Outcome of the request' }
+            },
+            required: ['endpoint', 'status']
+          }
+        },
+        hasLogErrors: {
+          type: 'boolean',
+          description: 'true if structured log errors were observed (e.g. from read_log_stream). Optional — include if you have already read logs.'
+        }
+      },
+      required: ['uiChanged']
+    }
+  },
+  {
+    name: 'get_network_activity',
+    description: `Returns structured network events captured from platform logs since the last action.
+
+Call this only when classify_action_outcome returns nextAction="call_get_network_activity".
+Do not call more than once per action.
+
+Events are filtered to significant (non-background) requests only.
+Each event includes endpoint, method, statusCode, networkError, status, and durationMs.
+
+status values:
+- success: HTTP 2xx or request detected with no error signal
+- failure: HTTP 4xx
+- retryable: HTTP 5xx, network error (timeout, dns_error, tls_error, etc.)
+
+Returns { requests: [], count: 0 } when no credible network signals are found.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: {
+          type: 'string',
+          enum: ['android', 'ios'],
+          description: 'Platform to read network logs from'
+        },
+        deviceId: {
+          type: 'string',
+          description: 'Device Serial (Android) or UDID (iOS). Defaults to connected/booted device.'
+        }
+      },
+      required: ['platform']
+    }
   }
 ]
 
@@ -503,6 +593,7 @@ type ToolHandler = (args: ToolCallArgs) => Promise<ToolCallResult>
 
 async function handleStartApp(args: ToolCallArgs) {
   const { platform, appId, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await (platform === 'android' ? new AndroidManage().startApp(appId, deviceId) : new iOSManage().startApp(appId, deviceId))
   const response: StartAppResponse = {
     device: res.device,
@@ -521,6 +612,7 @@ async function handleTerminateApp(args: ToolCallArgs) {
 
 async function handleRestartApp(args: ToolCallArgs) {
   const { platform, appId, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId) : new iOSManage().restartApp(appId, deviceId))
   const response: RestartAppResponse = { device: res.device, appRestarted: res.appRestarted, launchTimeMs: res.launchTimeMs }
   return wrapResponse(response)
@@ -644,36 +736,42 @@ async function handleFindElement(args: ToolCallArgs) {
 
 async function handleTap(args: ToolCallArgs) {
   const { platform, x, y, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.tapHandler({ platform, x, y, deviceId })
   return wrapResponse(res)
 }
 
 async function handleTapElement(args: ToolCallArgs) {
   const { elementId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.tapElementHandler({ elementId })
   return wrapResponse(res)
 }
 
 async function handleSwipe(args: ToolCallArgs) {
   const { platform = 'android', x1, y1, x2, y2, duration, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.swipeHandler({ platform, x1, y1, x2, y2, duration, deviceId })
   return wrapResponse(res)
 }
 
 async function handleScrollToElement(args: ToolCallArgs) {
   const { platform, selector, direction, maxScrolls, scrollAmount, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.scrollToElementHandler({ platform, selector, direction, maxScrolls, scrollAmount, deviceId })
   return wrapResponse(res)
 }
 
 async function handleTypeText(args: ToolCallArgs) {
   const { text, deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.typeTextHandler({ text, deviceId })
   return wrapResponse(res)
 }
 
 async function handlePressBack(args: ToolCallArgs) {
   const { deviceId } = args as any
+  ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.pressBackHandler({ deviceId })
   return wrapResponse(res)
 }
@@ -694,6 +792,23 @@ async function handleStopLogStream(args: ToolCallArgs) {
   const { platform, sessionId } = args as any
   const res = await ToolsObserve.stopLogStreamHandler({ platform, sessionId })
   return wrapResponse(res)
+}
+
+function handleClassifyActionOutcome(args: ToolCallArgs) {
+  const { uiChanged, expectedElementVisible, networkRequests, hasLogErrors } = args as any
+  const result = classifyActionOutcome({
+    uiChanged: Boolean(uiChanged),
+    expectedElementVisible: expectedElementVisible ?? null,
+    networkRequests: networkRequests ?? null,
+    hasLogErrors: hasLogErrors ?? null
+  })
+  return Promise.resolve(wrapResponse(result))
+}
+
+async function handleGetNetworkActivity(args: ToolCallArgs) {
+  const { platform, deviceId } = args as any
+  const result = await ToolsNetwork.getNetworkActivity({ platform, deviceId })
+  return wrapResponse(result)
 }
 
 const toolHandlers: Record<string, ToolHandler> = {
@@ -723,7 +838,9 @@ const toolHandlers: Record<string, ToolHandler> = {
   press_back: handlePressBack,
   start_log_stream: handleStartLogStream,
   read_log_stream: handleReadLogStream,
-  stop_log_stream: handleStopLogStream
+  stop_log_stream: handleStopLogStream,
+  classify_action_outcome: handleClassifyActionOutcome,
+  get_network_activity: handleGetNetworkActivity
 }
 
 export async function handleToolCall(name: string, args: ToolCallArgs = {}) {
