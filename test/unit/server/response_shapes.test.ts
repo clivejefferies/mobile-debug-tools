@@ -1,6 +1,7 @@
 import assert from 'assert'
 import { handleToolCall } from '../../../src/server-core.js'
 import { ToolsManage } from '../../../src/manage/index.js'
+import { AndroidManage } from '../../../src/manage/index.js'
 import { ToolsInteract } from '../../../src/interact/index.js'
 import { ToolsObserve } from '../../../src/observe/index.js'
 
@@ -8,10 +9,13 @@ async function run() {
   const originalInstallAppHandler = (ToolsManage as any).installAppHandler
   const originalWaitForUIHandler = (ToolsInteract as any).waitForUIHandler
   const originalTapElementHandler = (ToolsInteract as any).tapElementHandler
+  const originalTapHandler = (ToolsInteract as any).tapHandler
   const originalExpectScreenHandler = (ToolsInteract as any).expectScreenHandler
   const originalExpectElementVisibleHandler = (ToolsInteract as any).expectElementVisibleHandler
+  const originalStartApp = AndroidManage.prototype.startApp
   const originalCaptureScreenshotHandler = (ToolsObserve as any).captureScreenshotHandler
   const originalGetUITreeHandler = (ToolsObserve as any).getUITreeHandler
+  const originalGetScreenFingerprintHandler = (ToolsObserve as any).getScreenFingerprintHandler
 
   try {
     ;(ToolsManage as any).installAppHandler = async () => ({
@@ -60,6 +64,28 @@ async function run() {
     assert.strictEqual(tapElementPayload.action_type, 'tap_element')
     assert.strictEqual(tapElementPayload.target.resolved.elementId, 'el_ready')
     assert.strictEqual(tapElementPayload.ui_fingerprint_before, 'fp_before')
+
+    ;(ToolsObserve as any).getScreenFingerprintHandler = async () => ({ fingerprint: 'fp_mock', activity: 'MainActivity' })
+    ;(ToolsInteract as any).tapHandler = async () => ({ success: true, x: 1, y: 2 })
+    const tapResponse = await handleToolCall('tap', { platform: 'android', x: 1, y: 2 })
+    const tapPayload = JSON.parse((tapResponse as any).content[0].text)
+    assert.strictEqual(tapPayload.success, true)
+    assert.strictEqual(tapPayload.action_type, 'tap')
+    assert.deepStrictEqual(tapPayload.target.selector, { x: 1, y: 2 })
+    assert.strictEqual(tapPayload.ui_fingerprint_before, 'fp_mock')
+
+    AndroidManage.prototype.startApp = async function () {
+      return {
+        device: { platform: 'android', id: 'emulator-5554', osVersion: '14', model: 'Pixel', simulator: true },
+        appStarted: true,
+        launchTimeMs: 123
+      } as any
+    }
+    const startAppResponse = await handleToolCall('start_app', { platform: 'android', appId: 'com.example.app' })
+    const startAppPayload = JSON.parse((startAppResponse as any).content[0].text)
+    assert.strictEqual(startAppPayload.success, true)
+    assert.strictEqual(startAppPayload.action_type, 'start_app')
+    assert.deepStrictEqual(startAppPayload.target.selector, { appId: 'com.example.app' })
 
     ;(ToolsInteract as any).expectScreenHandler = async () => ({
       success: true,
@@ -116,10 +142,13 @@ async function run() {
     ;(ToolsManage as any).installAppHandler = originalInstallAppHandler
     ;(ToolsInteract as any).waitForUIHandler = originalWaitForUIHandler
     ;(ToolsInteract as any).tapElementHandler = originalTapElementHandler
+    ;(ToolsInteract as any).tapHandler = originalTapHandler
     ;(ToolsInteract as any).expectScreenHandler = originalExpectScreenHandler
     ;(ToolsInteract as any).expectElementVisibleHandler = originalExpectElementVisibleHandler
+    AndroidManage.prototype.startApp = originalStartApp
     ;(ToolsObserve as any).captureScreenshotHandler = originalCaptureScreenshotHandler
     ;(ToolsObserve as any).getUITreeHandler = originalGetUITreeHandler
+    ;(ToolsObserve as any).getScreenFingerprintHandler = originalGetScreenFingerprintHandler
   }
 }
 
