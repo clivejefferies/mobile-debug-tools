@@ -1,12 +1,20 @@
 # Tools index
 
-This repository groups tool docs into three areas aligned with the codebase: manage, observe and interact.
+This repository groups the MCP tools into four areas aligned with the codebase:
 
-See:
+- [manage](manage.md) — build, install, launch, restart, and device-management tools
+- [observe](observe.md) — screenshots, logs, UI trees, fingerprints, and debug snapshots
+- [interact](interact.md) — UI resolution, actions, waits, and deterministic verification
+- [system](system.md) — environment and health checks
 
-- [mange](manage.md) — build, install and device management tools
-- [observe](observe.md) — logs, screenshots and UI inspection tools
-- [interact](interact.md) — UI interaction tools (tap, swipe, type, wait)
-- [system](system.md) — environment and health checks (get_system_status)
+## Agent guidance
 
-For per-tool deep dives, open the linked files above.
+For interactive flows, the intended deterministic pattern is:
+
+**RESOLVE -> ACT -> WAIT (if needed) -> EXPECT**
+
+- **wait_for_\*** tools are for resolution and synchronization
+- **expect_\*** tools are for final outcome verification
+- observation tools are supporting context, not primary success signals
+
+Use the linked documents below for per-tool inputs, outputs, and usage guidance.

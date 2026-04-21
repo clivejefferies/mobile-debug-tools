@@ -1,10 +1,20 @@
 # Observe (logs, screenshots, UI trees)
 
-Tools that retrieve device state, logs, screenshots and UI hierarchies.
+Tools that retrieve device state, logs, screenshots, fingerprints, and UI hierarchies.
+
+These tools are primarily for:
+
+- building context before an action
+- supporting synchronization
+- diagnostics when verification fails
+
+They are **not** the primary success signal when an applicable `expect_*` tool exists.
 
 ## get_logs
 
-Fetch recent logs as structured entries optimized for AI agents. Use logs as a debugging aid only — prefer UI validation (wait_for_ui) first.
+Fetch recent logs as structured entries optimized for AI agents.
+
+Use logs as a debugging aid only. Prefer `expect_*` for verification, and use logs after verification fails or when an error is suspected.
 
 Input (example):
 
@@ -18,7 +28,7 @@ Defaults:
 
 When to use get_logs:
 
-- After a UI validation (wait_for_ui) fails to confirm the expected outcome.
+- After deterministic verification fails.
 - When you suspect a crash, error, or silent failure that the UI doesn't expose.
 - To provide additional debugging context correlated with an action.
 
@@ -41,7 +51,7 @@ Notes:
 - Errors are returned as structured objects with `error.code` and `error.message`. Possible codes: LOGS_UNAVAILABLE, INVALID_FILTER, PLATFORM_NOT_SUPPORTED, INTERNAL_ERROR.
 
 ## capture_screenshot
-Capture screen. Returns JSON metadata then an image/png block with base64 PNG data.
+Capture the current screen. Returns JSON metadata followed by one or more image blocks.
 
 Input:
 
@@ -52,13 +62,17 @@ Input:
 Response (metadata):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "width": 1080, "height": 2400 }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "result": { "resolution": { "width": 1080, "height": 2400 }, "mimeType": "image/webp" } }
 ```
+
+Notes:
+- The image block may use WebP, PNG, or a compatibility fallback such as JPEG.
+- Best used for inspection and debugging, not as a primary verification mechanism.
 
 ---
 
 ## get_ui_tree
-Returns parsed UI hierarchy.
+Return the parsed UI hierarchy for the current screen.
 
 Input:
 
@@ -69,8 +83,12 @@ Input:
 Response (example):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50] } ] }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50] } ] }
 ```
+
+Notes:
+- Useful for inspection, selector development, and fallback debugging.
+- Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
 
 ---
 
@@ -136,7 +154,7 @@ Notes:
 ---
 
 ## get_screen_fingerprint
-Generate a stable fingerprint representing the visible screen. Useful for detecting navigation changes, preventing loops, and synchronisation.
+Generate a stable fingerprint representing the visible screen. Useful for detecting navigation changes, preventing loops, and synchronization.
 
 Input (optional):
 
@@ -156,6 +174,10 @@ Notes:
 - Trims and lowercases text, filters out likely dynamic values (timestamps, counters).
 - Sorts deterministically (top-to-bottom, left-to-right) and limits elements to 50.
 - Returns fingerprint: null and an error message if the UI tree or activity cannot be retrieved.
+
+Guidance:
+- Use as a baseline for `wait_for_screen_change`.
+- Use fingerprints to define expected screens for `expect_screen`.
 
 ---
 

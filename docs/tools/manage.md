@@ -1,6 +1,16 @@
 # Manage (build & device management)
 
-This document covers tools that perform project builds, device selection and lifecycle operations (install/start/terminate/restart/reset).
+This document covers tools that perform project builds, device selection, installation, and app lifecycle operations.
+
+For app launch and restart flows, agents should use:
+
+**ACT -> WAIT (if needed) -> EXPECT**
+
+For example:
+
+1. `start_app` or `restart_app`
+2. optional `wait_for_screen_change`
+3. `expect_screen` when the expected landing screen is known
 
 ## list_devices
 Enumerate connected Android devices and iOS simulators.
@@ -22,58 +32,32 @@ Notes:
 
 ---
 
-## build_app / build_android / build_ios
-Build a project and return the path to the generated artifact (APK or .app/.ipa).
+## build_app
+Build a project and return the path to the generated artifact.
 
-Input (examples):
-
-Android:
+Input:
 
 ```json
-{ "projectPath": "/path/to/project", "gradleTask": "assembleDebug", "maxWorkers": 4 }
-```
-
-iOS:
-
-```json
-{ "projectPath": "/path/to/project", "scheme": "AppScheme", "derivedDataPath": "/tmp/derived", "buildJobs": 4 }
+{ "platform": "android", "projectType": "kmp", "projectPath": "/path/to/project", "variant": "Debug" }
 ```
 
 Response:
 
-```
-{ "artifactPath": "/path/to/build/output/app.apk" }
-```
-
-Notes:
-- Android: honors `MCP_GRADLE_WORKERS` / `MCP_GRADLE_CACHE`; will prefer project gradlew when present.
-- iOS: honors `MCP_DERIVED_DATA`, `MCP_BUILD_JOBS` and `MCP_XCODE_DESTINATION_UDID`.
-
----
-
-## build_flutter / build_react_native
-Framework-specific helpers. These are best-effort and may delegate to native subprojects when necessary.
-
-Input (flutter example):
-
 ```json
-{ "projectPath": "/path/to/flutter", "platform": "android", "buildMode": "debug" }
-```
-
-Response:
-
-```
 { "artifactPath": "/path/to/build/output/app.apk" }
 ```
 
 Notes:
-- Flutter: prefers `FLUTTER_PATH` or `flutter` on PATH; iOS builds may require codesigning and CocoaPods.
-- React Native: delegates to android/ios subprojects; run `pod install` in CI before iOS builds.
+- Requires `platform`, `projectType`, and `projectPath`.
+- Android builds prefer the project `gradlew` when present.
+- iOS builds honor environment-based Xcode destination and derived-data settings where configured.
 
 ---
 
 ## build_and_install (buildAndInstallHandler)
-Orchestrates build then install and returns streamed NDJSON events and a final result object.
+Orchestrates build then install and returns streamed NDJSON events plus a final result object.
+
+This is a documented repository helper, not part of the main public MCP tool list in `toolDefinitions`.
 
 Input:
 
@@ -135,6 +119,23 @@ start_app input example:
 start_app response example:
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "appStarted": true, "launchTimeMs": 142 }
+{
+  "action_id": "start_app_1710000000000_1",
+  "timestamp": 1710000000000,
+  "action_type": "start_app",
+  "target": { "selector": { "appId": "com.example.app" }, "resolved": null },
+  "success": true,
+  "ui_fingerprint_before": "fp_before",
+  "ui_fingerprint_after": "fp_after"
+}
 ```
 
+restart_app returns the same action envelope shape with `action_type: "restart_app"`.
+
+terminate_app and reset_app_data return operation-specific lifecycle results instead of the action envelope.
+
+Notes:
+
+- `start_app` and `restart_app` report execution success, not outcome correctness.
+- When the landing screen is known, use `expect_screen` as the final verification step.
+- If launch timing is uncertain, insert `wait_for_screen_change` before `expect_screen`.

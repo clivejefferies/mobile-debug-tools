@@ -8,6 +8,8 @@ async function run() {
   assert.strictEqual(serverInfo.name, 'mobile-debug-mcp')
   assert.strictEqual(names.length, uniqueNames.size, 'tool names should be unique')
   assert(names.includes('wait_for_ui'))
+  assert(names.includes('expect_screen'))
+  assert(names.includes('expect_element_visible'))
   assert(names.includes('capture_screenshot'))
   assert(names.includes('get_ui_tree'))
   assert(names.includes('tap_element'))
@@ -16,6 +18,14 @@ async function run() {
   assert(waitForUI, 'wait_for_ui should be registered')
   assert.strictEqual((waitForUI as any).inputSchema.properties.timeout_ms.default, 60000)
   assert.strictEqual((waitForUI as any).inputSchema.properties.condition.default, 'exists')
+  assert.match((waitForUI as any).description, /resolve elements/i)
+  assert.match((waitForUI as any).description, /must not be used alone to confirm action success/i)
+  assert.match((waitForUI as any).description, /follow with expect_\*/i)
+
+  const waitForScreenChange = toolDefinitions.find((tool) => tool.name === 'wait_for_screen_change')
+  assert(waitForScreenChange, 'wait_for_screen_change should be registered')
+  assert.match((waitForScreenChange as any).description, /does not verify correctness of the resulting state/i)
+  assert.match((waitForScreenChange as any).description, /follow with expect_screen/i)
 
   const captureDebugSnapshot = toolDefinitions.find((tool) => tool.name === 'capture_debug_snapshot')
   assert(captureDebugSnapshot, 'capture_debug_snapshot should be registered')
@@ -33,6 +43,22 @@ async function run() {
   const tapElement = toolDefinitions.find((tool) => tool.name === 'tap_element')
   assert(tapElement, 'tap_element should be registered')
   assert.deepStrictEqual((tapElement as any).inputSchema.required, ['elementId'])
+  assert.match((tapElement as any).description, /RESOLVE → ACT → WAIT \(if needed\) → EXPECT/)
+  assert.match((tapElement as any).description, /If needed, wait for transition using wait_for_\*/)
+  assert.match((tapElement as any).description, /Verify outcome using expect_\*/)
+
+  const expectScreen = toolDefinitions.find((tool) => tool.name === 'expect_screen')
+  assert(expectScreen, 'expect_screen should be registered')
+  assert.match((expectScreen as any).description, /Primary and authoritative verification tool/i)
+  assert.match((expectScreen as any).description, /final verification step/i)
+  assert.match((expectScreen as any).description, /Returns structured binary success\/failure only/i)
+
+  const expectElementVisible = toolDefinitions.find((tool) => tool.name === 'expect_element_visible')
+  assert(expectElementVisible, 'expect_element_visible should be registered')
+  assert.deepStrictEqual((expectElementVisible as any).inputSchema.required, ['selector'])
+  assert.match((expectElementVisible as any).description, /Primary and authoritative verification tool/i)
+  assert.match((expectElementVisible as any).description, /selector is the primary input/i)
+  assert.match((expectElementVisible as any).description, /Returns structured binary success\/failure only/i)
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 

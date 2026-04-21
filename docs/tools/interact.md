@@ -1,107 +1,143 @@
-# Interact (UI actions)
+# Interact (UI actions, waits, and verification)
 
-Tools that perform UI interactions: tap, swipe, type_text, press_back, and waiting for elements.
+This document covers deterministic UI resolution, actions, waits, and outcome verification.
+
+## Verification pattern
+
+For mutation actions, the intended agent loop is:
+
+**RESOLVE -> ACT -> WAIT (if needed) -> EXPECT**
+
+Role split:
+
+- `wait_for_*` = resolution and synchronization
+- `expect_*` = final outcome verification
+
+Important:
+
+- `wait_for_*` tools must not be used as the final verification of action success when an applicable `expect_*` tool exists.
+- action tools report execution success, not outcome correctness.
 
 ## tap / swipe / type_text / press_back
 
-Tap input example:
+These tools return a shared action execution envelope.
 
-```
+Example `tap` input:
+
+```json
 { "platform": "android", "deviceId": "emulator-5554", "x": 100, "y": 200 }
 ```
 
-Response:
+Example response:
 
-```
-{ "device": { "platform": "android", "id": "emulator-5554" }, "success": true }
+```json
+{
+  "action_id": "tap_1710000000000_1",
+  "timestamp": 1710000000000,
+  "action_type": "tap",
+  "target": { "selector": { "x": 100, "y": 200 }, "resolved": null },
+  "success": true,
+  "ui_fingerprint_before": "fp_before",
+  "ui_fingerprint_after": "fp_after"
+}
 ```
 
-Notes:
-- tap: `adb shell input tap x y` (Android) or `idb` events for iOS.
-- swipe: `adb shell input swipe x1 y1 x2 y2 duration`.
-- type_text: `adb shell input text` (spaces encoded as %s) — may fail for special characters.
-- press_back: `adb shell input keyevent 4`.
+Guidance:
+
+- `tap` is best for coordinate-based interactions when no resolved element is available.
+- `swipe` is execution-only; use `wait_for_*` and `expect_*` to verify its effect when the expected outcome is known.
+- `type_text` reports whether text entry was dispatched, not whether the intended field state is correct.
+- `press_back` reports whether the back action was dispatched, not whether the intended destination screen was reached.
+
+Preferred verification:
+
+- navigation outcome known -> `expect_screen`
+- local UI change known -> `expect_element_visible`
 
 ---
 
 ## scroll_to_element
 
-Description:
-- Scrolls the UI until an element matching the provided selector becomes visible, or until a maximum number of scroll attempts is reached.
-- Delegates platform behaviour to Android and iOS implementations for reliable swipes and UI-tree checks.
+Scroll until an element matching the provided selector becomes visible, or until the tool reaches a stopping condition.
 
 Input example:
-```
+
+```json
 { "platform": "android", "selector": { "text": "Offscreen Test Element" }, "direction": "down", "maxScrolls": 10, "scrollAmount": 0.7, "deviceId": "emulator-5554" }
 ```
 
 Response example (found):
-```
-{ "success": true, "reason": "element_found", "element": { /* element metadata */ }, "scrollsPerformed": 2 }
+
+```json
+{ "success": true, "reason": "element_found", "element": { "text": "Offscreen Test Element" }, "scrollsPerformed": 2 }
 ```
 
 Response example (failure - unchanged UI):
-```
+
+```json
 { "success": false, "reason": "ui_unchanged_after_scroll", "scrollsPerformed": 3 }
 ```
 
 Notes:
-- Matching is exact on provided selector fields (text, resourceId, contentDesc, className).
-- Visibility check uses element.bounds intersecting the device resolution when available; falls back to the element.visible flag if bounds/resolution are missing.
-- The tool fingerprints the visible UI between scrolls; if the fingerprint doesn't change after a swipe the tool stops early assuming end-of-list.
-- Android swipe uses `adb shell input swipe` with screen percentage coordinates. iOS swipe uses `idb ui swipe` command; note `idb` swipe does not accept a duration argument.
-- Unit tests are located at `test/unit/observe/scroll_to_element.test.ts`, automated device smoke checks under `test/device/automated/...`, and manual device runners under `test/device/manual/...`.
+
+- Matching is exact on provided selector fields (`text`, `resourceId`, `contentDesc`, `className`).
+- The tool fingerprints the visible UI between scrolls and can stop early if the UI does not change after a swipe.
+- `scroll_to_element` can return success when it finds the element, but use `expect_element_visible` when you want explicit final verification of the expected visible result.
 
 ---
 
 ## wait_for_screen_change
 
-Description:
-- Waits until the current screen fingerprint differs from the provided `previousFingerprint`. Useful after taps, navigation, or other interactions that should change the visible UI.
+Purpose:
+
+- detect that a screen transition has occurred by waiting for the current fingerprint to differ from a previous fingerprint
+
+Capabilities:
+
+- synchronization when transition timing is uncertain
+- detection that something changed on screen
+
+Constraints:
+
+- does not verify correctness of the resulting state
+- must not be used alone to confirm action success when an applicable `expect_*` tool exists
 
 Input example:
-```
+
+```json
 { "platform": "android", "previousFingerprint": "<hex-fingerprint>", "timeoutMs": 5000, "pollIntervalMs": 300, "deviceId": "emulator-5554" }
 ```
 
 Success response example:
-```
+
+```json
 { "success": true, "newFingerprint": "<hex-fingerprint>", "elapsedMs": 420 }
 ```
 
 Failure (timeout) example:
-```
+
+```json
 { "success": false, "reason": "timeout", "lastFingerprint": "<hex-fingerprint>", "elapsedMs": 5000 }
 ```
 
 Notes:
-- Always compares to the original `previousFingerprint` (baseline is not updated during polling).
-- Treats `null` fingerprints as transient; continues polling rather than returning success.
-- Includes a stability confirmation: after detecting a different fingerprint it waits one additional poll interval and confirms the fingerprint is stable before returning success to avoid reacting to transient flickers or animation frames.
-- Default `timeoutMs` is 5000ms and default `pollIntervalMs` is 300ms; callers may override these.
-- Implemented as an interact-level tool and delegates platform-specific fingerprint calculation to the observe layer (`get_screen_fingerprint`).
+
+- Always compares to the original `previousFingerprint`.
+- Treats `null` fingerprints as transient and keeps polling.
+- Adds a stability confirmation before returning success to avoid transient animation frames.
+- Follow with `expect_screen` when the expected destination is known.
 
 ---
 
 ## find_element
 
-Purpose:
-
-Locate a UI element on the current screen using semantic matching and return an actionable element descriptor (including tap coordinates) and confidence telemetry.
+Locate a UI element on the current screen using semantic matching and return an actionable element descriptor.
 
 Input:
 
 ```json
-{ "query": "string", "exact": false, "timeoutMs": 3000, "platform": "android|ios", "deviceId": "optional device id" }
+{ "query": "Login", "exact": false, "timeoutMs": 3000, "platform": "android", "deviceId": "emulator-5554" }
 ```
-
-Behaviour:
-
-- Fetches the current UI tree (get_ui_tree) and scores visible elements using: text, content description, resource-id, and class name.
-- Normalises strings (lowercase, trimmed). If exact=true require exact match; otherwise allow partial matches (contains) and resource-id/class matches.
-- Considers element bounds and visibility; scores non-interactable children as matches and attempts to resolve a clickable ancestor (parent index or containing clickable element) to produce an actionable element.
-- Retries until timeoutMs; stops early for high-confidence matches.
-- Does not block on long operations and returns partial results where appropriate.
 
 Output:
 
@@ -113,10 +149,10 @@ Output:
     "resourceId": "com.example:id/login",
     "contentDesc": null,
     "class": "android.widget.Button",
-    "bounds": { "left":0, "top":0, "right":100, "bottom":50 },
+    "bounds": { "left": 0, "top": 0, "right": 100, "bottom": 50 },
     "clickable": true,
     "enabled": true,
-    "tapCoordinates": { "x":50, "y":25 },
+    "tapCoordinates": { "x": 50, "y": 25 },
     "telemetry": { "matchedIndex": 3, "matchedInteractable": true }
   },
   "score": 1.0,
@@ -126,99 +162,226 @@ Output:
 
 Notes:
 
-- `tapCoordinates` are the recommended center point to use for `tap` calls.
-- `confidence` mirrors the internal scoring (0..1) and is suitable for telemetry or logging to decide whether to proceed with an automated action.
-- The tool favours actionable (clickable/focusable) targets; when a matching node is not directly actionable, it finds the smallest containing clickable ancestor.
-- Unit tests for edge cases (parent-clickable child-text, resource-id matches, fuzzy matching) are under `test/unit/observe/find_element.test.ts`.
+- Best used when no precise selector is available yet.
+- `tapCoordinates` are suitable for `tap` calls.
+- Prefer `wait_for_ui` when you already know a deterministic selector and want a stable `elementId`.
 
 ---
 
 ## wait_for_ui
 
 Purpose:
-- Deterministically wait for a UI selector match and return the matched element metadata.
 
-Input (ToolsInteract.waitForUIHandler):
-```
+- resolve elements and/or detect that a UI availability condition has occurred
+
+Capabilities:
+
+- deterministic element resolution
+- synchronization when element timing or availability is uncertain
+
+Constraints:
+
+- does not verify correctness of the resulting state
+- must not be used alone to confirm action success when an applicable `expect_*` tool exists
+
+Input:
+
+```json
 {
-  "selector": { "text": "optional", "resource_id": "optional", "accessibility_id": "optional", "contains": false },
-  "condition": "exists|not_exists|visible|clickable",
-  "timeout_ms": 60000,
+  "selector": { "text": "Generate Session", "contains": false },
+  "condition": "clickable",
+  "timeout_ms": 5000,
   "poll_interval_ms": 300,
   "match": { "index": 0 },
   "retry": { "max_attempts": 1, "backoff_ms": 0 },
-  "platform": "android|ios",
-  "deviceId": "optional device id"
+  "platform": "android",
+  "deviceId": "emulator-5554"
 }
 ```
 
-Success response highlights:
-- status: `success`
-- matched: number of matches found in the current poll
-- element: matched element metadata including `elementId`
-- metrics: latency, poll count, attempts
-
-Failure/timeout response:
-- status: `timeout`
-- error: structured error with `code` and `message`
-- metrics: latency, poll count, attempts
-
-Notes & tips:
-- `wait_for_ui` is responsible for **resolution only**.
-- Successful responses now include an `elementId` that can be passed to `tap_element`.
-- This enables the deterministic loop: **observe -> act -> verify**.
-
-Tests:
-- Unit: `test/unit/interact/wait_for_ui_contract.test.ts` and `test/unit/interact/wait_for_ui_selector_matching.test.ts`
-- Automated device checks now live under `test/device/automated/...`; manual/debug runners live under `test/device/manual/...` (requires devices/emulators and adb/xcrun in PATH)
-
-Example:
-```
-ToolsInteract.waitForUIHandler({
-  selector: { text: 'Generate Session' },
-  condition: 'clickable',
-  timeout_ms: 5000,
-  platform: 'android'
-})
-```
-
-Troubleshooting:
-- If `wait_for_ui` times out, confirm the selector is precise and that the current UI tree exposes the expected text, resource ID, or accessibility ID.
-
-## tap_element
-
-Purpose:
-- Execute a tap against a UI element that has already been resolved by `wait_for_ui`.
-
-Input:
-```
-{ "elementId": "el_..." }
-```
-
-Behavior:
-- validates that the element still exists in the current UI context
-- validates that the element is visible
-- validates that the element is enabled
-- performs the tap using the resolved element bounds
-
 Success response:
-```
-{ "success": true, "elementId": "el_123", "action": "tap" }
+
+```json
+{
+  "status": "success",
+  "matched": 1,
+  "element": {
+    "text": "Generate Session",
+    "resource_id": null,
+    "accessibility_id": null,
+    "class": "android.widget.TextView",
+    "bounds": [471, 1098, 809, 1158],
+    "index": 8,
+    "elementId": "el_..."
+  },
+  "metrics": { "latency_ms": 120, "poll_count": 1, "attempts": 1 }
+}
 ```
 
-Failure response:
-```
+Timeout response:
+
+```json
 {
-  "success": false,
-  "elementId": "el_123",
-  "action": "tap",
-  "error": { "code": "element_not_found|element_not_visible|element_not_enabled", "message": "..." }
+  "status": "timeout",
+  "error": { "code": "ELEMENT_NOT_FOUND", "message": "Condition visible not satisfied within timeout" },
+  "metrics": { "latency_ms": 5000, "poll_count": 17, "attempts": 1 }
 }
 ```
 
 Notes:
-- `tap_element` does **not** accept selectors.
-- `tap_element` does **not** perform lookup, waiting, retries, or ambiguity resolution.
-- Migration pattern for selector-based flows is:
-  1. `wait_for_ui(selector)`
-  2. `tap_element(elementId)`
+
+- Use `wait_for_ui` to get a stable `elementId` for `tap_element`.
+- Use it before an action when the target element or timing is uncertain.
+- If the expected outcome is known after the action, follow with `expect_*`.
+
+---
+
+## tap_element
+
+Tap a previously resolved UI element using its `elementId`.
+
+Input:
+
+```json
+{ "elementId": "el_..." }
+```
+
+Success response:
+
+```json
+{
+  "action_id": "tap_element_1710000000000_1",
+  "timestamp": 1710000000000,
+  "action_type": "tap_element",
+  "target": {
+    "selector": { "elementId": "el_123" },
+    "resolved": {
+      "elementId": "el_123",
+      "text": "Play session",
+      "resource_id": null,
+      "accessibility_id": null,
+      "class": "android.widget.TextView",
+      "bounds": [519, 1770, 762, 1830],
+      "index": 11
+    }
+  },
+  "success": true,
+  "ui_fingerprint_before": "fp_before",
+  "ui_fingerprint_after": "fp_after"
+}
+```
+
+Failure response:
+
+```json
+{
+  "action_id": "tap_element_1710000000001_2",
+  "timestamp": 1710000000001,
+  "action_type": "tap_element",
+  "target": { "selector": { "elementId": "el_123" }, "resolved": null },
+  "success": false,
+  "failure_code": "STALE_REFERENCE",
+  "retryable": true,
+  "ui_fingerprint_before": "fp_before",
+  "ui_fingerprint_after": "fp_before"
+}
+```
+
+Recommended usage:
+
+1. resolve target with `wait_for_ui`
+2. call `tap_element`
+3. if needed, wait for transition with `wait_for_*`
+4. verify with `expect_*`
+
+Verification guidance:
+
+- navigation -> `expect_screen`
+- local UI change -> `expect_element_visible`
+
+Failure handling:
+
+- `STALE_REFERENCE` -> re-resolve the element, then retry
+- `ELEMENT_NOT_INTERACTABLE` -> wait or refine the target, then retry
+- `UNKNOWN` -> capture a snapshot and stop
+
+---
+
+## expect_screen
+
+Deterministically verify that the intended navigation outcome of an action has occurred.
+
+Input:
+
+```json
+{ "platform": "android", "deviceId": "emulator-5554", "fingerprint": "<expected-fingerprint>" }
+```
+
+or
+
+```json
+{ "platform": "android", "deviceId": "emulator-5554", "screen": "com.example.app.MainActivity" }
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "observed_screen": { "fingerprint": "<actual-fingerprint>", "screen": "com.example.app.MainActivity" },
+  "expected_screen": { "fingerprint": "<expected-fingerprint>", "screen": null },
+  "confidence": 1
+}
+```
+
+Notes:
+
+- Primary and authoritative verification tool for navigation outcomes.
+- Prefer fingerprints; use semantic screen identifiers as a fallback.
+- Works best when the expected screen identifier is known ahead of time.
+- If transition timing is uncertain, place `wait_for_screen_change` before `expect_screen`.
+
+---
+
+## expect_element_visible
+
+Deterministically verify that the intended UI outcome of an action has occurred by confirming a target element is visible.
+
+Input:
+
+```json
+{
+  "selector": { "text": "Play session" },
+  "element_id": "optional-resolved-element-id",
+  "timeout_ms": 5000,
+  "poll_interval_ms": 300,
+  "platform": "android",
+  "deviceId": "emulator-5554"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "selector": { "text": "Play session" },
+  "element_id": "el_123",
+  "element": {
+    "elementId": "el_123",
+    "text": "Play session",
+    "resource_id": null,
+    "accessibility_id": null,
+    "class": "android.widget.TextView",
+    "bounds": [519, 1770, 762, 1830],
+    "index": 11
+  }
+}
+```
+
+Notes:
+
+- Primary and authoritative verification tool for expected element visibility.
+- `selector` is the primary input; `element_id` is optional context only.
+- The tool resolves the selector internally when needed.
+- Use when the screen should remain on the same destination but a specific element should appear or become visible.

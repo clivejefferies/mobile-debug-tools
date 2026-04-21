@@ -5,11 +5,18 @@ import * as Observe from '../../../src/observe/index.js'
 async function run() {
   console.log('Starting tap_element unit tests...')
   const originalGetUITreeHandler = (Observe as any).ToolsObserve.getUITreeHandler
+  const originalGetScreenFingerprintHandler = (Observe as any).ToolsObserve.getScreenFingerprintHandler
   const originalTapHandler = (ToolsInteract as any).tapHandler
   const originalComputeElementId = (ToolsInteract as any)._computeElementId
   ;(ToolsInteract as any)._resetResolvedUiElementsForTests()
 
   try {
+    let fingerprintCalls = 0
+    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => {
+      fingerprintCalls++
+      return { fingerprint: 'fp_mock' }
+    }
+
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock-device' },
       elements: [
@@ -34,7 +41,12 @@ async function run() {
     }
 
     const tapSuccess = await ToolsInteract.tapElementHandler({ elementId: successElementId })
-    assert.deepStrictEqual(tapSuccess, { success: true, elementId: successElementId, action: 'tap' })
+    assert.strictEqual(tapSuccess.success, true)
+    assert.strictEqual(tapSuccess.action_type, 'tap_element')
+    assert.strictEqual(tapSuccess.target.selector?.elementId, successElementId)
+    assert.strictEqual(tapSuccess.target.resolved?.elementId, successElementId)
+    assert.strictEqual(tapSuccess.ui_fingerprint_before, 'fp_mock')
+    assert.strictEqual(tapSuccess.ui_fingerprint_after, 'fp_mock')
     assert.deepStrictEqual(tapped, { platform: 'android', x: 10, y: 10, deviceId: 'mock-device' })
 
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
@@ -52,7 +64,8 @@ async function run() {
     })
     const hiddenResult = await ToolsInteract.tapElementHandler({ elementId: waitHidden.element.elementId })
     assert.strictEqual(hiddenResult.success, false)
-    assert.strictEqual(hiddenResult.error?.code, 'element_not_visible')
+    assert.strictEqual(hiddenResult.failure_code, 'ELEMENT_NOT_INTERACTABLE')
+    assert.strictEqual(hiddenResult.retryable, true)
 
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock-device' },
@@ -69,7 +82,7 @@ async function run() {
     })
     const disabledResult = await ToolsInteract.tapElementHandler({ elementId: waitDisabled.element.elementId })
     assert.strictEqual(disabledResult.success, false)
-    assert.strictEqual(disabledResult.error?.code, 'element_not_enabled')
+    assert.strictEqual(disabledResult.failure_code, 'ELEMENT_NOT_INTERACTABLE')
 
     ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock-device' },
@@ -77,7 +90,7 @@ async function run() {
     })
     const notFoundResult = await ToolsInteract.tapElementHandler({ elementId: successElementId })
     assert.strictEqual(notFoundResult.success, false)
-    assert.strictEqual(notFoundResult.error?.code, 'element_not_found')
+    assert.strictEqual(notFoundResult.failure_code, 'STALE_REFERENCE')
 
     ;(ToolsInteract as any)._resetResolvedUiElementsForTests()
     const targetIndex = 25
@@ -124,7 +137,7 @@ async function run() {
     })
     const shiftedIndexResult = await ToolsInteract.tapElementHandler({ elementId: indexedWait.element.elementId })
     assert.strictEqual(shiftedIndexResult.success, false)
-    assert.strictEqual(shiftedIndexResult.error?.code, 'element_not_found')
+    assert.strictEqual(shiftedIndexResult.failure_code, 'STALE_REFERENCE')
 
     ;(ToolsInteract as any)._resetResolvedUiElementsForTests()
     const cacheLimit = (ToolsInteract as any)._maxResolvedUiElements as number
@@ -151,15 +164,19 @@ async function run() {
     }
 
     assert.ok(oldestElementId, 'Oldest element ID should be captured')
+    const fingerprintCallsBeforeEvictedTap = fingerprintCalls
     const evictedResult = await ToolsInteract.tapElementHandler({ elementId: oldestElementId as string })
     assert.strictEqual(evictedResult.success, false)
-    assert.strictEqual(evictedResult.error?.code, 'element_not_found')
+    assert.strictEqual(evictedResult.failure_code, 'STALE_REFERENCE')
+    assert.strictEqual(evictedResult.ui_fingerprint_before, null)
+    assert.strictEqual(fingerprintCalls, fingerprintCallsBeforeEvictedTap)
 
     console.log('tap_element unit tests passed')
   } finally {
     ;(ToolsInteract as any)._resetResolvedUiElementsForTests()
     ;(ToolsInteract as any)._computeElementId = originalComputeElementId
     ;(Observe as any).ToolsObserve.getUITreeHandler = originalGetUITreeHandler
+    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = originalGetScreenFingerprintHandler
     ;(ToolsInteract as any).tapHandler = originalTapHandler
   }
 }

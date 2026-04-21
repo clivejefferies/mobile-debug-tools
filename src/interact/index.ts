@@ -5,7 +5,14 @@ export { AndroidInteract, iOSInteract };
 
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
-import type { TapElementResponse } from '../types.js'
+import { nextActionId } from '../server/common.js'
+import type {
+  ActionFailureCode,
+  ActionTargetResolved,
+  ExpectElementVisibleResponse,
+  ExpectScreenResponse,
+  TapElementResponse
+} from '../types.js'
 
 interface ScreenFingerprintResponse { fingerprint: string | null }
 
@@ -112,6 +119,55 @@ export class ToolsInteract {
     }
   }
 
+  private static async _captureFingerprint(platform: 'android' | 'ios', deviceId?: string): Promise<string | null> {
+    try {
+      const fingerprint = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
+      return fingerprint?.fingerprint ?? null
+    } catch {
+      return null
+    }
+  }
+
+  private static _resolvedTargetFromElement(
+    elementId: string,
+    element: UiElement,
+    index: number
+  ): ActionTargetResolved {
+    return {
+      elementId,
+      text: element.text ?? null,
+      resource_id: element.resourceId ?? element.resourceID ?? element.id ?? null,
+      accessibility_id: element.contentDescription ?? element.contentDesc ?? element.accessibilityLabel ?? element.label ?? null,
+      class: element.type ?? element.class ?? null,
+      bounds: ToolsInteract._normalizeBounds(element.bounds),
+      index
+    }
+  }
+
+  private static _actionFailure(
+    actionId: string,
+    timestamp: number,
+    actionType: string,
+    selector: Record<string, unknown> | null,
+    resolved: ActionTargetResolved | null,
+    failureCode: ActionFailureCode,
+    retryable: boolean,
+    uiFingerprintBefore: string | null,
+    uiFingerprintAfter?: string | null
+  ): TapElementResponse {
+    return {
+      action_id: actionId,
+      timestamp,
+      action_type: actionType,
+      target: { selector, resolved },
+      success: false,
+      failure_code: failureCode,
+      retryable,
+      ui_fingerprint_before: uiFingerprintBefore,
+      ui_fingerprint_after: uiFingerprintAfter
+    }
+  }
+
   static _resetResolvedUiElementsForTests() {
     ToolsInteract._resolvedUiElements.clear()
   }
@@ -198,19 +254,16 @@ export class ToolsInteract {
   }
 
   static async tapElementHandler({ elementId }: { elementId: string }): Promise<TapElementResponse> {
-    const action = 'tap' as const
+    const timestamp = Date.now()
+    const actionType = 'tap_element'
+    const actionId = nextActionId(actionType, timestamp)
+    const selector = { elementId }
     const resolved = ToolsInteract._resolvedUiElements.get(elementId)
     if (!resolved) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'element_not_found',
-          message: 'Element ID was not found in the current UI context'
-        }
-      }
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, null, 'STALE_REFERENCE', true, null)
     }
+
+    const fingerprintBefore = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
 
     const tree = await ToolsObserve.getUITreeHandler({ platform: resolved.platform, deviceId: resolved.deviceId }) as any
     const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : resolved.platform
@@ -219,52 +272,22 @@ export class ToolsInteract {
     const currentMatch = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
 
     if (!currentMatch) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'element_not_found',
-          message: 'Element ID is not present in the current UI context'
-        }
-      }
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, null, 'STALE_REFERENCE', true, fingerprintBefore)
     }
 
+    const resolvedTarget = ToolsInteract._resolvedTargetFromElement(resolved.elementId, currentMatch.el, currentMatch.index)
+
     if (!ToolsInteract._isVisibleElement(currentMatch.el)) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'element_not_visible',
-          message: 'Element is not visible'
-        }
-      }
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     if (currentMatch.el.enabled === false) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'element_not_enabled',
-          message: 'Element is not enabled'
-        }
-      }
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     const bounds = ToolsInteract._normalizeBounds(currentMatch.el.bounds) ?? resolved.bounds
     if (!bounds || bounds[2] <= bounds[0] || bounds[3] <= bounds[1]) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'element_not_visible',
-          message: 'Element does not have valid visible bounds'
-        }
-      }
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'ELEMENT_NOT_INTERACTABLE', true, fingerprintBefore)
     }
 
     const x = Math.floor((bounds[0] + bounds[2]) / 2)
@@ -272,21 +295,22 @@ export class ToolsInteract {
     const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId })
 
     if (!tapResult.success) {
-      return {
-        success: false,
-        elementId,
-        action,
-        error: {
-          code: 'tap_failed',
-          message: tapResult.error || 'Tap failed'
-        }
-      }
+      const fingerprintAfterFailure = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
+      return ToolsInteract._actionFailure(actionId, timestamp, actionType, selector, resolvedTarget, 'UNKNOWN', false, fingerprintBefore, fingerprintAfterFailure)
     }
 
+    const fingerprintAfter = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
     return {
+      action_id: actionId,
+      timestamp,
+      action_type: actionType,
+      target: {
+        selector,
+        resolved: resolvedTarget
+      },
       success: true,
-      elementId,
-      action
+      ui_fingerprint_before: fingerprintBefore,
+      ui_fingerprint_after: fingerprintAfter
     }
   }
 
@@ -690,6 +714,110 @@ export class ToolsInteract {
     }
 
     return { success: false, reason: 'timeout', lastFingerprint, elapsedMs: Date.now() - start }
+  }
+
+  static async expectScreenHandler({
+    platform,
+    fingerprint,
+    screen,
+    deviceId
+  }: {
+    platform?: 'android' | 'ios',
+    fingerprint?: string,
+    screen?: string,
+    deviceId?: string
+  }): Promise<ExpectScreenResponse> {
+    const observedFingerprint = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as any
+    const observedScreen = {
+      fingerprint: observedFingerprint?.fingerprint ?? null,
+      screen: observedFingerprint?.activity ?? null
+    }
+
+    let observedScreenLabel = observedScreen.screen
+    if (!fingerprint && screen && platform !== 'ios') {
+      try {
+        const current = await ToolsObserve.getCurrentScreenHandler({ deviceId }) as any
+        observedScreenLabel = current?.shortActivity || current?.activity || observedScreenLabel
+      } catch {
+        // Keep fingerprint-derived activity when current-screen lookup is unavailable.
+      }
+    }
+
+    const expectedScreen = {
+      fingerprint: fingerprint ?? null,
+      screen: screen ?? null
+    }
+
+    let success = false
+    if (fingerprint) {
+      success = observedScreen.fingerprint === fingerprint
+    } else if (screen) {
+      const candidates = new Set<string>()
+      if (observedScreen.screen) candidates.add(observedScreen.screen)
+      if (observedScreenLabel) candidates.add(observedScreenLabel)
+      success = candidates.has(screen)
+    }
+
+    return {
+      success,
+      observed_screen: {
+        fingerprint: observedScreen.fingerprint,
+        screen: observedScreenLabel
+      },
+      expected_screen: expectedScreen,
+      confidence: success ? 1 : 0
+    }
+  }
+
+  static async expectElementVisibleHandler({
+    selector,
+    element_id,
+    timeout_ms = 5000,
+    poll_interval_ms = 300,
+    platform,
+    deviceId
+  }: {
+    selector: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean },
+    element_id?: string,
+    timeout_ms?: number,
+    poll_interval_ms?: number,
+    platform?: 'android' | 'ios',
+    deviceId?: string
+  }): Promise<ExpectElementVisibleResponse> {
+    const result = await ToolsInteract.waitForUIHandler({
+      selector,
+      condition: 'visible',
+      timeout_ms,
+      poll_interval_ms,
+      platform,
+      deviceId
+    }) as any
+
+    if (result?.status === 'success' && result?.element) {
+      return {
+        success: true,
+        selector,
+        element_id: result.element.elementId ?? element_id ?? null,
+        element: {
+          elementId: result.element.elementId ?? null,
+          text: result.element.text ?? null,
+          resource_id: result.element.resource_id ?? null,
+          accessibility_id: result.element.accessibility_id ?? null,
+          class: result.element.class ?? null,
+          bounds: result.element.bounds ?? null,
+          index: typeof result.element.index === 'number' ? result.element.index : null
+        }
+      }
+    }
+
+    const errorCode = result?.error?.code === 'INTERNAL_ERROR' ? 'UNKNOWN' : 'TIMEOUT'
+    return {
+      success: false,
+      selector,
+      element_id: element_id ?? null,
+      failure_code: errorCode,
+      retryable: errorCode === 'TIMEOUT'
+    }
   }
 
   static async waitForUICore({ type = 'ui', query, timeoutMs = 30000, pollIntervalMs = 300, includeSnapshotOnFailure = true, match = 'present', stability_ms = 700, observationDelayMs = 0, platform, deviceId }: { type?: 'ui' | 'log' | 'screen' | 'idle', query?: string, timeoutMs?: number, pollIntervalMs?: number, includeSnapshotOnFailure?: boolean, match?: 'present'|'absent', stability_ms?: number, observationDelayMs?: number, platform?: 'android' | 'ios', deviceId?: string }) {

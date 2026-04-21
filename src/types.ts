@@ -132,14 +132,67 @@ export interface TapResponse {
   error?: string;
 }
 
-export interface TapElementResponse {
-  success: boolean;
-  elementId: string;
-  action: 'tap';
-  error?: {
-    code: 'element_not_found' | 'element_not_visible' | 'element_not_enabled' | 'tap_failed';
-    message: string;
+export type ActionFailureCode =
+  | 'ELEMENT_NOT_FOUND'
+  | 'ELEMENT_NOT_INTERACTABLE'
+  | 'TIMEOUT'
+  | 'NAVIGATION_NO_CHANGE'
+  | 'AMBIGUOUS_TARGET'
+  | 'STALE_REFERENCE'
+  | 'UNKNOWN'
+
+export interface ActionTargetResolved {
+  elementId: string | null;
+  text: string | null;
+  resource_id: string | null;
+  accessibility_id: string | null;
+  class: string | null;
+  bounds: [number, number, number, number] | null;
+  index: number | null;
+}
+
+export interface ActionExecutionResult {
+  action_id: string;
+  timestamp: number;
+  action_type: string;
+  target: {
+    selector: Record<string, unknown> | null;
+    resolved: ActionTargetResolved | null;
   };
+  success: boolean;
+  failure_code?: ActionFailureCode;
+  retryable?: boolean;
+  ui_fingerprint_before?: string | null;
+  ui_fingerprint_after?: string | null;
+}
+
+export interface TapElementResponse extends ActionExecutionResult {}
+
+export interface ExpectScreenResponse {
+  success: boolean;
+  observed_screen: {
+    fingerprint: string | null;
+    screen: string | null;
+  };
+  expected_screen: {
+    fingerprint: string | null;
+    screen: string | null;
+  };
+  confidence: number;
+}
+
+export interface ExpectElementVisibleResponse {
+  success: boolean;
+  selector: {
+    text?: string;
+    resource_id?: string;
+    accessibility_id?: string;
+    contains?: boolean;
+  };
+  element_id: string | null;
+  element?: ActionTargetResolved | null;
+  failure_code?: 'TIMEOUT' | 'ELEMENT_NOT_FOUND' | 'UNKNOWN';
+  retryable?: boolean;
 }
 
 export interface SwipeResponse {

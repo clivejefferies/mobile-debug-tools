@@ -44,5 +44,5 @@ Behavior notes:
 
 Usage guidance:
 - Call before build/install flows to avoid wasted build attempts on misconfigured systems.
+- Call early in a session when device or toolchain availability is uncertain.
 - If `success: false`, attempt recovery steps or report issues to the user.
-
