@@ -69,8 +69,46 @@ exit 0
       assert.ok(res2.output && typeof res2.output === 'string', 'Project dir install succeeded with output')
     }
 
+    const testOnlyAdbPath = path.join(binDir, 'adb-test-only')
+    const testOnlyAdbScript = `#!/bin/sh
+if [ "$1" = "-s" ]; then
+  shift 2
+fi
+
+if [ "$1" = "shell" ] && [ "$2" = "getprop" ]; then
+  case "$3" in
+    ro.build.version.release) echo '16' ;;
+    ro.product.model) echo 'sdk_gphone64_arm64' ;;
+    ro.kernel.qemu) echo '1' ;;
+  esac
+  exit 0
+fi
+
+if [ "$1" = "install" ]; then
+  if [ "$2" = "-r" ] && [ "$3" = "-t" ]; then
+    echo 'Performing Streamed Install'
+    echo 'Success'
+    exit 0
+  fi
+  echo 'Performing Streamed Install'
+  echo 'adb: failed to install test.apk: Failure [INSTALL_FAILED_TEST_ONLY: Failed to install test-only apk. Did you forget to add -t?]' 1>&2
+  exit 1
+fi
+
+echo 'Success'
+exit 0
+`
+    await fs.writeFile(testOnlyAdbPath, testOnlyAdbScript, { mode: 0o755 })
+    process.env.ADB_PATH = testOnlyAdbPath
+
+    const { dir: d2, file: testOnlyApk } = await makeTempFile('.apk')
+    const testOnlyRes = await ai.installApp(testOnlyApk, 'emulator-5554')
+    console.log('testOnlyRes', testOnlyRes)
+    assert.strictEqual(testOnlyRes.installed, true, 'Test-only APK should retry with -t and install successfully')
+
     // cleanup
     await fs.rm(d1, { recursive: true, force: true }).catch(() => {})
+    await fs.rm(d2, { recursive: true, force: true }).catch(() => {})
     await fs.rm(dirGradle, { recursive: true, force: true }).catch(() => {})
 
     // restore PATH and ADB_PATH
