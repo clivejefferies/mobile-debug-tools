@@ -12,6 +12,12 @@ async function run() {
     const r1 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Hello' }, condition: 'exists', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
     const ok1 = r1 && r1.status === 'success' && r1.matched === 1 && r1.element && r1.element.text === 'Hello' && typeof r1.element.elementId === 'string'
     assert.ok(ok1, 'Exact match should satisfy exists condition')
+    assert.deepStrictEqual((r1 as any).requested, {
+      selector: { text: 'Hello' },
+      condition: 'exists',
+      match: null
+    })
+    assert.strictEqual((r1 as any).observed.matched_count, 1)
     console.log('Exact match exists:', ok1 ? 'PASS' : 'FAIL', JSON.stringify(r1, null, 2))
 
     // Test 2: contains matching
@@ -26,6 +32,9 @@ async function run() {
     const r3 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Hidden' }, condition: 'visible', timeout_ms: 300, poll_interval_ms: 50, platform: 'android' })
     const ok3 = r3 && r3.status === 'timeout' && r3.error && r3.error.code === 'ELEMENT_NOT_FOUND'
     assert.ok(ok3, 'Hidden element should fail visible condition')
+    assert.strictEqual((r3 as any).observed.matched_count, 1)
+    assert.strictEqual((r3 as any).observed.condition_satisfied, false)
+    assert.match((r3 as any).error.message, /observed 1 match/)
     console.log('Visible negative (hidden element):', ok3 ? 'PASS' : 'FAIL', JSON.stringify(r3, null, 2))
 
     // Test 4: clickable condition

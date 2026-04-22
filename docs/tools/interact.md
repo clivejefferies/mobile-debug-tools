@@ -111,13 +111,26 @@ Input example:
 Success response example:
 
 ```json
-{ "success": true, "newFingerprint": "<hex-fingerprint>", "elapsedMs": 420 }
+{
+  "success": true,
+  "previousFingerprint": "<old-hex-fingerprint>",
+  "newFingerprint": "<hex-fingerprint>",
+  "elapsedMs": 420,
+  "observed_screen": { "fingerprint": "<hex-fingerprint>", "activity": "MainActivity" }
+}
 ```
 
 Failure (timeout) example:
 
 ```json
-{ "success": false, "reason": "timeout", "lastFingerprint": "<hex-fingerprint>", "elapsedMs": 5000 }
+{
+  "success": false,
+  "reason": "timeout",
+  "previousFingerprint": "<old-hex-fingerprint>",
+  "lastFingerprint": "<hex-fingerprint>",
+  "elapsedMs": 5000,
+  "observed_screen": { "fingerprint": "<hex-fingerprint>", "activity": "HomeActivity" }
+}
 ```
 
 Notes:
@@ -214,7 +227,26 @@ Success response:
     "index": 8,
     "elementId": "el_..."
   },
-  "metrics": { "latency_ms": 120, "poll_count": 1, "attempts": 1 }
+  "metrics": { "latency_ms": 120, "poll_count": 1, "attempts": 1 },
+  "requested": {
+    "selector": { "text": "Generate Session", "contains": false },
+    "condition": "clickable",
+    "match": { "index": 0 }
+  },
+  "observed": {
+    "matched_count": 1,
+    "condition_satisfied": true,
+    "selected_index": 8,
+    "last_matched_element": {
+      "text": "Generate Session",
+      "resource_id": null,
+      "accessibility_id": null,
+      "class": "android.widget.TextView",
+      "bounds": [471, 1098, 809, 1158],
+      "index": 8,
+      "elementId": "el_..."
+    }
+  }
 }
 ```
 
@@ -223,8 +255,27 @@ Timeout response:
 ```json
 {
   "status": "timeout",
-  "error": { "code": "ELEMENT_NOT_FOUND", "message": "Condition visible not satisfied within timeout" },
-  "metrics": { "latency_ms": 5000, "poll_count": 17, "attempts": 1 }
+  "error": { "code": "ELEMENT_NOT_FOUND", "message": "Condition visible not satisfied within timeout; observed 1 match(es)" },
+  "metrics": { "latency_ms": 5000, "poll_count": 17, "attempts": 1 },
+  "requested": {
+    "selector": { "text": "Generate Session", "contains": false },
+    "condition": "visible",
+    "match": { "index": 0 }
+  },
+  "observed": {
+    "matched_count": 1,
+    "condition_satisfied": false,
+    "selected_index": 8,
+    "last_matched_element": {
+      "text": "Generate Session",
+      "resource_id": null,
+      "accessibility_id": null,
+      "class": "android.widget.TextView",
+      "bounds": [471, 1098, 809, 1158],
+      "index": 8,
+      "elementId": "el_..."
+    }
+  }
 }
 ```
 
@@ -232,6 +283,7 @@ Notes:
 
 - Use `wait_for_ui` to get a stable `elementId` for `tap_element`.
 - Use it before an action when the target element or timing is uncertain.
+- Use `requested` and `observed` to see exactly what condition was checked and what the last poll actually found.
 - If the expected outcome is known after the action, follow with `expect_*`.
 
 ---
@@ -330,7 +382,12 @@ Response:
   "success": true,
   "observed_screen": { "fingerprint": "<actual-fingerprint>", "screen": "com.example.app.MainActivity" },
   "expected_screen": { "fingerprint": "<expected-fingerprint>", "screen": null },
-  "confidence": 1
+  "confidence": 1,
+  "comparison": {
+    "basis": "fingerprint",
+    "matched": true,
+    "reason": "observed fingerprint matches expected fingerprint <expected-fingerprint>"
+  }
 }
 ```
 
@@ -367,6 +424,7 @@ Response:
   "success": true,
   "selector": { "text": "Play session" },
   "element_id": "el_123",
+  "expected_condition": "visible",
   "element": {
     "elementId": "el_123",
     "text": "Play session",
@@ -375,7 +433,14 @@ Response:
     "class": "android.widget.TextView",
     "bounds": [519, 1770, 762, 1830],
     "index": 11
-  }
+  },
+  "observed": {
+    "status": "success",
+    "matched_count": 1,
+    "condition_satisfied": true,
+    "selected_index": 11
+  },
+  "reason": "selector is visible"
 }
 ```
 
@@ -384,4 +449,5 @@ Notes:
 - Primary and authoritative verification tool for expected element visibility.
 - `selector` is the primary input; `element_id` is optional context only.
 - The tool resolves the selector internally when needed.
+- On failure, `reason` and `observed` tell you whether the selector was missing entirely or present but not yet visible.
 - Use when the screen should remain on the same destination but a specific element should appear or become visible.

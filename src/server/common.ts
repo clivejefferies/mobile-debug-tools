@@ -63,26 +63,31 @@ export function inferScrollFailure(message: string | undefined): { failureCode: 
 
 export function buildActionExecutionResult({
   actionType,
+  device,
   selector,
   resolved,
   success,
   uiFingerprintBefore,
   uiFingerprintAfter,
-  failure
+  failure,
+  details
 }: {
   actionType: string
+  device?: ActionExecutionResult['device']
   selector: Record<string, unknown> | null
   resolved?: Partial<ActionTargetResolved> | null
   success: boolean
   uiFingerprintBefore: string | null
   uiFingerprintAfter: string | null
   failure?: { failureCode: ActionFailureCode; retryable: boolean }
+  details?: Record<string, unknown>
 }): ActionExecutionResult {
   const timestamp = Date.now()
   return {
     action_id: nextActionId(actionType, timestamp),
     timestamp,
     action_type: actionType,
+    ...(device ? { device } : {}),
     target: {
       selector,
       resolved: normalizeResolvedTarget(resolved)
@@ -90,6 +95,7 @@ export function buildActionExecutionResult({
     success,
     ...(failure ? { failure_code: failure.failureCode, retryable: failure.retryable } : {}),
     ui_fingerprint_before: uiFingerprintBefore,
-    ui_fingerprint_after: uiFingerprintAfter
+    ui_fingerprint_after: uiFingerprintAfter,
+    ...(details ? { details } : {})
   }
 }

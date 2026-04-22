@@ -78,38 +78,55 @@ async function run() {
       return {
         device: { platform: 'android', id: 'emulator-5554', osVersion: '14', model: 'Pixel', simulator: true },
         appStarted: true,
-        launchTimeMs: 123
+        launchTimeMs: 123,
+        output: 'Events injected: 1',
+        observedApp: {
+          appId: 'com.example.app',
+          package: 'com.example.app',
+          activity: 'com.example.MainActivity',
+          screen: 'MainActivity',
+          matchedTarget: true
+        }
       } as any
     }
     const startAppResponse = await handleToolCall('start_app', { platform: 'android', appId: 'com.example.app' })
     const startAppPayload = JSON.parse((startAppResponse as any).content[0].text)
     assert.strictEqual(startAppPayload.success, true)
     assert.strictEqual(startAppPayload.action_type, 'start_app')
+    assert.strictEqual(startAppPayload.device.id, 'emulator-5554')
     assert.deepStrictEqual(startAppPayload.target.selector, { appId: 'com.example.app' })
+    assert.strictEqual(startAppPayload.details.launch_time_ms, 123)
+    assert.strictEqual(startAppPayload.details.observed_app.matchedTarget, true)
 
     ;(ToolsInteract as any).expectScreenHandler = async () => ({
       success: true,
       observed_screen: { fingerprint: 'fp_after', screen: 'MainActivity' },
       expected_screen: { fingerprint: 'fp_after', screen: null },
-      confidence: 1
+      confidence: 1,
+      comparison: { basis: 'fingerprint', matched: true, reason: 'observed fingerprint matches expected fingerprint fp_after' }
     })
 
     const expectScreenResponse = await handleToolCall('expect_screen', { fingerprint: 'fp_after' })
     const expectScreenPayload = JSON.parse((expectScreenResponse as any).content[0].text)
     assert.strictEqual(expectScreenPayload.success, true)
     assert.strictEqual(expectScreenPayload.confidence, 1)
+    assert.strictEqual(expectScreenPayload.comparison.basis, 'fingerprint')
 
     ;(ToolsInteract as any).expectElementVisibleHandler = async () => ({
       success: true,
       selector: { text: 'Ready' },
       element_id: 'el_ready',
-      element: { elementId: 'el_ready', text: 'Ready', resource_id: null, accessibility_id: null, class: 'TextView', bounds: [0, 0, 10, 10], index: 0 }
+      expected_condition: 'visible',
+      element: { elementId: 'el_ready', text: 'Ready', resource_id: null, accessibility_id: null, class: 'TextView', bounds: [0, 0, 10, 10], index: 0 },
+      observed: { status: 'success', matched_count: 1, condition_satisfied: true, selected_index: 0, last_matched_element: { elementId: 'el_ready', text: 'Ready', resource_id: null, accessibility_id: null, class: 'TextView', bounds: [0, 0, 10, 10], index: 0 } },
+      reason: 'selector is visible'
     })
 
     const expectElementResponse = await handleToolCall('expect_element_visible', { selector: { text: 'Ready' } })
     const expectElementPayload = JSON.parse((expectElementResponse as any).content[0].text)
     assert.strictEqual(expectElementPayload.success, true)
     assert.strictEqual(expectElementPayload.element_id, 'el_ready')
+    assert.strictEqual(expectElementPayload.expected_condition, 'visible')
 
     ;(ToolsObserve as any).captureScreenshotHandler = async () => ({
       device: { platform: 'ios', id: 'booted', osVersion: '18.0', model: 'Simulator', simulator: true },

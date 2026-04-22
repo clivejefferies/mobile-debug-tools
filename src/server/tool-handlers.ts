@@ -27,11 +27,19 @@ async function handleStartApp(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'start_app',
+    device: res.device,
     selector: { appId },
     success: !!res.appStarted,
     uiFingerprintBefore,
     uiFingerprintAfter,
-    failure: res.appStarted ? undefined : inferGenericFailure((res as any).error)
+    failure: res.appStarted ? undefined : inferGenericFailure((res as any).error),
+    details: {
+      launch_time_ms: res.launchTimeMs,
+      ...(typeof (res as any).output === 'string' ? { output: (res as any).output } : {}),
+      ...(res.device ? { device_id: res.device.id } : {}),
+      ...(typeof (res as any).error === 'string' ? { error: (res as any).error } : {}),
+      ...((res as any).observedApp ? { observed_app: (res as any).observedApp } : {})
+    }
   }))
 }
 
@@ -50,11 +58,20 @@ async function handleRestartApp(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'restart_app',
+    device: res.device,
     selector: { appId },
     success: !!res.appRestarted,
     uiFingerprintBefore,
     uiFingerprintAfter,
-    failure: res.appRestarted ? undefined : inferGenericFailure((res as any).error)
+    failure: res.appRestarted ? undefined : inferGenericFailure((res as any).error),
+    details: {
+      launch_time_ms: res.launchTimeMs,
+      ...(typeof (res as any).output === 'string' ? { output: (res as any).output } : {}),
+      ...(typeof (res as any).terminatedBeforeRestart === 'boolean' ? { terminated_before_restart: (res as any).terminatedBeforeRestart } : {}),
+      ...(typeof (res as any).terminateError === 'string' ? { terminate_error: (res as any).terminateError } : {}),
+      ...(typeof (res as any).error === 'string' ? { error: (res as any).error } : {}),
+      ...((res as any).observedApp ? { observed_app: (res as any).observedApp } : {})
+    }
   }))
 }
 

@@ -93,8 +93,11 @@ async function run() {
 
     const healthy = await systemStatus.getSystemStatus()
     assert.strictEqual(healthy.success, true)
+    assert.strictEqual((healthy as any).status, 'ready')
     assert.strictEqual(healthy.adbAvailable, true)
     assert.strictEqual(typeof healthy.adbVersion, 'string')
+    assert.strictEqual((healthy as any).summary.android.ready, true)
+    assert.strictEqual(typeof (healthy as any).summary.ios.summary, 'string')
 
     setScenario({
       ADB_VERSION_STATUS: '1',
@@ -105,6 +108,7 @@ async function run() {
     })
     const missingAdb = await systemStatus.getSystemStatus()
     assert.strictEqual(missingAdb.success, false)
+    assert.strictEqual((missingAdb as any).summary.android.ready, false)
     assert(missingAdb.issues.some((issue: string) => issue.includes('ADB')))
 
     setScenario({
@@ -116,6 +120,7 @@ async function run() {
     })
     const unauthorized = await systemStatus.getSystemStatus()
     assert.strictEqual(unauthorized.success, false)
+    assert.strictEqual((unauthorized as any).summary.android.ready, false)
     assert(unauthorized.issues.some((issue: string) => issue.includes('unauthorized')))
     assert(unauthorized.issues.some((issue: string) => issue.includes('offline')))
 
@@ -130,6 +135,7 @@ async function run() {
     assert.strictEqual(missingXcrun.iosAvailable, false)
     assert.strictEqual(missingXcrun.adbAvailable, true)
     assert.strictEqual(Array.isArray(missingXcrun.issues), true)
+    assert.strictEqual((missingXcrun as any).summary.ios.ready, false)
 
     console.log('system_status checks passed')
   } finally {
