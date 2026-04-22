@@ -106,9 +106,64 @@ exit 0
     console.log('testOnlyRes', testOnlyRes)
     assert.strictEqual(testOnlyRes.installed, true, 'Test-only APK should retry with -t and install successfully')
 
+    const cleanupLog = path.join(binDir, 'pm-cleanup.log')
+    const pmFallbackAdbPath = path.join(binDir, 'adb-pm-fallback')
+    const pmFallbackAdbScript = `#!/bin/sh
+if [ "$1" = "-s" ]; then
+  shift 2
+fi
+
+if [ "$1" = "shell" ] && [ "$2" = "getprop" ]; then
+  case "$3" in
+    ro.build.version.release) echo '16' ;;
+    ro.product.model) echo 'sdk_gphone64_arm64' ;;
+    ro.kernel.qemu) echo '1' ;;
+  esac
+  exit 0
+fi
+
+if [ "$1" = "install" ]; then
+  echo 'adb install failed' 1>&2
+  exit 1
+fi
+
+if [ "$1" = "push" ]; then
+  echo 'pushed'
+  exit 0
+fi
+
+if [ "$1" = "shell" ] && [ "$2" = "pm" ] && [ "$3" = "install" ]; then
+  if [ "$4" = "-r" ] && [ "$5" = "-t" ]; then
+    echo 'Failure [INSTALL_FAILED_VERSION_DOWNGRADE]'
+    exit 1
+  fi
+  echo 'Failure [INSTALL_FAILED_TEST_ONLY: Failed to install test-only apk. Did you forget to add -t?]'
+  exit 1
+fi
+
+if [ "$1" = "shell" ] && [ "$2" = "rm" ]; then
+  echo cleanup >> "${cleanupLog}"
+  exit 0
+fi
+
+echo 'unexpected args:' "$@" 1>&2
+exit 1
+`
+    await fs.writeFile(pmFallbackAdbPath, pmFallbackAdbScript, { mode: 0o755 })
+    process.env.ADB_PATH = pmFallbackAdbPath
+
+    const { dir: d3, file: pmFallbackApk } = await makeTempFile('.apk')
+    const pmFallbackRes = await ai.installApp(pmFallbackApk, 'emulator-5554')
+    console.log('pmFallbackRes', pmFallbackRes)
+    assert.strictEqual(pmFallbackRes.installed, false, 'Failed pm fallback should surface as install failure')
+    assert.match(pmFallbackRes.error || '', /INSTALL_FAILED_VERSION_DOWNGRADE/, 'Final pm retry failure should be reported')
+    const cleanupCount = (await fs.readFile(cleanupLog, 'utf8')).trim().split('\n').filter(Boolean).length
+    assert.strictEqual(cleanupCount, 1, 'pm fallback cleanup should run once')
+
     // cleanup
     await fs.rm(d1, { recursive: true, force: true }).catch(() => {})
     await fs.rm(d2, { recursive: true, force: true }).catch(() => {})
+    await fs.rm(d3, { recursive: true, force: true }).catch(() => {})
     await fs.rm(dirGradle, { recursive: true, force: true }).catch(() => {})
 
     // restore PATH and ADB_PATH
