@@ -5,6 +5,7 @@ import { existsSync } from 'fs'
 import { execAdb, spawnAdb, getAndroidDeviceMetadata, getDeviceInfo, findApk } from '../utils/android/utils.js'
 import { execAdbWithDiagnostics } from '../utils/diagnostics.js'
 import { detectJavaHome } from '../utils/java.js'
+import { AndroidObserve } from '../observe/android.js'
 import { InstallAppResponse, StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse } from '../types.js'
 
 export class AndroidManage {
@@ -141,8 +142,21 @@ export class AndroidManage {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
-      await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
-      return { device: deviceInfo, appStarted: true, launchTimeMs: 1000 }
+      const output = await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
+      const current = await new AndroidObserve().getCurrentScreen(deviceId).catch(() => null)
+      return {
+        device: deviceInfo,
+        appStarted: true,
+        launchTimeMs: 1000,
+        output,
+        observedApp: {
+          appId,
+          package: current?.package ?? null,
+          activity: current?.activity ?? null,
+          screen: current?.shortActivity ?? current?.activity ?? null,
+          matchedTarget: current ? current.package === appId : null
+        }
+      }
     } catch (e: unknown) {
       const diag = execAdbWithDiagnostics(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
       return { device: deviceInfo, appStarted: false, launchTimeMs: 0, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
@@ -162,12 +176,18 @@ export class AndroidManage {
   }
 
   async restartApp(appId: string, deviceId?: string): Promise<RestartAppResponse> {
-    await this.terminateApp(appId, deviceId)
+    const terminateResult = await this.terminateApp(appId, deviceId)
     const startResult = await this.startApp(appId, deviceId)
     return {
       device: startResult.device,
       appRestarted: startResult.appStarted,
-      launchTimeMs: startResult.launchTimeMs
+      launchTimeMs: startResult.launchTimeMs,
+      output: startResult.output,
+      observedApp: startResult.observedApp,
+      terminatedBeforeRestart: terminateResult.appTerminated,
+      ...(terminateResult.error ? { terminateError: terminateResult.error } : {}),
+      ...(startResult.error ? { error: startResult.error } : {}),
+      ...(startResult.diagnostics ? { diagnostics: startResult.diagnostics } : {})
     }
   }
 

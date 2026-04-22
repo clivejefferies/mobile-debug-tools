@@ -123,10 +123,23 @@ start_app response example:
   "action_id": "start_app_1710000000000_1",
   "timestamp": 1710000000000,
   "action_type": "start_app",
+  "device": { "platform": "android", "id": "emulator-5554", "osVersion": "14", "model": "Pixel", "simulator": true },
   "target": { "selector": { "appId": "com.example.app" }, "resolved": null },
   "success": true,
   "ui_fingerprint_before": "fp_before",
-  "ui_fingerprint_after": "fp_after"
+  "ui_fingerprint_after": "fp_after",
+  "details": {
+    "launch_time_ms": 1000,
+    "output": "Events injected: 1",
+    "device_id": "emulator-5554",
+    "observed_app": {
+      "appId": "com.example.app",
+      "package": "com.example.app",
+      "activity": "com.example.app.MainActivity",
+      "screen": "MainActivity",
+      "matchedTarget": true
+    }
+  }
 }
 ```
 
@@ -137,5 +150,7 @@ terminate_app and reset_app_data return operation-specific lifecycle results ins
 Notes:
 
 - `start_app` and `restart_app` report execution success, not outcome correctness.
+- Use `details.observed_app` as the quick decision signal for what the tool actually saw after launch.
+- Android launch feedback usually includes package/activity matching; iOS launch feedback includes launch output and PID when available.
 - When the landing screen is known, use `expect_screen` as the final verification step.
 - If launch timing is uncertain, insert `wait_for_screen_change` before `expect_screen`.

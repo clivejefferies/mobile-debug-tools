@@ -6,7 +6,9 @@ import { getSystemStatus } from '../../../src/system/index.js'
 async function run() {
   const payload = await getSystemStatus()
   assert(typeof payload.success === 'boolean')
+  assert(typeof (payload as any).status === 'string')
   assert(Array.isArray(payload.issues))
+  assert((payload as any).summary && typeof (payload as any).summary.overall === 'string')
 
   const adb = ensureAdbAvailable()
   assert(adb && typeof adb.ok === 'boolean')

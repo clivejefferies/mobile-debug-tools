@@ -9,22 +9,26 @@ async function runTests() {
 
   try {
     let seq1: Array<string | null> = ['B', 'B']
-    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: seq1.length ? seq1.shift() : null })
+    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: seq1.length ? seq1.shift() : null, activity: 'MainActivity' })
     const start1 = Date.now()
     const res1 = await ToolsInteract.waitForScreenChangeHandler({ platform: 'android', previousFingerprint: 'A', timeoutMs: 2000, pollIntervalMs: 50 })
     const elapsed1 = Date.now() - start1
     assert.ok(res1 && (res1 as any).success === true && (res1 as any).newFingerprint === 'B', 'Immediate fingerprint change should succeed')
+    assert.strictEqual((res1 as any).previousFingerprint, 'A')
+    assert.strictEqual((res1 as any).observed_screen.activity, 'MainActivity')
     console.log('Test 1: Immediate change -> PASS', 'Elapsed:', elapsed1, 'ms')
 
     let seq2: Array<string | null> = [null, null, 'B', 'B']
-    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: seq2.length ? seq2.shift() : 'B' })
+    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: seq2.length ? seq2.shift() : 'B', activity: 'NextActivity' })
     const res2 = await ToolsInteract.waitForScreenChangeHandler({ platform: 'android', previousFingerprint: 'A', timeoutMs: 3000, pollIntervalMs: 50 })
     assert.ok(res2 && (res2 as any).success === true && (res2 as any).newFingerprint === 'B', 'Transient nulls should not prevent success')
     console.log('Test 2: Transient nulls -> PASS')
 
-    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: 'A' })
+    ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = async () => ({ fingerprint: 'A', activity: 'HomeActivity' })
     const res3 = await ToolsInteract.waitForScreenChangeHandler({ platform: 'android', previousFingerprint: 'A', timeoutMs: 300, pollIntervalMs: 50 })
     assert.ok(res3 && (res3 as any).success === false && (res3 as any).reason === 'timeout', 'Unchanged fingerprint should time out')
+    assert.strictEqual((res3 as any).previousFingerprint, 'A')
+    assert.strictEqual((res3 as any).observed_screen.activity, 'HomeActivity')
     console.log('Test 3: Timeout -> PASS')
   } finally {
     ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = original

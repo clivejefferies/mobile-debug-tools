@@ -10,6 +10,15 @@ export interface StartAppResponse {
   device: DeviceInfo;
   appStarted: boolean;
   launchTimeMs: number;
+  output?: string;
+  observedApp?: {
+    appId: string;
+    package?: string | null;
+    activity?: string | null;
+    screen?: string | null;
+    pid?: number | null;
+    matchedTarget?: boolean | null;
+  };
   error?: string;
   diagnostics?: any;
 }
@@ -25,6 +34,17 @@ export interface RestartAppResponse {
   device: DeviceInfo;
   appRestarted: boolean;
   launchTimeMs: number;
+  output?: string;
+  observedApp?: {
+    appId: string;
+    package?: string | null;
+    activity?: string | null;
+    screen?: string | null;
+    pid?: number | null;
+    matchedTarget?: boolean | null;
+  };
+  terminatedBeforeRestart?: boolean;
+  terminateError?: string;
   error?: string;
   diagnostics?: any;
 }
@@ -155,6 +175,7 @@ export interface ActionExecutionResult {
   action_id: string;
   timestamp: number;
   action_type: string;
+  device?: DeviceInfo;
   target: {
     selector: Record<string, unknown> | null;
     resolved: ActionTargetResolved | null;
@@ -164,6 +185,7 @@ export interface ActionExecutionResult {
   retryable?: boolean;
   ui_fingerprint_before?: string | null;
   ui_fingerprint_after?: string | null;
+  details?: Record<string, unknown>;
 }
 
 export interface TapElementResponse extends ActionExecutionResult {}
@@ -179,6 +201,11 @@ export interface ExpectScreenResponse {
     screen: string | null;
   };
   confidence: number;
+  comparison: {
+    basis: 'fingerprint' | 'screen' | 'none';
+    matched: boolean;
+    reason: string;
+  };
 }
 
 export interface ExpectElementVisibleResponse {
@@ -190,7 +217,16 @@ export interface ExpectElementVisibleResponse {
     contains?: boolean;
   };
   element_id: string | null;
+  expected_condition?: 'visible';
   element?: ActionTargetResolved | null;
+  observed?: {
+    status?: string;
+    matched_count?: number;
+    condition_satisfied?: boolean;
+    selected_index?: number | null;
+    last_matched_element?: ActionTargetResolved | null;
+  };
+  reason?: string;
   failure_code?: 'TIMEOUT' | 'ELEMENT_NOT_FOUND' | 'UNKNOWN';
   retryable?: boolean;
 }

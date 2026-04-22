@@ -490,6 +490,12 @@ export class ToolsInteract {
 
   static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string }) {
     const overallStart = Date.now()
+    const requestedIndex = typeof match?.index === 'number' ? match.index : null
+    const requested = {
+      selector: selector ?? {},
+      condition,
+      match: requestedIndex === null ? null : { index: requestedIndex }
+    }
 
     // Validate selector: require at least one non-empty field (text, resource_id, or accessibility_id)
     const hasText = typeof selector?.text === 'string' && selector.text.trim().length > 0;
@@ -503,18 +509,20 @@ export class ToolsInteract {
           code: 'INVALID_SELECTOR',
           message: 'Selector must include at least one non-empty field: text, resource_id, or accessibility_id'
         },
-        metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }
+        metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 },
+        requested,
+        observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null }
       };
     }
 
     // Validate condition
     if (!['exists','not_exists','visible','clickable'].includes(condition)) {
-      return { status: 'timeout', error: { code: 'INVALID_CONDITION', message: `Unsupported condition: ${condition}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 } }
+      return { status: 'timeout', error: { code: 'INVALID_CONDITION', message: `Unsupported condition: ${condition}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } }
     }
 
     // Platform check
     if (platform && !['android','ios'].includes(platform)) {
-      return { status: 'timeout', error: { code: 'PLATFORM_NOT_SUPPORTED', message: `Unsupported platform: ${platform}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 } }
+      return { status: 'timeout', error: { code: 'PLATFORM_NOT_SUPPORTED', message: `Unsupported platform: ${platform}` }, metrics: { latency_ms: Date.now() - overallStart, poll_count: 0, attempts: 0 }, requested, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } }
     }
 
     const effectivePoll = Math.max(50, Math.min(poll_interval_ms || 300, 2000))
@@ -523,6 +531,9 @@ export class ToolsInteract {
 
     let attempts = 0
     let totalPollCount = 0
+    let lastMatchedCount = 0
+    let lastMatchedElement: ActionTargetResolved | null = null
+    let lastConditionSatisfied = false
 
     // Precompute normalized selector values and helpers (constant across polls)
     const normalize = ToolsInteract._normalize
@@ -623,19 +634,29 @@ export class ToolsInteract {
               } else conditionMet = false
             }
 
+            const resolvedPlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
+            const resolvedDeviceId = tree?.device?.id || deviceId
+            lastMatchedCount = matchedCount
+            lastConditionSatisfied = conditionMet
+            lastMatchedElement = matchedElement ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, matchedElement.el, matchedElement.idx) : null
+
             if (conditionMet) {
               const now = Date.now()
               const latency_ms = now - overallStart
-              // Build element output per spec
-              const resolvedPlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
-              const resolvedDeviceId = tree?.device?.id || deviceId
-              const outEl = matchedElement ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, matchedElement.el, matchedElement.idx) : null
+              const outEl = lastMatchedElement
 
               return {
                 status: 'success',
                 matched: matchedCount,
                 element: outEl,
-                metrics: { latency_ms, poll_count: totalPollCount, attempts }
+                metrics: { latency_ms, poll_count: totalPollCount, attempts },
+                requested,
+                observed: {
+                  matched_count: matchedCount,
+                  condition_satisfied: true,
+                  selected_index: outEl?.index ?? null,
+                  last_matched_element: outEl
+                }
               }
             }
 
@@ -656,16 +677,38 @@ export class ToolsInteract {
 
         // Final failure for this call
         const elapsed = Date.now() - overallStart
+        const observed = {
+          matched_count: lastMatchedCount,
+          condition_satisfied: lastConditionSatisfied,
+          selected_index: lastMatchedElement?.index ?? null,
+          last_matched_element: lastMatchedElement
+        }
+        const matchNote = requestedIndex !== null && lastMatchedCount <= requestedIndex
+          ? ` requested match.index=${requestedIndex} but observed ${lastMatchedCount} match(es)`
+          : ` observed ${lastMatchedCount} match(es)`
         return {
           status: 'timeout',
-          error: { code: 'ELEMENT_NOT_FOUND', message: `Condition ${condition} not satisfied within timeout` },
-          metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts }
+          error: { code: 'ELEMENT_NOT_FOUND', message: `Condition ${condition} not satisfied within timeout;${matchNote}` },
+          metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts },
+          requested,
+          observed
         }
       }
 
     } catch (err) {
       const elapsed = Date.now() - overallStart
-      return { status: 'timeout', error: { code: 'INTERNAL_ERROR', message: err instanceof Error ? err.message : String(err) }, metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts } }
+      return {
+        status: 'timeout',
+        error: { code: 'INTERNAL_ERROR', message: err instanceof Error ? err.message : String(err) },
+        metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts },
+        requested,
+        observed: {
+          matched_count: lastMatchedCount,
+          condition_satisfied: false,
+          selected_index: lastMatchedElement?.index ?? null,
+          last_matched_element: lastMatchedElement
+        }
+      }
     }
   }
 
@@ -682,11 +725,13 @@ export class ToolsInteract {
   static async waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs = 5000, pollIntervalMs = 300, deviceId }: { platform?: 'android' | 'ios', previousFingerprint: string, timeoutMs?: number, pollIntervalMs?: number, deviceId?: string }) {
     const start = Date.now()
     let lastFingerprint: string | null = null
+    let lastActivity: string | null = null
 
     while (Date.now() - start < timeoutMs) {
       try {
         const res = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
         const fp = res?.fingerprint ?? null
+        lastActivity = (res as any)?.activity ?? lastActivity
         if (fp === null || fp === undefined) {
           lastFingerprint = null
           await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
@@ -701,8 +746,18 @@ export class ToolsInteract {
               try {
             const confirmRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
             const confirmFp = confirmRes?.fingerprint ?? null
+            lastActivity = (confirmRes as any)?.activity ?? lastActivity
             if (confirmFp === fp) {
-              return { success: true, newFingerprint: fp, elapsedMs: Date.now() - start }
+              return {
+                success: true,
+                previousFingerprint,
+                newFingerprint: fp,
+                elapsedMs: Date.now() - start,
+                observed_screen: {
+                  fingerprint: fp,
+                  activity: lastActivity
+                }
+              }
             }
             lastFingerprint = confirmFp
             continue
@@ -713,7 +768,17 @@ export class ToolsInteract {
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
     }
 
-    return { success: false, reason: 'timeout', lastFingerprint, elapsedMs: Date.now() - start }
+    return {
+      success: false,
+      reason: 'timeout',
+      previousFingerprint,
+      lastFingerprint,
+      elapsedMs: Date.now() - start,
+      observed_screen: {
+        fingerprint: lastFingerprint,
+        activity: lastActivity
+      }
+    }
   }
 
   static async expectScreenHandler({
@@ -749,13 +814,23 @@ export class ToolsInteract {
     }
 
     let success = false
+    let basis: 'fingerprint' | 'screen' | 'none' = 'none'
+    let reason = 'No fingerprint or screen expectation provided'
     if (fingerprint) {
+      basis = 'fingerprint'
       success = observedScreen.fingerprint === fingerprint
+      reason = success
+        ? `observed fingerprint matches expected fingerprint ${fingerprint}`
+        : `expected fingerprint ${fingerprint} but observed ${observedScreen.fingerprint ?? 'null'}`
     } else if (screen) {
+      basis = 'screen'
       const candidates = new Set<string>()
       if (observedScreen.screen) candidates.add(observedScreen.screen)
       if (observedScreenLabel) candidates.add(observedScreenLabel)
       success = candidates.has(screen)
+      reason = success
+        ? `observed screen matches expected screen ${screen}`
+        : `expected screen ${screen} but observed ${observedScreenLabel ?? observedScreen.screen ?? 'null'}`
     }
 
     return {
@@ -765,7 +840,12 @@ export class ToolsInteract {
         screen: observedScreenLabel
       },
       expected_screen: expectedScreen,
-      confidence: success ? 1 : 0
+      confidence: success ? 1 : 0,
+      comparison: {
+        basis,
+        matched: success,
+        reason
+      }
     }
   }
 
@@ -798,6 +878,7 @@ export class ToolsInteract {
         success: true,
         selector,
         element_id: result.element.elementId ?? element_id ?? null,
+        expected_condition: 'visible',
         element: {
           elementId: result.element.elementId ?? null,
           text: result.element.text ?? null,
@@ -806,7 +887,23 @@ export class ToolsInteract {
           class: result.element.class ?? null,
           bounds: result.element.bounds ?? null,
           index: typeof result.element.index === 'number' ? result.element.index : null
-        }
+        },
+        observed: {
+          status: result.status,
+          matched_count: typeof result.matched === 'number' ? result.matched : result?.observed?.matched_count ?? null,
+          condition_satisfied: true,
+          selected_index: typeof result.element.index === 'number' ? result.element.index : null,
+          last_matched_element: {
+            elementId: result.element.elementId ?? null,
+            text: result.element.text ?? null,
+            resource_id: result.element.resource_id ?? null,
+            accessibility_id: result.element.accessibility_id ?? null,
+            class: result.element.class ?? null,
+            bounds: result.element.bounds ?? null,
+            index: typeof result.element.index === 'number' ? result.element.index : null
+          }
+        },
+        reason: 'selector is visible'
       }
     }
 
@@ -815,6 +912,15 @@ export class ToolsInteract {
       success: false,
       selector,
       element_id: element_id ?? null,
+      expected_condition: 'visible',
+      observed: {
+        status: result?.status,
+        matched_count: result?.observed?.matched_count,
+        condition_satisfied: result?.observed?.condition_satisfied ?? false,
+        selected_index: result?.observed?.selected_index ?? null,
+        last_matched_element: result?.observed?.last_matched_element ?? null
+      },
+      reason: result?.error?.message ?? 'selector is not visible',
       failure_code: errorCode,
       retryable: errorCode === 'TIMEOUT'
     }

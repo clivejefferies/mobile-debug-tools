@@ -2,6 +2,7 @@ import { promises as fs } from "fs"
 import { spawn, spawnSync } from "child_process"
 import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, InstallAppResponse } from "../types.js"
 import { execCommand, execCommandWithDiagnostics, getIOSDeviceMetadata, validateBundleId, getIdbCmd, findAppBundle } from "../utils/ios/utils.js"
+import { iOSObserve } from "../observe/ios.js"
 import path from "path"
 
 export class iOSManage {
@@ -301,7 +302,20 @@ export class iOSManage {
     try {
       const result = await execCommand(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
-      return { device, appStarted: !!result.output, launchTimeMs: 1000 }
+      const fingerprint = await new iOSObserve().getScreenFingerprint(deviceId).catch(() => null)
+      const pidMatch = result.output.match(/:\s*(\d+)\s*$/)
+      return {
+        device,
+        appStarted: !!result.output,
+        launchTimeMs: 1000,
+        output: result.output,
+        observedApp: {
+          appId: bundleId,
+          pid: pidMatch ? Number(pidMatch[1]) : null,
+          screen: fingerprint?.activity ?? null,
+          matchedTarget: null
+        }
+      }
     } catch (e: unknown) {
       const diag = execCommandWithDiagnostics(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
@@ -323,9 +337,19 @@ export class iOSManage {
   }
 
   async restartApp(bundleId: string, deviceId: string = "booted"): Promise<RestartAppResponse> {
-    await this.terminateApp(bundleId, deviceId)
+    const terminateResult = await this.terminateApp(bundleId, deviceId)
     const startResult = await this.startApp(bundleId, deviceId)
-    return { device: startResult.device, appRestarted: startResult.appStarted, launchTimeMs: startResult.launchTimeMs }
+    return {
+      device: startResult.device,
+      appRestarted: startResult.appStarted,
+      launchTimeMs: startResult.launchTimeMs,
+      output: startResult.output,
+      observedApp: startResult.observedApp,
+      terminatedBeforeRestart: terminateResult.appTerminated,
+      ...(terminateResult.error ? { terminateError: terminateResult.error } : {}),
+      ...(startResult.error ? { error: startResult.error } : {}),
+      ...(startResult.diagnostics ? { diagnostics: startResult.diagnostics } : {})
+    }
   }
 
   async resetAppData(bundleId: string, deviceId: string = "booted"): Promise<ResetAppDataResponse> {

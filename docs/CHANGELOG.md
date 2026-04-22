@@ -2,8 +2,13 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.24.2]
+- Fixed Android install issue
+- Updated tools to have more detailed responses
+
 ## [0.24.1]
 - Fixed Android install issue
+- Updated tools to have more detailed responses
 
 ## [0.24.0]
 - Improved execution loop

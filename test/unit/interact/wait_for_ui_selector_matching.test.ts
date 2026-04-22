@@ -12,6 +12,12 @@ async function run() {
     const r1 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Hello' }, condition: 'exists', timeout_ms: 1000, poll_interval_ms: 50, platform: 'android' })
     const ok1 = r1 && r1.status === 'success' && r1.matched === 1 && r1.element && r1.element.text === 'Hello' && typeof r1.element.elementId === 'string'
     assert.ok(ok1, 'Exact match should satisfy exists condition')
+    assert.deepStrictEqual((r1 as any).requested, {
+      selector: { text: 'Hello' },
+      condition: 'exists',
+      match: null
+    })
+    assert.strictEqual((r1 as any).observed.matched_count, 1)
     console.log('Exact match exists:', ok1 ? 'PASS' : 'FAIL', JSON.stringify(r1, null, 2))
 
     // Test 2: contains matching
@@ -26,6 +32,9 @@ async function run() {
     const r3 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Hidden' }, condition: 'visible', timeout_ms: 300, poll_interval_ms: 50, platform: 'android' })
     const ok3 = r3 && r3.status === 'timeout' && r3.error && r3.error.code === 'ELEMENT_NOT_FOUND'
     assert.ok(ok3, 'Hidden element should fail visible condition')
+    assert.strictEqual((r3 as any).observed.matched_count, 1)
+    assert.strictEqual((r3 as any).observed.condition_satisfied, false)
+    assert.match((r3 as any).error.message, /observed 1 match/)
     console.log('Visible negative (hidden element):', ok3 ? 'PASS' : 'FAIL', JSON.stringify(r3, null, 2))
 
     // Test 4: clickable condition
@@ -66,7 +75,17 @@ async function run() {
     const r7 = await ToolsInteract.waitForUIHandler({ selector: { text: 'Nope' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, retry: { max_attempts: 1 }, platform: 'android' })
     const ok7 = r7 && r7.status === 'timeout' && r7.error && r7.error.code === 'ELEMENT_NOT_FOUND'
     assert.ok(ok7, 'Missing selector should time out with ELEMENT_NOT_FOUND')
+    assert.strictEqual((r7 as any).observed.selected_index, null)
     console.log('Timeout no match:', ok7 ? 'PASS' : 'FAIL', JSON.stringify(r7, null, 2))
+
+    // Test 8: requested match index out of range should not report a selected index
+    ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({ elements: [ { text: 'OnlyOne', resourceId: 'rid8', bounds: [0,0,10,10], visible: true } ] })
+    const r8 = await ToolsInteract.waitForUIHandler({ selector: { text: 'OnlyOne' }, condition: 'exists', timeout_ms: 300, poll_interval_ms: 50, match: { index: 1 }, platform: 'android' })
+    const ok8 = r8 && r8.status === 'timeout' && r8.error && r8.error.code === 'ELEMENT_NOT_FOUND'
+    assert.ok(ok8, 'Out-of-range match index should time out deterministically')
+    assert.strictEqual((r8 as any).observed.matched_count, 1)
+    assert.strictEqual((r8 as any).observed.selected_index, null)
+    console.log('Out-of-range match index:', ok8 ? 'PASS' : 'FAIL', JSON.stringify(r8, null, 2))
 
   } finally {
     ;(Observe as any).ToolsObserve.getUITreeHandler = origGetUITree

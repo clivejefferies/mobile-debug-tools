@@ -16,6 +16,7 @@ Response (example):
 ```json
 {
   "success": true,
+  "status": "ready",
   "adbAvailable": true,
   "adbVersion": "8.1.0",
   "devices": 1,
@@ -25,7 +26,26 @@ Response (example):
   "issues": [],
   "appInstalled": true,
   "iosAvailable": true,
-  "iosDevices": 1
+  "iosDevices": 1,
+  "summary": {
+    "overall": "ready",
+    "android": {
+      "ready": true,
+      "summary": "1 Android device(s) connected; log access available",
+      "blockers": []
+    },
+    "ios": {
+      "ready": true,
+      "summary": "1 iOS simulator(s) booted",
+      "blockers": []
+    },
+    "gradle": {
+      "ready": true,
+      "summary": "No explicit Gradle JDK override detected",
+      "blockers": [],
+      "suggestedFixes": []
+    }
+  }
 }
 ```
 
@@ -39,6 +59,8 @@ Checks performed (fast, best-effort):
 
 Behavior notes:
 - Always returns structured JSON and never throws; any failures are surfaced in the `issues` array.
+- `status` gives a quick overall gate: `ready`, `degraded`, or `blocked`.
+- `summary.android`, `summary.ios`, and `summary.gradle` provide the fastest path to the actual blocker category.
 - Designed to be fast (<~1s probes where possible); startup callers may prefer a `fastMode` variant that only checks existence.
 - Useful to call at the start of an agent session to gate subsequent actions.
 

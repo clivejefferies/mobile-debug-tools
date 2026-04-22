@@ -15,7 +15,12 @@ async function run() {
       success: true,
       observed_screen: { fingerprint: 'fp_home', screen: 'com.example.HomeActivity' },
       expected_screen: { fingerprint: 'fp_home', screen: null },
-      confidence: 1
+      confidence: 1,
+      comparison: {
+        basis: 'fingerprint',
+        matched: true,
+        reason: 'observed fingerprint matches expected fingerprint fp_home'
+      }
     })
 
     ;(Observe as any).ToolsObserve.getCurrentScreenHandler = async () => ({
@@ -26,6 +31,11 @@ async function run() {
     assert.strictEqual(expectScreen.success, true)
     assert.strictEqual(expectScreen.observed_screen.screen, 'HomeActivity')
     assert.strictEqual(expectScreen.confidence, 1)
+    assert.deepStrictEqual(expectScreen.comparison, {
+      basis: 'screen',
+      matched: true,
+      reason: 'observed screen matches expected screen HomeActivity'
+    })
 
     ;(ToolsInteract as any).waitForUIHandler = async () => ({
       status: 'success',
@@ -46,10 +56,18 @@ async function run() {
     assert.strictEqual(expectElementVisible.success, true)
     assert.strictEqual(expectElementVisible.element_id, 'el_ready')
     assert.strictEqual(expectElementVisible.element?.resource_id, 'rid_ready')
+    assert.strictEqual(expectElementVisible.expected_condition, 'visible')
+    assert.strictEqual(expectElementVisible.reason, 'selector is visible')
 
     ;(ToolsInteract as any).waitForUIHandler = async () => ({
       status: 'timeout',
-      error: { code: 'ELEMENT_NOT_FOUND', message: 'Condition visible not satisfied within timeout' }
+      error: { code: 'ELEMENT_NOT_FOUND', message: 'Condition visible not satisfied within timeout; observed 0 match(es)' },
+      observed: {
+        matched_count: 0,
+        condition_satisfied: false,
+        selected_index: null,
+        last_matched_element: null
+      }
     })
     const timeoutResult = await ToolsInteract.expectElementVisibleHandler({
       selector: { text: 'Missing' },
@@ -59,6 +77,15 @@ async function run() {
       success: false,
       selector: { text: 'Missing' },
       element_id: null,
+      expected_condition: 'visible',
+      observed: {
+        status: 'timeout',
+        matched_count: 0,
+        condition_satisfied: false,
+        selected_index: null,
+        last_matched_element: null
+      },
+      reason: 'Condition visible not satisfied within timeout; observed 0 match(es)',
       failure_code: 'TIMEOUT',
       retryable: true
     })
