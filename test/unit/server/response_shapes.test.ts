@@ -16,6 +16,7 @@ async function run() {
   const originalCaptureScreenshotHandler = (ToolsObserve as any).captureScreenshotHandler
   const originalGetUITreeHandler = (ToolsObserve as any).getUITreeHandler
   const originalGetScreenFingerprintHandler = (ToolsObserve as any).getScreenFingerprintHandler
+  const originalCaptureDebugSnapshotHandler = (ToolsObserve as any).captureDebugSnapshotHandler
 
   try {
     ;(ToolsManage as any).installAppHandler = async () => ({
@@ -181,6 +182,32 @@ async function run() {
     assert.strictEqual(uiTreePayload.resolution.height, 2400)
     assert.strictEqual(uiTreePayload.elements[0].text, 'Login')
 
+    ;(ToolsObserve as any).captureDebugSnapshotHandler = async () => ({
+      raw: {
+        timestamp: 1710000000000,
+        reason: 'manual',
+        activity: 'com.example.MainActivity',
+        fingerprint: 'fp_raw',
+        screenshot: 'base64',
+        ui_tree: { screen: 'Home', elements: [] },
+        logs: [],
+        device: { platform: 'android', id: 'mock', osVersion: '14', model: 'Pixel', simulator: true }
+      },
+      semantic: {
+        screen: 'Home',
+        signals: { has_activity: true },
+        actions_available: ['open settings'],
+        confidence: 0.8,
+        warnings: []
+      }
+    })
+
+    const snapshotResponse = await handleToolCall('capture_debug_snapshot', { platform: 'android' })
+    const snapshotPayload = JSON.parse((snapshotResponse as any).content[0].text)
+    assert.strictEqual(snapshotPayload.raw.fingerprint, 'fp_raw')
+    assert.strictEqual(snapshotPayload.semantic.screen, 'Home')
+    assert.strictEqual(snapshotPayload.semantic.confidence, 0.8)
+
     console.log('server response-shape tests passed')
   } finally {
     ;(ToolsManage as any).installAppHandler = originalInstallAppHandler
@@ -193,6 +220,7 @@ async function run() {
     ;(ToolsObserve as any).captureScreenshotHandler = originalCaptureScreenshotHandler
     ;(ToolsObserve as any).getUITreeHandler = originalGetUITreeHandler
     ;(ToolsObserve as any).getScreenFingerprintHandler = originalGetScreenFingerprintHandler
+    ;(ToolsObserve as any).captureDebugSnapshotHandler = originalCaptureDebugSnapshotHandler
   }
 }
 

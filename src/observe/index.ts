@@ -1,9 +1,145 @@
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { AndroidObserve } from './android.js'
 import { iOSObserve } from './ios.js'
+import type {
+  CaptureDebugSnapshotRawResponse,
+  SnapshotSemanticResponse
+} from '../types.js'
 
 export { AndroidObserve } from './android.js'
 export { iOSObserve } from './ios.js'
+
+interface SnapshotTreeElementLike {
+  text?: string | null
+  contentDescription?: string | null
+  contentDesc?: string | null
+  accessibilityLabel?: string | null
+  resourceId?: string | null
+  id?: string | null
+  type?: string | null
+  class?: string | null
+  clickable?: boolean
+  enabled?: boolean
+  visible?: boolean
+}
+
+interface SnapshotTreeLike {
+  screen?: string | null
+  elements?: SnapshotTreeElementLike[]
+}
+
+function normalizeHint(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function titleCase(value: string): string {
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
+function shortActivityName(activity: string | null | undefined): string | null {
+  if (!activity) return null
+  const trimmed = String(activity).trim()
+  if (!trimmed) return null
+  const lastSegment = trimmed.split('.').pop() || trimmed
+  const withoutSuffix = lastSegment.replace(/Activity$/, '')
+  return withoutSuffix ? titleCase(withoutSuffix) : titleCase(lastSegment)
+}
+
+function collectSnapshotTexts(tree: SnapshotTreeLike | null | undefined) {
+  const elements = Array.isArray(tree?.elements) ? tree!.elements! : []
+  const texts: string[] = []
+  const actionables: string[] = []
+
+  for (const element of elements) {
+    const rawText = element?.text ?? element?.contentDescription ?? element?.contentDesc ?? element?.accessibilityLabel ?? element?.resourceId ?? element?.id ?? ''
+    const text = normalizeHint(rawText)
+    if (text) texts.push(text)
+    if (element?.clickable && element?.enabled !== false && text) {
+      actionables.push(text)
+    }
+  }
+
+  return {
+    texts: Array.from(new Set(texts)),
+    actionables: Array.from(new Set(actionables))
+  }
+}
+
+function inferSnapshotScreen(raw: CaptureDebugSnapshotRawResponse): string | null {
+  const tree = raw.ui_tree as SnapshotTreeLike | null | undefined
+  const treeScreen = normalizeHint(tree?.screen)
+  if (treeScreen) return titleCase(treeScreen)
+
+  const activity = shortActivityName(raw.activity)
+  if (activity) return activity
+
+  const { texts } = collectSnapshotTexts(tree)
+  if (texts.length > 0) return titleCase(texts[0])
+
+  return null
+}
+
+function deriveSnapshotSemantic(raw: CaptureDebugSnapshotRawResponse): SnapshotSemanticResponse | null {
+  const tree = raw.ui_tree as SnapshotTreeLike | null | undefined
+  const { texts, actionables } = collectSnapshotTexts(tree)
+  const screenFromTree = normalizeHint(tree?.screen)
+  const activityHint = normalizeHint(raw.activity)
+  const screen = inferSnapshotScreen(raw)
+
+  if (!screen && !activityHint && texts.length === 0 && !raw.logs.length) return null
+
+  const hasErrorLogs = raw.logs.some((entry) => /error|fatal exception|exception|failed/i.test(entry.message))
+  const hasLoadingSignals = texts.some((text) => /loading|please wait|spinner|progress/i.test(text))
+  const hasPrimaryText = texts.some((text) => /sign in|log in|login|home|checkout|settings|menu|profile|search/i.test(text))
+  const hasScreenshot = typeof raw.screenshot === 'string' && raw.screenshot.length > 0
+  const hasUiTree = !!tree && Array.isArray(tree.elements)
+
+  const signals: Record<string, string | number | boolean> = {
+    has_activity: !!activityHint,
+    has_ui_tree: hasUiTree,
+    has_screenshot: hasScreenshot,
+    has_visible_text: texts.length > 0,
+    has_clickable_elements: actionables.length > 0,
+    has_error_logs: hasErrorLogs,
+    has_loading_signals: hasLoadingSignals,
+    has_primary_text: hasPrimaryText
+  }
+
+  const warnings: string[] = []
+  if (screenFromTree && activityHint && screenFromTree !== activityHint) {
+    warnings.push('ui_tree.screen and activity hints differ')
+  }
+  if (!hasUiTree) warnings.push('ui tree unavailable')
+  if (!activityHint) warnings.push('activity unavailable')
+  if (hasErrorLogs) warnings.push('error signals present in logs')
+
+  const evidenceScore =
+    (hasUiTree ? 0.35 : 0) +
+    (screen ? 0.2 : 0) +
+    (activityHint ? 0.15 : 0) +
+    (actionables.length > 0 ? 0.15 : 0) +
+    (texts.length > 0 ? 0.1 : 0) +
+    (hasScreenshot ? 0.05 : 0) +
+    (hasErrorLogs ? -0.15 : 0) +
+    (hasLoadingSignals ? -0.05 : 0)
+
+  const confidence = Math.max(0, Math.min(1, Number(evidenceScore.toFixed(2))))
+
+  if (!screen && confidence < 0.3) return null
+
+  return {
+    screen,
+    signals,
+    actions_available: actionables.length > 0 ? actionables.slice(0, 10) : null,
+    confidence,
+    warnings
+  }
+}
 
 export class ToolsObserve {
   // Resolve a target device and return the appropriate observe instance and resolved info.
@@ -103,7 +239,7 @@ export class ToolsObserve {
 
   static async captureDebugSnapshotHandler({ reason, includeLogs = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
     const timestamp = Date.now()
-    const out: any = { timestamp, reason: reason || '', activity: null, fingerprint: null, screenshot: null, ui_tree: null, logs: [] }
+    const raw: CaptureDebugSnapshotRawResponse = { timestamp, reason: reason || '', activity: null, fingerprint: null, screenshot: null, ui_tree: null, logs: [] }
 
     // Parallel fetches for performance: screenshot, current screen, fingerprint, ui tree, and log stream/get logs
     const sid = sessionId || 'default'
@@ -125,40 +261,40 @@ export class ToolsObserve {
       if (res.status === 'fulfilled') {
         const val = res.value
         if (key === 'screenshot') {
-          out.screenshot = val && val.screenshot ? val.screenshot : null
+          raw.screenshot = val && val.screenshot ? val.screenshot : null
         } else if (key === 'currentScreen') {
-          out.activity = val && ((val.activity || val.shortActivity)) ? (val.activity || val.shortActivity) : out.activity || ''
+          raw.activity = val && ((val.activity || val.shortActivity)) ? (val.activity || val.shortActivity) : raw.activity || ''
         } else if (key === 'fingerprint') {
-          if (val && val.fingerprint) out.fingerprint = val.fingerprint
-          if (val && val.activity) out.activity = out.activity || val.activity
-          if (val && val.error) out.fingerprint_error = val.error
+          if (val && val.fingerprint) raw.fingerprint = val.fingerprint
+          if (val && val.activity) raw.activity = raw.activity || val.activity
+          if (val && val.error) raw.fingerprint_error = val.error
         } else if (key === 'uiTree') {
-          out.ui_tree = val
-          if (val && val.error) out.ui_tree_error = val.error
+          raw.ui_tree = val
+          if (val && val.error) raw.ui_tree_error = val.error
         } else if (key === 'readLogStream') {
           // handle below after evaluating fallback
           // temporarily attach to out._streamEntries
-          out._streamEntries = val && val.entries ? val.entries : []
+          raw.logs = Array.isArray(val?.entries) ? val.entries : []
         }
       } else {
         const errMsg = res.reason instanceof Error ? res.reason.message : String(res.reason)
-        if (key === 'screenshot') out.screenshot_error = errMsg
-        if (key === 'currentScreen') out.activity_error = errMsg
-        if (key === 'fingerprint') { out.fingerprint = null; out.fingerprint_error = errMsg }
-        if (key === 'uiTree') { out.ui_tree = null; out.ui_tree_error = errMsg }
-        if (key === 'readLogStream') { out._streamEntries = [] ; out.logs_error = errMsg }
+        if (key === 'screenshot') raw.screenshot_error = errMsg
+        if (key === 'currentScreen') raw.activity_error = errMsg
+        if (key === 'fingerprint') { raw.fingerprint = null; raw.fingerprint_error = errMsg }
+        if (key === 'uiTree') { raw.ui_tree = null; raw.ui_tree_error = errMsg }
+        if (key === 'readLogStream') { raw.logs = []; raw.logs_error = errMsg }
       }
     }
 
     // Logs: prefer stream entries, fallback to snapshot logs when empty
     if (includeLogs) {
       try {
-        let entries: any[] = Array.isArray(out._streamEntries) ? out._streamEntries : []
+        let entries: any[] = Array.isArray(raw.logs) ? raw.logs : []
         if (!entries || entries.length === 0) {
           const gl = await ToolsObserve.getLogsHandler({ platform, appId, deviceId, lines: logLines })
-          const raw: any[] = (gl && (gl as any).logs) ? (gl as any).logs : []
+          const snapshotLogs: any[] = (gl && (gl as any).logs) ? (gl as any).logs : []
           // raw may be structured entries or strings
-          entries = raw.slice(-Math.max(0, logLines)).map(item => {
+          entries = snapshotLogs.slice(-Math.max(0, logLines)).map(item => {
             if (!item) return { timestamp: null, level: 'INFO', message: '' }
             if (typeof item === 'string') {
               const level = /\b(FATAL EXCEPTION|ERROR| E )\b/i.test(item) ? 'ERROR' : /\b(WARN| W )\b/i.test(item) ? 'WARN' : 'INFO'
@@ -186,16 +322,14 @@ export class ToolsObserve {
           })
         }
 
-        out.logs = entries
+        raw.logs = entries
       } catch (e) {
-        out.logs = []
-        out.logs_error = e instanceof Error ? e.message : String(e)
+        raw.logs = []
+        raw.logs_error = e instanceof Error ? e.message : String(e)
       }
     }
 
-    // Clean up internal temporary field
-    delete out._streamEntries
-
-    return out
+    const semantic = deriveSnapshotSemantic(raw)
+    return semantic ? { raw, semantic } : { raw }
   }
 }

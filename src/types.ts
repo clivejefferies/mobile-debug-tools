@@ -137,6 +137,35 @@ export interface GetCurrentScreenResponse {
   error?: string;
 }
 
+export interface SnapshotSemanticResponse {
+  screen: string | null;
+  signals: Record<string, string | number | boolean> | null;
+  actions_available: string[] | null;
+  confidence: number;
+  warnings: string[];
+}
+
+export interface CaptureDebugSnapshotRawResponse {
+  timestamp: number;
+  reason: string;
+  activity: string | null;
+  fingerprint: string | null;
+  screenshot: string | null;
+  ui_tree: unknown | null;
+  logs: StructuredLogEntry[];
+  device?: DeviceInfo;
+  screenshot_error?: string;
+  activity_error?: string;
+  fingerprint_error?: string;
+  ui_tree_error?: string;
+  logs_error?: string;
+}
+
+export interface CaptureDebugSnapshotResponse {
+  raw: CaptureDebugSnapshotRawResponse;
+  semantic?: SnapshotSemanticResponse | null;
+}
+
 export interface WaitForElementResponse {
   device: DeviceInfo;
   found: boolean;

@@ -32,6 +32,8 @@ async function run() {
   assert(captureDebugSnapshot, 'capture_debug_snapshot should be registered')
   assert.strictEqual((captureDebugSnapshot as any).inputSchema.properties.includeLogs.default, true)
   assert.strictEqual((captureDebugSnapshot as any).inputSchema.properties.logLines.default, 200)
+  assert.match((captureDebugSnapshot as any).description, /raw observation layer/i)
+  assert.match((captureDebugSnapshot as any).description, /optional derived semantic layer/i)
 
   const startLogStream = toolDefinitions.find((tool) => tool.name === 'start_log_stream')
   assert(startLogStream, 'start_log_stream should be registered')

@@ -2,6 +2,12 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.24.6]
+- minor changes
+
+## [0.24.5]
+- Improved snapshots
+
 ## [0.24.4]
 - Moving agents away from `wait_for_screen_change`
 

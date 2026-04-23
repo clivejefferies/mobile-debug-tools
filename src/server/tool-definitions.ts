@@ -240,7 +240,7 @@ Failure Handling:
   },
   {
     name: 'capture_debug_snapshot',
-    description: 'Capture a complete debug snapshot (screenshot, ui tree, activity, fingerprint, logs). Returns structured JSON.',
+    description: 'Capture a complete debug snapshot (raw observation layer plus optional derived semantic layer). Returns structured JSON.',
     inputSchema: {
       type: 'object',
       properties: {

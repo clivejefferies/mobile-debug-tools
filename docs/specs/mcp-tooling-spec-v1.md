@@ -209,7 +209,78 @@ String-only errors are not allowed, including fallback handler errors.
 
 Note: string diagnostics may still appear inside structured JSON payloads where explicitly defined by a tool.
 
-## 9. Classification
+## 9. Observation Tools (Extended Semantics)
+
+Observation tools inspect application state without mutating it.
+
+Examples:
+
+- `capture_debug_snapshot`
+- `get_screen_fingerprint`
+- `get_network_activity`
+- `get_logs`
+
+### 9.1 Snapshot Response Model
+
+`capture_debug_snapshot` MUST return a dual-layer response:
+
+- `raw`: required object
+- `semantic`: optional object
+
+The raw layer is authoritative and MUST remain unchanged from the underlying observation data. It is the source of truth and MUST NOT be interpreted or rewritten.
+
+The semantic layer is derived, best-effort, and MUST be generated exclusively from the raw layer.
+
+Raw layer contents include:
+
+- UI hierarchy or accessibility tree
+- screenshot when available
+- element-level attributes
+- logs and fingerprint/activity observations
+- raw error fields when partial collection fails
+
+Semantic layer shape when present:
+
+```ts
+{
+  screen: string | null,
+  signals: Record<string, string | number | boolean> | null,
+  actions_available: string[] | null,
+  confidence: number,
+  warnings: string[]
+}
+```
+
+Rules:
+
+- `confidence` MUST be between 0 and 1
+- `warnings` MUST be present when `semantic` is present
+- `semantic` MAY be omitted entirely when derivation is not reliable
+- `semantic` MUST be treated as unreliable if it conflicts with raw data
+- `actions_available` are hints only and MUST NOT be treated as guaranteed executable actions
+
+### 9.2 Agent Usage Contract
+
+Agents SHOULD use `semantic` for primary decision-making when present.
+
+Agents MUST fall back to `raw` when:
+
+- `semantic` is missing
+- `confidence < 0.7`
+- `warnings` is non-empty
+- semantic output conflicts with expected state or raw data
+
+`semantic` is for planning only and MUST NOT be used for verification.
+
+### 9.3 Relationship to Classification
+
+Semantic signals MAY be used as input to `classify_action_outcome`.
+
+Semantic output MUST NOT replace classification or verification.
+
+Classification remains a supplementary, post-action interpretation mechanism.
+
+## 10. Classification
 
 Tool: `classify_action_outcome`
 
@@ -223,7 +294,7 @@ Rules:
 
 It is not a verification mechanism.
 
-## 10. Execution Patterns
+## 11. Execution Patterns
 
 Canonical pattern:
 
@@ -235,7 +306,7 @@ Interpretation:
 - `wait_for_screen_change.success` = UI changed
 - `expect_screen.success` = correct outcome verified
 
-## 11. Known Deviations
+## 12. Known Deviations
 
 Explicitly allowed:
 
@@ -246,7 +317,7 @@ Explicitly allowed:
 - `scroll_to_element` outcome-based success (temporary exception)
 - extended runtime fields in `list_devices`
 
-## 12. Migration Rules
+## 13. Migration Rules
 
 Must change now:
 
@@ -258,6 +329,7 @@ Should align when touched:
 - `start_app`, `restart_app`
 - `scroll_to_element`
 - `wait_for_ui`
+- `capture_debug_snapshot`
 
 No change required:
 
@@ -266,7 +338,7 @@ No change required:
 - `expect_element_visible`
 - `wait_for_screen_change`
 
-## 13. Guiding Principles
+## 14. Guiding Principles
 
 - Actions execute
 - Verification proves
