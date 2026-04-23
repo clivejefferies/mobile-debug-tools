@@ -36,6 +36,14 @@ It does not apply to:
 - observation-only flows
 - non-verifiable or exploratory actions
 
+Outcome-specific guidance:
+
+- visible navigation expected -> `wait_for_screen_change` (optional) -> `expect_screen`
+- local UI change expected -> `wait_for_ui` (optional) -> `expect_element_visible`
+- backend/API activity expected without a visible UI change -> compare `get_screen_fingerprint` before/after, then call `get_network_activity` immediately after the action and `classify_action_outcome` with the observed requests
+
+For backend/API activity, `wait_for_screen_change` is not the right verification tool unless a visible transition is also expected.
+
 ## 4. Action Tools
 
 ### 4.1 Definition
@@ -211,6 +219,7 @@ Rules:
 - MUST be deterministic
 - MUST NOT replace `expect_*` tools
 - MUST be treated as a supplementary signal only
+- SHOULD be used with `get_network_activity` when the expected outcome is backend/API activity without a visible UI change
 
 It is not a verification mechanism.
 

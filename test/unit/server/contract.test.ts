@@ -26,6 +26,7 @@ async function run() {
   assert(waitForScreenChange, 'wait_for_screen_change should be registered')
   assert.match((waitForScreenChange as any).description, /does not verify correctness of the resulting state/i)
   assert.match((waitForScreenChange as any).description, /follow with expect_screen/i)
+  assert.match((waitForScreenChange as any).description, /backend\/API activity without a visible UI change/i)
 
   const captureDebugSnapshot = toolDefinitions.find((tool) => tool.name === 'capture_debug_snapshot')
   assert(captureDebugSnapshot, 'capture_debug_snapshot should be registered')
@@ -59,6 +60,18 @@ async function run() {
   assert.match((expectElementVisible as any).description, /Primary and authoritative verification tool/i)
   assert.match((expectElementVisible as any).description, /selector is the primary input/i)
   assert.match((expectElementVisible as any).description, /Returns structured binary success\/failure only/i)
+
+  const classifyActionOutcome = toolDefinitions.find((tool) => tool.name === 'classify_action_outcome')
+  assert(classifyActionOutcome, 'classify_action_outcome should be registered')
+  assert.match((classifyActionOutcome as any).description, /backend\/API activity without a visible UI change/i)
+  assert.match((classifyActionOutcome as any).description, /get_network_activity/i)
+  assert.match((classifyActionOutcome as any).description, /immediately after the action/i)
+
+  const getNetworkActivity = toolDefinitions.find((tool) => tool.name === 'get_network_activity')
+  assert(getNetworkActivity, 'get_network_activity should be registered')
+  assert.match((getNetworkActivity as any).description, /backend\/API activity without a visible UI change/i)
+  assert.doesNotMatch((getNetworkActivity as any).description, /Call this only when/i)
+  assert.match((getNetworkActivity as any).description, /immediately after an action/i)
 
   await assert.rejects(() => handleToolCall('unknown_tool'), /Unknown tool: unknown_tool/)
 

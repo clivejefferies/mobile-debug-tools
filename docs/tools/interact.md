@@ -53,6 +53,10 @@ Preferred verification:
 
 - navigation outcome known -> `expect_screen`
 - local UI change known -> `expect_element_visible`
+- backend/API activity expected -> `classify_action_outcome` + `get_network_activity`
+
+Use `wait_for_screen_change` only when a visible transition is the expected outcome. If a button should trigger an API request but the screen should stay the same, rely on network activity and classification instead.
+For backend-only actions, prefer comparing `get_screen_fingerprint` before/after and call `get_network_activity` immediately after the action; do not wait on `wait_for_screen_change` if no visible transition is expected.
 
 ---
 
@@ -139,6 +143,7 @@ Notes:
 - Treats `null` fingerprints as transient and keeps polling.
 - Adds a stability confirmation before returning success to avoid transient animation frames.
 - Follow with `expect_screen` when the expected destination is known.
+- Do not use this as the main success check for backend/API activity that does not change the visible UI.
 
 ---
 
@@ -451,3 +456,22 @@ Notes:
 - The tool resolves the selector internally when needed.
 - On failure, `reason` and `observed` tell you whether the selector was missing entirely or present but not yet visible.
 - Use when the screen should remain on the same destination but a specific element should appear or become visible.
+
+---
+
+## classify_action_outcome + get_network_activity
+
+Use this pair when the action is expected to trigger network/backend work and the screen may not visibly change.
+
+Pattern:
+
+1. perform the action
+2. call `classify_action_outcome` with `uiChanged` from `wait_for_screen_change` or a screen fingerprint comparison
+3. if the classifier asks for it, call `get_network_activity`
+4. call `classify_action_outcome` again with `networkRequests`
+
+Guidance:
+
+- `uiChanged=true` or `expectedElementVisible=true` means the action outcome is already verified
+- `nextAction="call_get_network_activity"` means the UI signal was inconclusive and the agent should inspect network activity
+- if network requests succeed but the UI stays unchanged, treat the outcome as a backend/API result rather than a screen transition
