@@ -3,7 +3,12 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## [0.24.6]
-- minor changes
+- Aligned runtime metadata with the published package version.
+- Fixed stale CLI helper paths in npm scripts and the `idb` healthcheck helper.
+- Simplified ESLint configuration by keeping the flat config and removing legacy config files.
+- Updated CI to use the current automated device test runner.
+- Tightened server handler argument parsing and added contract coverage for version and required-argument error responses.
+- Scoped temporary build environment overrides to the duration of each build helper call and added regression coverage for env restoration.
 
 ## [0.24.5]
 - Improved snapshots
@@ -27,7 +32,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## [0.23.0]
 - Added network monitoring
-- Added 
+- Added action-outcome classification tooling for backend-driven flows without visible UI changes.
 
 ## [0.22.0]
 - Added a portable `test-authoring` skill package and documented the repository's vendor-neutral skill format
@@ -38,14 +43,14 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 - Fixed incorrect timeout
 
 ## [0.21.4]
-- updated `wait_for_ui` with better contract and observability
-- update `get_logs` to get better output
+- Updated `wait_for_ui` with better contract and observability
+- Updated `get_logs` to return more useful structured output
 
 ## [0.21.3]
 - Added structured logs
 
 ## [0.21.2]
-- Fixed screenshots not working, imnproved tool
+- Fixed screenshots not working and improved the tool output
 
 ## [0.21.1]
 - Removed wait_for_element and renamed observe_until to wait_for_ui (obsolete references removed)
@@ -54,7 +59,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 - Added `wait_for_ui` as a tool for agents to wait for things like API requests
 
 ## [0.20.1]
-- Fixes gradle home issue for android
+- Fixed Gradle home handling for Android
 
 ## [0.20.0]
 - Added `get_system_status` tool and refactored system health checks into `src/system`.
@@ -63,8 +68,8 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 
 ## [0.19.2]
-- Added healthcheck improvments
-- Added skills 
+- Added healthcheck improvements
+- Added reusable agent skills
 
 ## [0.19.1]
 
@@ -113,7 +118,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 ## [0.12.1]
 - Improve iOS build/install reliability: project auto-scan, explicit simulator destination, configurable watchdog timeout (MCP_XCODEBUILD_TIMEOUT) and retries (MCP_XCODEBUILD_RETRIES), and DerivedData fallback for locating .app artifacts.
 - Make install_app capable of building iOS projects before installing so agents can autonomously fix, build, install and validate apps.
-- Migrate CLI scripts into typed src/cli/* modules and update npm scripts; fix ESM import paths and lint issues.
+- Migrate CLI scripts into typed source modules and update npm scripts; fix ESM import paths and lint issues.
 - Add preflight checks and idb resolution helpers (getIdbCmd, isIDBInstalled) and add idb_companion health checks.
 - Capture build stdout/stderr into build-results/ for easier diagnostics and surfaced suggestions when KMP frameworks are missing.
 - Add device test runner under test/device and gate device-dependent tests behind RUN_DEVICE_TESTS.

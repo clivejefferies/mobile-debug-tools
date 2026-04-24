@@ -52,7 +52,14 @@ Feature building:
 
 - `npm run test:unit` runs every automated unit test under `test/unit/...`
 - `npm run test:device` runs the automated device smoke checks under `test/device/automated/...`
+- `npm run verify` runs the default maintainer verification sequence: lint, build, and unit tests
 - Manual and debug-oriented device scripts live under `test/device/manual/...` and are not part of the default test commands
+
+## Utility Scripts
+
+- `npm run healthcheck` runs the `idb`/tooling healthcheck helper from `src/utils/cli/idb/check-idb.ts`
+- `npm run install-idb` runs the guided `idb` installer helper from `src/utils/cli/idb/install-idb.ts`
+- `npm run preflight-ios` runs the iOS preflight helper from `src/utils/cli/ios/preflight-ios.ts`
 
 ## Agent skills
 
