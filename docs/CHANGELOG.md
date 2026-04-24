@@ -2,7 +2,7 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## [0.24.6]
+## [0.24.7]
 - Aligned runtime metadata with the published package version.
 - Fixed stale CLI helper paths in npm scripts and the `idb` healthcheck helper.
 - Simplified ESLint configuration by keeping the flat config and removing legacy config files.
