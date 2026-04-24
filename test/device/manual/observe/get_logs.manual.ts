@@ -1,10 +1,10 @@
-import { ToolsObserve } from '../../../src/observe/index.js'
+import { ToolsObserve } from '../../../../src/observe/index.js'
 import minimist from 'minimist'
 
 async function main() {
   const args = minimist(process.argv.slice(2))
   const platform = args.platform || args.p || 'android'
-  const id = args.id || args.device || args.deviceId || 'default'
+  const id = args.id || args.device || args.deviceId
   const limit = typeof args.limit === 'number' ? args.limit : (typeof args.lines === 'number' ? args.lines : 50)
 
   try {

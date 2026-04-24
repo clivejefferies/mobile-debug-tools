@@ -1,4 +1,4 @@
-import { AndroidObserve } from '../../../src/observe/index.js'
+import { AndroidObserve } from '../../../../src/observe/index.js'
 
 async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 

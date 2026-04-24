@@ -24,7 +24,7 @@ async function runInstaller() {
     // prefer invoking the TS script via npx/tsx to ensure environment
     const runner = which('npx') ? 'npx' : which('tsx') ? 'tsx' : null
     if (runner) {
-      const args = runner === 'npx' ? ['tsx', './src/cli/idb/install-idb.ts'] : ['./src/cli/idb/install-idb.ts']
+      const args = runner === 'npx' ? ['tsx', './src/utils/cli/idb/install-idb.ts'] : ['./src/utils/cli/idb/install-idb.ts']
       const res = spawnSync(runner, args, { stdio: 'inherit' as any })
       return typeof res.status === 'number' ? res.status === 0 : false
     }

@@ -15,7 +15,7 @@ if (!fs.existsSync(helperScript)) {
 }
 
 try {
-  const out = execSync(`tsx ${helperScript} --platform android --id default`, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 30000 })
+  const out = execSync(`tsx ${helperScript} --platform android`, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 30000 })
   const parsed = JSON.parse(out)
 
   if (!parsed?.resolution || parsed.resolution.width <= 0 || parsed.resolution.height <= 0) throw new Error('Invalid screenshot resolution')

@@ -17,7 +17,7 @@ if (!fs.existsSync(helperScript)) {
 
 try {
   // Run the helper smoke script for android
-  const cmd = `tsx ${helperScript} --platform android --id default --limit 20`
+  const cmd = `tsx ${helperScript} --platform android --limit 20`
   const out = execSync(cmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 30000 })
   const parsed = JSON.parse(out)
 

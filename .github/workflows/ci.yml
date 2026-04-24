@@ -58,6 +58,4 @@ jobs:
       - name: Build and run Android integration tests
         env:
           ADB_TIMEOUT: 120000
-        run: |
-          npm run build
-          node test/integration/run-install-android.js || true
+        run: npm run test:device

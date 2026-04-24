@@ -15,7 +15,7 @@ if (!fs.existsSync(helperScript)) {
 }
 
 try {
-  const cmd = `tsx ${helperScript} --platform ios --id booted --limit 20`
+  const cmd = `tsx ${helperScript} --platform ios --limit 20`
   const out = execSync(cmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, timeout: 30000 })
   const parsed = JSON.parse(out)
 

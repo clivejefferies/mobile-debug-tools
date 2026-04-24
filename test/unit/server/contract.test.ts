@@ -1,11 +1,14 @@
 import assert from 'assert'
+import { readFileSync } from 'fs'
 import { handleToolCall, serverInfo, toolDefinitions } from '../../../src/server-core.js'
 
 async function run() {
+  const packageJson = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8'))
   const names = toolDefinitions.map((tool) => tool.name)
   const uniqueNames = new Set(names)
 
   assert.strictEqual(serverInfo.name, 'mobile-debug-mcp')
+  assert.strictEqual(serverInfo.version, packageJson.version, 'serverInfo version should match package.json')
   assert.strictEqual(names.length, uniqueNames.size, 'tool names should be unique')
   assert(names.includes('wait_for_ui'))
   assert(names.includes('expect_screen'))

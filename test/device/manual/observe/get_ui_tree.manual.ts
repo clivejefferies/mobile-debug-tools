@@ -1,4 +1,4 @@
-import { ToolsObserve } from '../../../src/observe/index.js'
+import { ToolsObserve } from '../../../../src/observe/index.js'
 
 function readArg(flag: string): string | undefined {
   const index = process.argv.indexOf(flag)
@@ -8,7 +8,7 @@ function readArg(flag: string): string | undefined {
 
 async function main() {
   const platform = (readArg('--platform') || process.argv[2] || 'android') as 'android' | 'ios'
-  const deviceId = readArg('--id') || readArg('--deviceId') || process.argv[3]
+  const deviceId = readArg('--id') || readArg('--deviceId') || (process.argv[2]?.startsWith('-') ? undefined : process.argv[3])
 
   const result = await ToolsObserve.getUITreeHandler({ platform, deviceId })
   if ((result as any).error) throw new Error((result as any).error)

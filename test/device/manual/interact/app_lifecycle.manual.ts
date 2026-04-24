@@ -1,6 +1,6 @@
-import { AndroidObserve, iOSObserve } from "../../../src/observe/index.js";
-import { AndroidInteract } from "../../../src/interact/index.js";
-import { iOSInteract } from "../../../src/interact/index.js";
+import { AndroidObserve, iOSObserve } from "../../../../src/observe/index.js";
+import { AndroidInteract } from "../../../../src/interact/index.js";
+import { iOSInteract } from "../../../../src/interact/index.js";
 import fs from "fs/promises";
 
 const androidObserve = new AndroidObserve();

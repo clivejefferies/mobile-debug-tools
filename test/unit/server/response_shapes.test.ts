@@ -156,6 +156,15 @@ async function run() {
     assert.match(objectTapPayload.error.message, /"code": "E_CUSTOM"/)
     assert.match(objectTapPayload.error.message, /"field": "value"/)
 
+    const missingArgResponse = await handleToolCall('tap', { platform: 'android', x: 1 })
+    const missingArgPayload = JSON.parse((missingArgResponse as any).content[0].text)
+    assert.deepStrictEqual(missingArgPayload, {
+      error: {
+        tool: 'tap',
+        message: 'Missing or invalid number argument: y'
+      }
+    })
+
     ;(ToolsObserve as any).captureScreenshotHandler = async () => ({
       device: { platform: 'ios', id: 'booted', osVersion: '18.0', model: 'Simulator', simulator: true },
       screenshot: Buffer.from('png-data').toString('base64'),

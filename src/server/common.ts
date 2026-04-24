@@ -20,6 +20,50 @@ export type ToolCallResult = Awaited<ReturnType<typeof wrapResponse>> | {
 }
 export type ToolHandler = (args: ToolCallArgs) => Promise<ToolCallResult>
 
+export function getStringArg(args: ToolCallArgs, key: string): string | undefined {
+  const value = args[key]
+  return typeof value === 'string' ? value : undefined
+}
+
+export function requireStringArg(args: ToolCallArgs, key: string): string {
+  const value = getStringArg(args, key)
+  if (value === undefined) throw new Error(`Missing or invalid string argument: ${key}`)
+  return value
+}
+
+export function getNumberArg(args: ToolCallArgs, key: string): number | undefined {
+  const value = args[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+export function requireNumberArg(args: ToolCallArgs, key: string): number {
+  const value = getNumberArg(args, key)
+  if (value === undefined) throw new Error(`Missing or invalid number argument: ${key}`)
+  return value
+}
+
+export function getBooleanArg(args: ToolCallArgs, key: string): boolean | undefined {
+  const value = args[key]
+  return typeof value === 'boolean' ? value : undefined
+}
+
+export function getObjectArg<T extends Record<string, unknown>>(args: ToolCallArgs, key: string): T | undefined {
+  const value = args[key]
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return value as T
+}
+
+export function requireObjectArg<T extends Record<string, unknown>>(args: ToolCallArgs, key: string): T {
+  const value = getObjectArg<T>(args, key)
+  if (value === undefined) throw new Error(`Missing or invalid object argument: ${key}`)
+  return value
+}
+
+export function getArrayArg<T>(args: ToolCallArgs, key: string): T[] | undefined {
+  const value = args[key]
+  return Array.isArray(value) ? value as T[] : undefined
+}
+
 let actionSequence = 0
 
 export function nextActionId(actionType: string, timestamp: number) {

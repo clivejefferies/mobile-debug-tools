@@ -12,16 +12,34 @@ import { getSystemStatus } from '../system/index.js'
 import {
   buildActionExecutionResult,
   captureActionFingerprint,
+  getArrayArg,
+  getBooleanArg,
+  getNumberArg,
+  getObjectArg,
+  getStringArg,
   inferGenericFailure,
   inferScrollFailure,
+  requireNumberArg,
+  requireObjectArg,
+  requireStringArg,
   ToolCallArgs,
   ToolHandler,
   wrapResponse,
   wrapToolError
 } from './common.js'
 
+type PlatformArg = 'android' | 'ios'
+type ProjectTypeArg = 'native' | 'kmp' | 'react-native' | 'flutter'
+type ExpectElementSelectorArg = { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }
+type WaitForUiMatchArg = { index?: number }
+type WaitForUiRetryArg = { max_attempts?: number, backoff_ms?: number }
+type ScrollSelectorArg = { text?: string, resourceId?: string, contentDesc?: string, className?: string }
+type ClassifyNetworkRequestArg = { endpoint: string, status: 'success' | 'failure' | 'retryable' }
+
 async function handleStartApp(args: ToolCallArgs) {
-  const { platform, appId, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const appId = requireStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await (platform === 'android' ? new AndroidManage().startApp(appId, deviceId) : new iOSManage().startApp(appId, deviceId))
@@ -45,14 +63,18 @@ async function handleStartApp(args: ToolCallArgs) {
 }
 
 async function handleTerminateApp(args: ToolCallArgs) {
-  const { platform, appId, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const appId = requireStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await (platform === 'android' ? new AndroidManage().terminateApp(appId, deviceId) : new iOSManage().terminateApp(appId, deviceId))
   const response: TerminateAppResponse = { device: res.device, appTerminated: res.appTerminated }
   return wrapResponse(response)
 }
 
 async function handleRestartApp(args: ToolCallArgs) {
-  const { platform, appId, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const appId = requireStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId) : new iOSManage().restartApp(appId, deviceId))
@@ -77,14 +99,19 @@ async function handleRestartApp(args: ToolCallArgs) {
 }
 
 async function handleResetAppData(args: ToolCallArgs) {
-  const { platform, appId, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const appId = requireStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await (platform === 'android' ? new AndroidManage().resetAppData(appId, deviceId) : new iOSManage().resetAppData(appId, deviceId))
   const response: ResetAppDataResponse = { device: res.device, dataCleared: res.dataCleared }
   return wrapResponse(response)
 }
 
 async function handleInstallApp(args: ToolCallArgs) {
-  const { platform, projectType, appPath, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const projectType = requireStringArg(args, 'projectType') as ProjectTypeArg
+  const appPath = requireStringArg(args, 'appPath')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsManage.installAppHandler({ platform, appPath, deviceId, projectType })
   const response: InstallAppResponse = {
     device: res.device,
@@ -96,13 +123,20 @@ async function handleInstallApp(args: ToolCallArgs) {
 }
 
 async function handleBuildApp(args: ToolCallArgs) {
-  const { platform, projectType, projectPath, variant } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const projectType = getStringArg(args, 'projectType') as ProjectTypeArg | undefined
+  const projectPath = requireStringArg(args, 'projectPath')
+  const variant = getStringArg(args, 'variant')
   const res = await ToolsManage.buildAppHandler({ platform, projectPath, variant, projectType })
   return wrapResponse(res)
 }
 
 async function handleBuildAndInstall(args: ToolCallArgs) {
-  const { platform, projectType, projectPath, deviceId, timeout } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const projectType = requireStringArg(args, 'projectType') as ProjectTypeArg
+  const projectPath = requireStringArg(args, 'projectPath')
+  const deviceId = getStringArg(args, 'deviceId')
+  const timeout = getNumberArg(args, 'timeout')
   const res = await ToolsManage.buildAndInstallHandler({ platform, projectPath, deviceId, timeout, projectType })
   return {
     content: [
@@ -113,7 +147,16 @@ async function handleBuildAndInstall(args: ToolCallArgs) {
 }
 
 async function handleGetLogs(args: ToolCallArgs) {
-  const { platform, appId, deviceId, pid, tag, level, contains, since_seconds, limit, lines } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const appId = getStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
+  const pid = getNumberArg(args, 'pid')
+  const tag = getStringArg(args, 'tag')
+  const level = getStringArg(args, 'level')
+  const contains = getStringArg(args, 'contains')
+  const since_seconds = getNumberArg(args, 'since_seconds')
+  const limit = getNumberArg(args, 'limit')
+  const lines = getNumberArg(args, 'lines')
   const res = await ToolsObserve.getLogsHandler({ platform, appId, deviceId, pid, tag, level, contains, since_seconds, limit, lines })
   const filtered = !!(pid || tag || level || contains || since_seconds || appId)
   return {
@@ -125,7 +168,8 @@ async function handleGetLogs(args: ToolCallArgs) {
 }
 
 async function handleListDevices(args: ToolCallArgs) {
-  const { platform, appId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const appId = getStringArg(args, 'appId')
   const res = await ToolsManage.listDevicesHandler({ platform, appId })
   return wrapResponse(res)
 }
@@ -136,7 +180,8 @@ async function handleGetSystemStatus() {
 }
 
 async function handleCaptureScreenshot(args: ToolCallArgs) {
-  const { platform, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsObserve.captureScreenshotHandler({ platform, deviceId })
   const mime = (res as any).screenshot_mime || 'image/png'
   const content: Array<{ type: 'text' | 'image'; text?: string; data?: string; mimeType?: string }> = [
@@ -151,61 +196,95 @@ async function handleCaptureScreenshot(args: ToolCallArgs) {
 }
 
 async function handleCaptureDebugSnapshot(args: ToolCallArgs) {
-  const { reason, includeLogs, logLines, platform, appId, deviceId, sessionId } = args as any
+  const reason = getStringArg(args, 'reason')
+  const includeLogs = getBooleanArg(args, 'includeLogs')
+  const logLines = getNumberArg(args, 'logLines')
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const appId = getStringArg(args, 'appId')
+  const deviceId = getStringArg(args, 'deviceId')
+  const sessionId = getStringArg(args, 'sessionId')
   const res = await ToolsObserve.captureDebugSnapshotHandler({ reason, includeLogs, logLines, platform, appId, deviceId, sessionId })
   return wrapResponse(res)
 }
 
 async function handleGetUITree(args: ToolCallArgs) {
-  const { platform, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsObserve.getUITreeHandler({ platform, deviceId })
   return wrapResponse(res)
 }
 
 async function handleGetCurrentScreen(args: ToolCallArgs) {
-  const { deviceId } = args as any
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsObserve.getCurrentScreenHandler({ deviceId })
   return wrapResponse(res)
 }
 
 async function handleGetScreenFingerprint(args: ToolCallArgs) {
-  const { platform, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId })
   return wrapResponse(res)
 }
 
 async function handleWaitForScreenChange(args: ToolCallArgs) {
-  const { platform, previousFingerprint, timeoutMs, pollIntervalMs, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const previousFingerprint = requireStringArg(args, 'previousFingerprint')
+  const timeoutMs = getNumberArg(args, 'timeoutMs')
+  const pollIntervalMs = getNumberArg(args, 'pollIntervalMs')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsInteract.waitForScreenChangeHandler({ platform, previousFingerprint, timeoutMs, pollIntervalMs, deviceId })
   return wrapResponse(res)
 }
 
 async function handleExpectScreen(args: ToolCallArgs) {
-  const { platform, fingerprint, screen, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const fingerprint = getStringArg(args, 'fingerprint')
+  const screen = getStringArg(args, 'screen')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsInteract.expectScreenHandler({ platform, fingerprint, screen, deviceId })
   return wrapResponse(res)
 }
 
 async function handleExpectElementVisible(args: ToolCallArgs) {
-  const { selector, element_id, timeout_ms, poll_interval_ms, platform, deviceId } = args as any
+  const selector = requireObjectArg<ExpectElementSelectorArg>(args, 'selector')
+  const element_id = getStringArg(args, 'element_id')
+  const timeout_ms = getNumberArg(args, 'timeout_ms')
+  const poll_interval_ms = getNumberArg(args, 'poll_interval_ms')
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsInteract.expectElementVisibleHandler({ selector, element_id, timeout_ms, poll_interval_ms, platform, deviceId })
   return wrapResponse(res)
 }
 
 async function handleWaitForUI(args: ToolCallArgs) {
-  const { selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry, platform, deviceId } = args as any
+  const selector = getObjectArg<ExpectElementSelectorArg>(args, 'selector')
+  const condition = (getStringArg(args, 'condition') as 'exists' | 'not_exists' | 'visible' | 'clickable' | undefined) ?? 'exists'
+  const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
+  const poll_interval_ms = getNumberArg(args, 'poll_interval_ms') ?? 300
+  const match = getObjectArg<WaitForUiMatchArg>(args, 'match')
+  const retry = getObjectArg<WaitForUiRetryArg>(args, 'retry')
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform, deviceId })
   return wrapResponse(res)
 }
 
 async function handleFindElement(args: ToolCallArgs) {
-  const { query, exact = false, timeoutMs = 3000, platform, deviceId } = args as any
+  const query = requireStringArg(args, 'query')
+  const exact = getBooleanArg(args, 'exact') ?? false
+  const timeoutMs = getNumberArg(args, 'timeoutMs') ?? 3000
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsInteract.findElementHandler({ query, exact, timeoutMs, platform, deviceId })
   return wrapResponse(res)
 }
 
 async function handleTap(args: ToolCallArgs) {
-  const { platform, x, y, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const x = requireNumberArg(args, 'x')
+  const y = requireNumberArg(args, 'y')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.tapHandler({ platform, x, y, deviceId })
@@ -221,14 +300,20 @@ async function handleTap(args: ToolCallArgs) {
 }
 
 async function handleTapElement(args: ToolCallArgs) {
-  const { elementId } = args as any
+  const elementId = requireStringArg(args, 'elementId')
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.tapElementHandler({ elementId })
   return wrapResponse(res)
 }
 
 async function handleSwipe(args: ToolCallArgs) {
-  const { platform = 'android', x1, y1, x2, y2, duration, deviceId } = args as any
+  const platform = (getStringArg(args, 'platform') as PlatformArg | undefined) ?? 'android'
+  const x1 = requireNumberArg(args, 'x1')
+  const y1 = requireNumberArg(args, 'y1')
+  const x2 = requireNumberArg(args, 'x2')
+  const y2 = requireNumberArg(args, 'y2')
+  const duration = requireNumberArg(args, 'duration')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.swipeHandler({ platform, x1, y1, x2, y2, duration, deviceId })
@@ -244,14 +329,19 @@ async function handleSwipe(args: ToolCallArgs) {
 }
 
 async function handleScrollToElement(args: ToolCallArgs) {
-  const { platform, selector, direction, maxScrolls, scrollAmount, deviceId } = args as any
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const selector = requireObjectArg<ScrollSelectorArg>(args, 'selector')
+  const direction = getStringArg(args, 'direction') as 'down' | 'up' | undefined
+  const maxScrolls = getNumberArg(args, 'maxScrolls')
+  const scrollAmount = getNumberArg(args, 'scrollAmount')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.scrollToElementHandler({ platform, selector, direction, maxScrolls, scrollAmount, deviceId })
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'scroll_to_element',
-    selector,
+    selector: selector ?? null,
     resolved: res?.success && res?.element ? {
       elementId: null,
       text: (res.element as any).text ?? null,
@@ -269,7 +359,8 @@ async function handleScrollToElement(args: ToolCallArgs) {
 }
 
 async function handleTypeText(args: ToolCallArgs) {
-  const { text, deviceId } = args as any
+  const text = requireStringArg(args, 'text')
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint('android', deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.typeTextHandler({ text, deviceId })
@@ -285,7 +376,7 @@ async function handleTypeText(args: ToolCallArgs) {
 }
 
 async function handlePressBack(args: ToolCallArgs) {
-  const { deviceId } = args as any
+  const deviceId = getStringArg(args, 'deviceId')
   const uiFingerprintBefore = await captureActionFingerprint('android', deviceId)
   ToolsNetwork.notifyActionStart()
   const res = await ToolsInteract.pressBackHandler({ deviceId })
@@ -301,25 +392,36 @@ async function handlePressBack(args: ToolCallArgs) {
 }
 
 async function handleStartLogStream(args: ToolCallArgs) {
-  const { platform, packageName, level, sessionId, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const packageName = requireStringArg(args, 'packageName')
+  const level = getStringArg(args, 'level') as 'error' | 'warn' | 'info' | 'debug' | undefined
+  const sessionId = getStringArg(args, 'sessionId')
+  const deviceId = getStringArg(args, 'deviceId')
   const res = await ToolsObserve.startLogStreamHandler({ platform, packageName, level, sessionId, deviceId })
   return wrapResponse(res)
 }
 
 async function handleReadLogStream(args: ToolCallArgs) {
-  const { platform, sessionId, limit, since } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const sessionId = getStringArg(args, 'sessionId')
+  const limit = getNumberArg(args, 'limit')
+  const since = getStringArg(args, 'since')
   const res = await ToolsObserve.readLogStreamHandler({ platform, sessionId, limit, since })
   return wrapResponse(res)
 }
 
 async function handleStopLogStream(args: ToolCallArgs) {
-  const { platform, sessionId } = args as any
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const sessionId = getStringArg(args, 'sessionId')
   const res = await ToolsObserve.stopLogStreamHandler({ platform, sessionId })
   return wrapResponse(res)
 }
 
 function handleClassifyActionOutcome(args: ToolCallArgs) {
-  const { uiChanged, expectedElementVisible, networkRequests, hasLogErrors } = args as any
+  const uiChanged = getBooleanArg(args, 'uiChanged')
+  const expectedElementVisible = getBooleanArg(args, 'expectedElementVisible')
+  const networkRequests = getArrayArg<ClassifyNetworkRequestArg>(args, 'networkRequests')
+  const hasLogErrors = getBooleanArg(args, 'hasLogErrors')
   const result = classifyActionOutcome({
     uiChanged: Boolean(uiChanged),
     expectedElementVisible: expectedElementVisible ?? null,
@@ -330,7 +432,8 @@ function handleClassifyActionOutcome(args: ToolCallArgs) {
 }
 
 async function handleGetNetworkActivity(args: ToolCallArgs) {
-  const { platform, deviceId } = args as any
+  const platform = getStringArg(args, 'platform') ?? 'android'
+  const deviceId = getStringArg(args, 'deviceId')
   const result = await ToolsNetwork.getNetworkActivity({ platform, deviceId })
   return wrapResponse(result)
 }
