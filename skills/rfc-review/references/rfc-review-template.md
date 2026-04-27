@@ -13,7 +13,7 @@ Use this structure for every RFC review:
 
 ## Issues
 For each issue, include:
-- **Type:** spec / implementation / doc
+- **Type:** spec / implementation / implementation contract / doc
 - **Severity:** low / medium / high
 - **Why it matters:** one sentence
 - **Fix:** exact change needed

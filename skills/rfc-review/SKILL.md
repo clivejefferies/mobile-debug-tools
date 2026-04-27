@@ -1,7 +1,7 @@
 # RFC Review skill
 
 name: rfc-review
-version: 0.1.0
+version: 0.1.1
 summary: Reusable workflow for reviewing RFCs/specs in this repository with a consistent readiness rubric and output template.
 
 # Purpose
@@ -28,6 +28,7 @@ Activate when an agent needs to:
 4. Prefer precise feedback that names the missing contract, unclear rule, or inconsistent behavior.
 5. Use the shared review template in `references/rfc-review-template.md` for the final output.
 6. If the RFC is not ready, say exactly what must be clarified before implementation can start.
+7. Classify each blocker as either a **spec gap** or an **implementation contract gap** and stop at that boundary.
 
 # Inputs & outputs
 - review-rfc(input: { rfcPath, relatedPaths?, focusAreas? }) -> { verdict, risks, specGaps, implementationGaps, recommendations }
