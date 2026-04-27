@@ -238,6 +238,7 @@ Raw layer contents include:
 
 - UI hierarchy or accessibility tree
 - normalized readable element state where exposed by the platform
+- platform-native identity hints such as stable identifiers, roles, and test tags
 - screenshot when available
 - element-level attributes
 - logs and fingerprint/activity observations

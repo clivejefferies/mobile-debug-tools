@@ -21,6 +21,12 @@ interface SnapshotTreeElementLike {
   clickable?: boolean
   enabled?: boolean
   visible?: boolean
+  state?: unknown
+  stable_id?: string | null
+  role?: string | null
+  test_tag?: string | null
+  selector?: unknown
+  semantic?: unknown
 }
 
 interface SnapshotTreeLike {

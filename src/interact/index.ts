@@ -40,6 +40,11 @@ interface UiElement {
   _interactable?: boolean
   _sliderLike?: boolean
   state?: UIElementState | null
+  stable_id?: string | null
+  role?: string | null
+  test_tag?: string | null
+  selector?: { value: string | null, confidence: { score: number, reason: string } | null } | null
+  semantic?: { is_clickable: boolean, is_container: boolean } | null
 }
 
 interface ResolvedUiElementContext {
@@ -157,7 +162,13 @@ export class ToolsInteract {
       class: el.type ?? el.class ?? null,
       bounds,
       index,
-      elementId
+      elementId,
+      state: el.state ?? null,
+      stable_id: el.stable_id ?? null,
+      role: el.role ?? null,
+      test_tag: el.test_tag ?? null,
+      selector: el.selector ?? null,
+      semantic: el.semantic ?? null
     }
   }
 
@@ -197,7 +208,12 @@ export class ToolsInteract {
       class: element.type ?? element.class ?? null,
       bounds: ToolsInteract._normalizeBounds(element.bounds),
       index,
-      state: element.state ?? null
+      state: element.state ?? null,
+      stable_id: element.stable_id ?? null,
+      role: element.role ?? null,
+      test_tag: element.test_tag ?? null,
+      selector: element.selector ?? null,
+      semantic: element.semantic ?? null
     }
   }
 
@@ -621,6 +637,11 @@ export class ToolsInteract {
       bounds: boundsObj,
       clickable: !!best.clickable,
       enabled: !!best.enabled,
+      stable_id: best.stable_id ?? null,
+      role: best.role ?? null,
+      test_tag: best.test_tag ?? null,
+      selector: best.selector ?? null,
+      semantic: best.semantic ?? null,
       tapCoordinates,
       telemetry: {
         matchedIndex: best?._index ?? null,
@@ -1040,7 +1061,12 @@ export class ToolsInteract {
           class: result.element.class ?? null,
           bounds: result.element.bounds ?? null,
           index: typeof result.element.index === 'number' ? result.element.index : null,
-          state: (result.element as any).state ?? null
+          state: (result.element as any).state ?? null,
+          stable_id: (result.element as any).stable_id ?? null,
+          role: (result.element as any).role ?? null,
+          test_tag: (result.element as any).test_tag ?? null,
+          selector: (result.element as any).selector ?? null,
+          semantic: (result.element as any).semantic ?? null
         },
         observed: {
           status: result.status,
@@ -1055,7 +1081,12 @@ export class ToolsInteract {
             class: result.element.class ?? null,
             bounds: result.element.bounds ?? null,
             index: typeof result.element.index === 'number' ? result.element.index : null,
-            state: (result.element as any).state ?? null
+            state: (result.element as any).state ?? null,
+            stable_id: (result.element as any).stable_id ?? null,
+            role: (result.element as any).role ?? null,
+            test_tag: (result.element as any).test_tag ?? null,
+            selector: (result.element as any).selector ?? null,
+            semantic: (result.element as any).semantic ?? null
           }
         },
         reason: 'selector is visible'

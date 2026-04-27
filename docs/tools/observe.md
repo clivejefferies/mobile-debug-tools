@@ -83,12 +83,13 @@ Input:
 Response (example):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true } } ] }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true }, "stable_id": "com.example:id/signin", "role": "button", "test_tag": "com.example:id/signin", "selector": { "value": "com.example:id/signin", "confidence": { "score": 1, "reason": "resource_id" } }, "semantic": { "is_clickable": true, "is_container": false } } ] }
 ```
 
 Notes:
 - Useful for inspection, selector development, and fallback debugging.
 - Elements may include a normalized `state` object when the platform exposes readable state such as checked, selected, focused, expanded, text input, or slider values.
+- Elements may also include platform-native identity hints such as `stable_id`, `role`, `test_tag`, `selector`, and `semantic`.
 - Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
 
 ---

@@ -1,6 +1,6 @@
 import { spawn } from "child_process"
 import { promises as fs } from "fs"
-import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo, UIElementState } from "../types.js"
+import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo, UIElementSemanticMetadata, UIElementState, UIResolutionSelector, SelectorConfidence } from "../types.js"
 import { execCommand, getIOSDeviceMetadata, validateBundleId, getIdbCmd, getXcrunCmd, isIDBInstalled } from "../utils/ios/utils.js"
 import { createWriteStream, promises as fsPromises } from 'fs'
 import path from 'path'
@@ -22,6 +22,9 @@ export function _resetIOSExecCommandForTests() {
 interface IDBElement {
   AXFrame?: { x: number | string, y: number | string, width: number | string, height: number | string, w?: number | string, h?: number | string };
   frame?: { x: number | string, y: number | string, width: number | string, height: number | string, w?: number | string, h?: number | string };
+  AXIdentifier?: string;
+  accessibilityIdentifier?: string;
+  identifier?: string;
   AXUniqueId?: string;
   AXLabel?: string;
   AXValue?: string;
@@ -61,6 +64,59 @@ function parseIOSNumber(value: unknown): number | null {
   if (typeof value !== 'string') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeIOSType(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+function inferIOSRole(type: string, traits: string[]): string | null {
+  if (/slider|adjustable/.test(type) || traits.some((trait) => /adjustable|slider/.test(trait))) return 'slider'
+  if (/button/.test(type) || traits.some((trait) => /button/.test(trait))) return 'button'
+  if (/cell/.test(type)) return 'cell'
+  if (/switch/.test(type)) return 'switch'
+  if (/text field|textfield|search field/.test(type)) return 'text_field'
+  if (/image/.test(type)) return 'image'
+  if (/window|application|group|scroll view|collection view/.test(type)) return 'container'
+  return null
+}
+
+function getIOSStableId(node: IDBElement): string | null {
+  const candidates = [node.AXIdentifier, node.accessibilityIdentifier, node.identifier, node.AXUniqueId]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate
+  }
+  return null
+}
+
+function buildIOSSelectorConfidence(source: 'identifier' | 'label' | 'value' | 'type' | 'none'): SelectorConfidence | null {
+  switch (source) {
+    case 'identifier':
+      return { score: 1, reason: 'accessibility_identifier' }
+    case 'label':
+      return { score: 0.9, reason: 'label_match' }
+    case 'value':
+      return { score: 0.75, reason: 'value_match' }
+    case 'type':
+      return { score: 0.35, reason: 'type_match' }
+    default:
+      return null
+  }
+}
+
+function buildIOSSelector(type: string, label: string | null, value: string | null, stableId: string | null): UIResolutionSelector | null {
+  if (stableId) return { value: stableId, confidence: buildIOSSelectorConfidence('identifier') }
+  if (label) return { value: label, confidence: buildIOSSelectorConfidence('label') }
+  if (value) return { value: value, confidence: buildIOSSelectorConfidence('value') }
+  if (type) return { value: type, confidence: buildIOSSelectorConfidence('type') }
+  return null
+}
+
+function buildIOSSemantic(type: string, traits: string[]): UIElementSemanticMetadata {
+  return {
+    is_clickable: traits.includes("UIAccessibilityTraitButton") || /adjustable|slider/.test(type) || type === "Button" || type === "Cell",
+    is_container: /window|application|group|scroll view|collection view/.test(type)
+  }
 }
 
 function isIOSAdjustable(node: IDBElement, type: string, traits: string[]): boolean {
@@ -124,6 +180,11 @@ export function traverseIDBNode(node: IDBElement, elements: UIElement[], parentI
   const frame = node.AXFrame || node.frame;
   const traits = node.AXTraits || [];
   const state = extractIOSState(node, type, label, value, traits);
+  const normalizedType = normalizeIOSType(type)
+  const stableId = getIOSStableId(node)
+  const selector = buildIOSSelector(type, label, value, stableId)
+  const semantic = buildIOSSemantic(normalizedType, traits)
+  const role = inferIOSRole(normalizedType, traits)
   
   const clickable = traits.includes("UIAccessibilityTraitButton") || type === "Button" || type === "Cell";
   
@@ -135,14 +196,19 @@ export function traverseIDBNode(node: IDBElement, elements: UIElement[], parentI
       text: label,
       contentDescription: value,
       type: type,
-      resourceId: node.AXUniqueId || null,
+      resourceId: stableId,
       clickable: clickable,
       enabled: true,
       visible: true,
       bounds: bounds,
       center: getCenter(bounds),
       depth: depth,
-      state
+      state,
+      stable_id: stableId,
+      role,
+      test_tag: stableId,
+      selector,
+      semantic
     };
 
     if (parentIndex !== -1) {

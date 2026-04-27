@@ -94,6 +94,21 @@ export interface UIElementState {
   } | null;
 }
 
+export interface SelectorConfidence {
+  score: number;
+  reason: string;
+}
+
+export interface UIResolutionSelector {
+  value: string | null;
+  confidence: SelectorConfidence | null;
+}
+
+export interface UIElementSemanticMetadata {
+  is_clickable: boolean;
+  is_container: boolean;
+}
+
 export interface CaptureAndroidScreenResponse {
   device: DeviceInfo;
   screenshot: string; // base64 encoded string
@@ -132,6 +147,11 @@ export interface UIElement {
   center?: [number, number];
   depth?: number;
   state?: UIElementState | null;
+  stable_id?: string | null;
+  role?: string | null;
+  test_tag?: string | null;
+  selector?: UIResolutionSelector | null;
+  semantic?: UIElementSemanticMetadata | null;
 }
 
 export interface GetUITreeResponse {
@@ -167,7 +187,7 @@ export interface CaptureDebugSnapshotRawResponse {
   activity: string | null;
   fingerprint: string | null;
   screenshot: string | null;
-  ui_tree: unknown | null;
+  ui_tree: GetUITreeResponse | null;
   logs: StructuredLogEntry[];
   device?: DeviceInfo;
   screenshot_error?: string;
@@ -215,6 +235,11 @@ export interface ActionTargetResolved {
   bounds: [number, number, number, number] | null;
   index: number | null;
   state?: UIElementState | null;
+  stable_id?: string | null;
+  role?: string | null;
+  test_tag?: string | null;
+  selector?: UIResolutionSelector | null;
+  semantic?: UIElementSemanticMetadata | null;
 }
 
 export interface ActionExecutionResult {

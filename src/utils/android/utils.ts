@@ -1,4 +1,4 @@
-import { DeviceInfo, UIElement, UIElementState } from "../../types.js"
+import { DeviceInfo, UIElement, UIElementSemanticMetadata, UIElementState, UIResolutionSelector, SelectorConfidence } from "../../types.js"
 import { promises as fsPromises, existsSync } from 'fs'
 import path from 'path'
 import { detectJavaHome } from '../java.js'
@@ -336,6 +336,52 @@ function parseNumberAttr(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function normalizeClassName(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+function inferAndroidRole(className: string): string | null {
+  if (/seekbar|slider|progress/.test(className)) return 'slider'
+  if (/switch|toggle/.test(className)) return 'switch'
+  if (/checkbox/.test(className)) return 'checkbox'
+  if (/radiobutton|radio/.test(className)) return 'radio'
+  if (/edittext|textfield|search/.test(className)) return 'text_field'
+  if (/button|fab/.test(className)) return 'button'
+  if (/imageview|icon/.test(className)) return 'image'
+  if (/recyclerview|scroll|layout|viewgroup|frame/.test(className)) return 'container'
+  return null
+}
+
+function buildAndroidSelectorConfidence(source: 'resource_id' | 'content_desc' | 'text' | 'class' | 'none'): SelectorConfidence | null {
+  switch (source) {
+    case 'resource_id':
+      return { score: 1, reason: 'resource_id' }
+    case 'content_desc':
+      return { score: 0.9, reason: 'content_description' }
+    case 'text':
+      return { score: 0.6, reason: 'text_match' }
+    case 'class':
+      return { score: 0.35, reason: 'class_match' }
+    default:
+      return null
+  }
+}
+
+function buildAndroidSelector(text: string | null, contentDescription: string | null, resourceId: string | null, className: string): UIResolutionSelector | null {
+  if (resourceId) return { value: resourceId, confidence: buildAndroidSelectorConfidence('resource_id') }
+  if (contentDescription) return { value: contentDescription, confidence: buildAndroidSelectorConfidence('content_desc') }
+  if (text) return { value: text, confidence: buildAndroidSelectorConfidence('text') }
+  if (className) return { value: className, confidence: buildAndroidSelectorConfidence('class') }
+  return null
+}
+
+function buildAndroidSemantic(clickable: boolean, className: string): UIElementSemanticMetadata {
+  return {
+    is_clickable: clickable,
+    is_container: /recyclerview|scroll|layout|viewgroup|frame/.test(className)
+  }
+}
+
 function isSliderLikeAndroid(node: any): boolean {
   const className = String(node['@_class'] || '').toLowerCase()
   return /seekbar|slider|range|progress/i.test(className)
@@ -401,29 +447,41 @@ export function traverseNode(node: any, elements: UIElement[], parentIndex: numb
 
   let currentIndex = -1;
 
-    if (node['@_class']) {
-      const text = node['@_text'] || null;
-      const contentDescription = node['@_content-desc'] || null;
-      const clickable = node['@_clickable'] === 'true';
-      const bounds = parseBounds(node['@_bounds'] || '[0,0][0,0]');
-      const state = extractAndroidState(node);
+  if (node['@_class']) {
+    const text = node['@_text'] || null;
+    const contentDescription = node['@_content-desc'] || null;
+    const clickable = node['@_clickable'] === 'true';
+    const className = String(node['@_class'] || 'unknown');
+    const bounds = parseBounds(node['@_bounds'] || '[0,0][0,0]');
+    const state = extractAndroidState(node);
+    const role = inferAndroidRole(normalizeClassName(className));
+    const resourceId = typeof node['@_resource-id'] === 'string' && node['@_resource-id'].trim().length > 0 ? node['@_resource-id'] : null
+    const stableId = resourceId ?? (typeof contentDescription === 'string' && contentDescription.trim().length > 0 ? contentDescription : null)
+    const testTag = stableId
+    const selector = buildAndroidSelector(text, contentDescription, resourceId, normalizeClassName(className))
+    const semantic = buildAndroidSemantic(clickable, normalizeClassName(className))
 
-      const isUseful = clickable || (text && text.length > 0) || (contentDescription && contentDescription.length > 0);
+    const isUseful = clickable || (text && text.length > 0) || (contentDescription && contentDescription.length > 0);
 
-      if (isUseful) {
-        const element: UIElement = {
+    if (isUseful) {
+      const element: UIElement = {
         text,
         contentDescription,
-        type: node['@_class'] || 'unknown',
-        resourceId: node['@_resource-id'] || null,
+        type: className,
+        resourceId,
         clickable,
         enabled: node['@_enabled'] === 'true',
-          visible: true,
-          bounds,
-          center: getCenter(bounds),
-          depth,
-          state
-        };
+        visible: true,
+        bounds,
+        center: getCenter(bounds),
+        depth,
+        state,
+        stable_id: stableId,
+        role,
+        test_tag: testTag,
+        selector,
+        semantic
+      };
 
       if (parentIndex !== -1) {
         element.parentId = parentIndex;
