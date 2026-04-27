@@ -26,10 +26,26 @@ Higher task success with fewer retries.
 
 ---
 
+# Completed
+
+These priorities are done and kept here for history:
+
+- Priority 1 — Stronger State Verification
+- Priority 2 — Richer Element Identity
+
+Completion notes:
+
+- State-aware verification is now implemented and wired through the tool surface.
+- Platform-native element metadata and selector-confidence hints are now part of the runtime contract.
+
+---
+
 # Priority 1 — Stronger State Verification
 
 ## Why first
 Highest leverage improvement.
+
+**Status:** Completed
 
 Most failures are not “can’t act,” they’re:
 - uncertain state
@@ -67,6 +83,8 @@ Blocks or strengthens:
 
 ## Why second
 Directly reduces selector brittleness.
+
+**Status:** Completed
 
 Improves:
 - targeting stability
