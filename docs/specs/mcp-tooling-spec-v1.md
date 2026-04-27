@@ -151,6 +151,7 @@ Examples:
 
 - `wait_for_ui`
 - `wait_for_screen_change`
+- `wait_for_ui_change`
 
 ### 6.2 Rules
 
@@ -239,6 +240,8 @@ Raw layer contents include:
 - UI hierarchy or accessibility tree
 - normalized readable element state where exposed by the platform
 - platform-native identity hints such as stable identifiers, roles, and test tags
+- snapshot metadata such as `snapshot_revision` and `captured_at_ms`
+- `loading_state` when a reliable loading signal is detectable
 - screenshot when available
 - element-level attributes
 - logs and fingerprint/activity observations
@@ -305,10 +308,15 @@ Canonical pattern:
 
 `wait_for_ui -> tap_element -> wait_for_screen_change (optional) -> expect_screen`
 
+For in-place UI mutations, agents SHOULD prefer:
+
+`wait_for_ui_change -> expect_element_visible / expect_state`
+
 Interpretation:
 
 - `tap_element.success` = executed
 - `wait_for_screen_change.success` = UI changed
+- `wait_for_ui_change.success` = in-place UI mutation observed and stable
 - `expect_screen.success` = correct outcome verified
 
 ## 12. Known Deviations

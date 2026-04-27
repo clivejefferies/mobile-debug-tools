@@ -83,13 +83,14 @@ Input:
 Response (example):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true }, "stable_id": "com.example:id/signin", "role": "button", "test_tag": "com.example:id/signin", "selector": { "value": "com.example:id/signin", "confidence": { "score": 1, "reason": "resource_id" } }, "semantic": { "is_clickable": true, "is_container": false } } ] }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "snapshot_revision": 12, "captured_at_ms": 1710000000123, "loading_state": { "active": true, "signal": "spinner", "source": "ui_tree" }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true }, "stable_id": "com.example:id/signin", "role": "button", "test_tag": "com.example:id/signin", "selector": { "value": "com.example:id/signin", "confidence": { "score": 1, "reason": "resource_id" } }, "semantic": { "is_clickable": true, "is_container": false } } ] }
 ```
 
 Notes:
 - Useful for inspection, selector development, and fallback debugging.
 - Elements may include a normalized `state` object when the platform exposes readable state such as checked, selected, focused, expanded, text input, or slider values.
 - Elements may also include platform-native identity hints such as `stable_id`, `role`, `test_tag`, `selector`, and `semantic`.
+- The tree response may include `snapshot_revision`, `captured_at_ms`, and `loading_state` when a reliable signal is available.
 - Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
 
 ---
@@ -136,7 +137,8 @@ Behavior:
 - Fast by default: does not wait for new logs and avoids long blocking operations.
 - Returns a dual-layer payload:
   - `raw` is authoritative and contains the underlying observation data unchanged.
-  - `semantic` is optional, derived from `raw`, and intended for planning only.
+- `semantic` is optional, derived from `raw`, and intended for planning only.
+- `raw` now includes `snapshot_revision`, `captured_at_ms`, and `loading_state` when detectable.
 
 Response (example):
 

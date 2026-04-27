@@ -58,6 +58,7 @@ Preferred verification:
 
 Use `wait_for_screen_change` only when a visible transition is the expected outcome. If a button should trigger an API request but the screen should stay the same, rely on network activity and classification instead.
 For backend-only actions, prefer comparing `get_screen_fingerprint` before/after and call `get_network_activity` immediately after the action; do not wait on `wait_for_screen_change` if no visible transition is expected.
+Use `wait_for_ui_change` when the screen stays in place but visible text or element state should change.
 
 ---
 
@@ -145,6 +146,26 @@ Notes:
 - Adds a stability confirmation before returning success to avoid transient animation frames.
 - Follow with `expect_screen` when the expected destination is known.
 - Do not use this as the main success check for backend/API activity that does not change the visible UI.
+
+---
+
+## wait_for_ui_change
+
+Purpose:
+
+- detect a stable in-place UI mutation without naming a target element first
+
+Capabilities:
+
+- waits for hierarchy, text, or state deltas
+- uses snapshot revision metadata when available
+- confirms the change remains stable before returning success
+
+Guidance:
+
+- prefer `wait_for_screen_change` for navigation
+- prefer `wait_for_ui_change` for in-place updates and recomposition-style changes
+- follow with `expect_*` when the expected final state is known
 
 ---
 

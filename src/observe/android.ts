@@ -7,6 +7,7 @@ import { promises as fsPromises } from "fs"
 import path from "path"
 import { computeScreenFingerprint } from "../utils/ui/index.js"
 import { parsePngSize } from "../utils/image.js"
+import { deriveSnapshotMetadata } from "./snapshot-metadata.js"
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
@@ -74,20 +75,29 @@ export class AndroidObserve {
           }
       }
 
+      const snapshotMetadata = deriveSnapshotMetadata(`android:${deviceInfo.id}`, {
+        screen: "",
+        resolution,
+        elements
+      }, 'ui_tree')
+
       return {
         device: deviceInfo,
         screen: "",
         resolution,
-        elements
+        elements,
+        ...snapshotMetadata
       };
     } catch (e) {
       const errorMessage = `Failed to get UI tree. ADB Path: '${getAdbCmd()}'. Error: ${e instanceof Error ? e.message : String(e)}`;
       console.error(errorMessage);
+      const snapshotMetadata = deriveSnapshotMetadata(`android:${deviceInfo.id}`, null, 'ui_tree')
       return {
           device: deviceInfo,
           screen: "",
           resolution: { width: 0, height: 0 },
           elements: [],
+          ...snapshotMetadata,
           error: errorMessage
       };
     }

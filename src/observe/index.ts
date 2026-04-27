@@ -5,6 +5,7 @@ import type {
   CaptureDebugSnapshotRawResponse,
   SnapshotSemanticResponse
 } from '../types.js'
+import { deriveSnapshotMetadata } from './snapshot-metadata.js'
 
 export { AndroidObserve } from './android.js'
 export { iOSObserve } from './ios.js'
@@ -245,7 +246,17 @@ export class ToolsObserve {
 
   static async captureDebugSnapshotHandler({ reason, includeLogs = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
     const timestamp = Date.now()
-    const raw: CaptureDebugSnapshotRawResponse = { timestamp, reason: reason || '', activity: null, fingerprint: null, screenshot: null, ui_tree: null, logs: [] }
+    const raw: CaptureDebugSnapshotRawResponse = {
+      timestamp,
+      snapshot_revision: 0,
+      captured_at_ms: timestamp,
+      reason: reason || '',
+      activity: null,
+      fingerprint: null,
+      screenshot: null,
+      ui_tree: null,
+      logs: []
+    }
 
     // Parallel fetches for performance: screenshot, current screen, fingerprint, ui tree, and log stream/get logs
     const sid = sessionId || 'default'
@@ -334,6 +345,20 @@ export class ToolsObserve {
         raw.logs_error = e instanceof Error ? e.message : String(e)
       }
     }
+
+    const snapshotDeviceKey = raw.ui_tree?.device
+      ? `${raw.ui_tree.device.platform}:${raw.ui_tree.device.id}`
+      : `${platform || 'unknown'}:${deviceId || 'default'}`
+    const snapshotMetadata = deriveSnapshotMetadata(
+      snapshotDeviceKey,
+      raw.ui_tree,
+      'snapshot',
+      raw.ui_tree?.snapshot_revision ? null : (raw.fingerprint || raw.activity || null)
+    )
+
+    raw.snapshot_revision = raw.ui_tree?.snapshot_revision ?? snapshotMetadata.snapshot_revision
+    raw.captured_at_ms = raw.ui_tree?.captured_at_ms ?? snapshotMetadata.captured_at_ms
+    raw.loading_state = raw.ui_tree?.loading_state ?? snapshotMetadata.loading_state
 
     const semantic = deriveSnapshotSemantic(raw)
     return semantic ? { raw, semantic } : { raw }

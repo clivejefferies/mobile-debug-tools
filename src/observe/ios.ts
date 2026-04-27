@@ -7,6 +7,7 @@ import path from 'path'
 import { parseLogLine } from '../utils/android/utils.js'
 import { computeScreenFingerprint } from '../utils/ui/index.js'
 import { parsePngSize } from '../utils/image.js'
+import { deriveSnapshotMetadata } from './snapshot-metadata.js'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let iosExecCommand = execCommand
@@ -485,16 +486,19 @@ export class iOSObserve {
 
   async getUITree(deviceId: string = "booted"): Promise<GetUITreeResponse> {
     const device = await getIOSDeviceMetadata(deviceId);
+    const deviceKey = `ios:${device.id}`
     
     const idbExists = await isIDBInstalled();
     if (!idbExists) {
+       const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
        return {
           device,
           screen: "",
           resolution: { width: 0, height: 0 },
           elements: [],
+          ...snapshotMetadata,
           error: "iOS UI tree retrieval requires 'idb' (iOS Device Bridge). Please install it via Homebrew: `brew tap facebook/fb && brew install idb-companion` and `pip3 install fb-idb`."
-       };
+        };
     }
 
     const targetUdid = (device.id && device.id !== 'booted') ? device.id : undefined;
@@ -540,15 +544,17 @@ export class iOSObserve {
          console.error(`Attempt ${attempts} failed: ${e}`);
       }
       
-      if (attempts === maxAttempts) {
-          return {
-              device,
-              screen: "",
-              resolution: { width: 0, height: 0 },
-              elements: [],
-              error: `Failed to retrieve valid UI dump after ${maxAttempts} attempts.`
-          };
-      }
+       if (attempts === maxAttempts) {
+           const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
+           return {
+               device,
+               screen: "",
+               resolution: { width: 0, height: 0 },
+               elements: [],
+               ...snapshotMetadata,
+               error: `Failed to retrieve valid UI dump after ${maxAttempts} attempts.`
+           };
+       }
     }
 
     try {
@@ -569,20 +575,29 @@ export class iOSObserve {
             height = rootBounds[3] - rootBounds[1];
         }
 
+        const snapshotMetadata = deriveSnapshotMetadata(deviceKey, {
+          screen: "",
+          resolution: { width, height },
+          elements
+        }, 'ui_tree')
+
         return {
             device,
             screen: "",
             resolution: { width, height },
-            elements
+            elements,
+            ...snapshotMetadata
         };
     } catch (e) {
-         return {
+         const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
+          return {
             device,
             screen: "",
             resolution: { width: 0, height: 0 },
             elements: [],
+            ...snapshotMetadata,
             error: `Failed to parse idb output: ${e instanceof Error ? e.message : String(e)}`
-         };
+          };
     }
   }
 

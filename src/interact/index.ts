@@ -5,6 +5,7 @@ export { AndroidInteract, iOSInteract };
 
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { ToolsObserve } from '../observe/index.js'
+import { computeSnapshotSignature } from '../observe/snapshot-metadata.js'
 import { nextActionId } from '../server/common.js'
 import type {
   ActionFailureCode,
@@ -12,6 +13,7 @@ import type {
   ExpectElementVisibleResponse,
   ExpectStateResponse,
   ExpectScreenResponse,
+  WaitForUIChangeResponse,
   UIElementState,
   TapElementResponse
 } from '../types.js'
@@ -60,6 +62,12 @@ interface UiResolution {
   height?: number
 }
 
+interface UiChangeSignatureSet {
+  hierarchy: string | null
+  text: string | null
+  state: string | null
+}
+
 
 export class ToolsInteract {
   private static readonly _maxResolvedUiElements = 256
@@ -83,6 +91,10 @@ export class ToolsInteract {
     const normalized = bounds.slice(0, 4).map((value: any) => Number(value))
     if (normalized.some((value: number) => Number.isNaN(value))) return null
     return normalized as [number, number, number, number]
+  }
+
+  private static _hash(value: unknown): string {
+    return createHash('sha256').update(JSON.stringify(value)).digest('hex')
   }
 
   private static _matchesSelector(el: UiElement, selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }): boolean {
@@ -193,6 +205,51 @@ export class ToolsInteract {
     } catch {
       return null
     }
+  }
+
+  private static _buildUiChangeSignatures(tree: any): UiChangeSignatureSet {
+    const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
+    const textPayload = elements.map((el) => ({
+      text: ToolsInteract._normalize(el?.text ?? el?.label ?? el?.value ?? ''),
+      contentDescription: ToolsInteract._normalize(el?.contentDescription ?? el?.contentDesc ?? el?.accessibilityLabel ?? ''),
+      resourceId: ToolsInteract._normalize(el?.resourceId ?? el?.resourceID ?? el?.id ?? '')
+    }))
+    const statePayload = elements.map((el) => ({
+      checked: el?.state?.checked ?? null,
+      selected: el?.state?.selected ?? null,
+      focused: el?.state?.focused ?? null,
+      expanded: el?.state?.expanded ?? null,
+      enabled: el?.state?.enabled ?? null,
+      text_value: el?.state?.text_value ?? null,
+      value: el?.state?.value ?? null,
+      raw_value: el?.state?.raw_value ?? null,
+      value_range: el?.state?.value_range ?? null
+    }))
+
+    return {
+      hierarchy: computeSnapshotSignature(tree),
+      text: ToolsInteract._hash({
+        screen: ToolsInteract._normalize(tree?.screen),
+        elements: textPayload
+      }),
+      state: ToolsInteract._hash({
+        screen: ToolsInteract._normalize(tree?.screen),
+        elements: statePayload
+      })
+    }
+  }
+
+  private static _matchesUiChange(expected: 'hierarchy_diff' | 'text_change' | 'state_change' | undefined, initial: UiChangeSignatureSet, current: UiChangeSignatureSet): 'hierarchy_diff' | 'text_change' | 'state_change' | null {
+    const changeKinds: Array<'hierarchy_diff' | 'text_change' | 'state_change'> = ['hierarchy_diff', 'text_change', 'state_change']
+    const candidates = expected ? [expected] : changeKinds
+
+    for (const changeKind of candidates) {
+      if (changeKind === 'hierarchy_diff' && initial.hierarchy !== current.hierarchy) return changeKind
+      if (changeKind === 'text_change' && initial.text !== current.text) return changeKind
+      if (changeKind === 'state_change' && initial.state !== current.state) return changeKind
+    }
+
+    return null
   }
 
   private static _resolvedTargetFromElement(
@@ -952,6 +1009,84 @@ export class ToolsInteract {
         fingerprint: lastFingerprint,
         activity: lastActivity
       }
+    }
+  }
+
+  static async waitForUIChangeHandler({
+    platform,
+    deviceId,
+    timeout_ms = 60000,
+    stability_window_ms = 250,
+    expected_change
+  }: {
+    platform?: 'android' | 'ios',
+    deviceId?: string,
+    timeout_ms?: number,
+    stability_window_ms?: number,
+    expected_change?: 'hierarchy_diff' | 'text_change' | 'state_change'
+  }): Promise<WaitForUIChangeResponse> {
+    const start = Date.now()
+    const pollIntervalMs = 300
+    const stabilityWindow = Math.max(0, typeof stability_window_ms === 'number' ? stability_window_ms : 250)
+    let baseline: UiChangeSignatureSet | null = null
+    let lastObservedRevision: number | null = null
+    let lastLoadingState: any = null
+
+    while (Date.now() - start < timeout_ms) {
+      try {
+        const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+        const signatures = ToolsInteract._buildUiChangeSignatures(tree)
+        lastObservedRevision = typeof tree?.snapshot_revision === 'number' ? tree.snapshot_revision : lastObservedRevision
+        lastLoadingState = tree?.loading_state ?? lastLoadingState
+
+        if (!baseline) {
+          baseline = signatures
+        } else {
+          const observedChange = ToolsInteract._matchesUiChange(expected_change, baseline, signatures)
+          if (observedChange) {
+            if (stabilityWindow > 0) {
+              await new Promise(resolve => setTimeout(resolve, stabilityWindow))
+              const confirmTree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+              const confirmSignatures = ToolsInteract._buildUiChangeSignatures(confirmTree)
+              const confirmChange = ToolsInteract._matchesUiChange(expected_change, baseline, confirmSignatures)
+              if (!confirmChange || confirmSignatures.hierarchy !== signatures.hierarchy || confirmSignatures.text !== signatures.text || confirmSignatures.state !== signatures.state) {
+                lastObservedRevision = typeof confirmTree?.snapshot_revision === 'number' ? confirmTree.snapshot_revision : lastObservedRevision
+                lastLoadingState = confirmTree?.loading_state ?? lastLoadingState
+                await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+                continue
+              }
+              lastObservedRevision = typeof confirmTree?.snapshot_revision === 'number' ? confirmTree.snapshot_revision : lastObservedRevision
+              lastLoadingState = confirmTree?.loading_state ?? lastLoadingState
+            }
+
+            return {
+              success: true,
+              observed_change: observedChange,
+              snapshot_revision: lastObservedRevision ?? undefined,
+              timeout: false,
+              elapsed_ms: Date.now() - start,
+              expected_change,
+              loading_state: lastLoadingState ?? null,
+              reason: 'UI change observed'
+            }
+          }
+        }
+      } catch {
+        // Keep polling until timeout; the observable surface should be best-effort.
+      }
+
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+    }
+
+    return {
+      success: false,
+      observed_change: null,
+      snapshot_revision: lastObservedRevision ?? undefined,
+      timeout: true,
+      elapsed_ms: Date.now() - start,
+      expected_change,
+      loading_state: lastLoadingState ?? null,
+      reason: 'timeout'
     }
   }
 

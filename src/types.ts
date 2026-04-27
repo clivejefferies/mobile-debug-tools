@@ -109,6 +109,12 @@ export interface UIElementSemanticMetadata {
   is_container: boolean;
 }
 
+export interface LoadingState {
+  active: boolean;
+  signal: string;
+  source: string;
+}
+
 export interface CaptureAndroidScreenResponse {
   device: DeviceInfo;
   screenshot: string; // base64 encoded string
@@ -162,6 +168,9 @@ export interface GetUITreeResponse {
     height: number;
   };
   elements: UIElement[];
+  snapshot_revision: number;
+  captured_at_ms: number;
+  loading_state?: LoadingState | null;
   error?: string;
 }
 
@@ -183,12 +192,15 @@ export interface SnapshotSemanticResponse {
 
 export interface CaptureDebugSnapshotRawResponse {
   timestamp: number;
+  snapshot_revision: number;
+  captured_at_ms: number;
   reason: string;
   activity: string | null;
   fingerprint: string | null;
   screenshot: string | null;
   ui_tree: GetUITreeResponse | null;
   logs: StructuredLogEntry[];
+  loading_state?: LoadingState | null;
   device?: DeviceInfo;
   screenshot_error?: string;
   activity_error?: string;
@@ -324,6 +336,17 @@ export interface ExpectStateResponse {
   reason?: string;
   failure_code?: 'ELEMENT_NOT_FOUND' | 'UNKNOWN';
   retryable?: boolean;
+}
+
+export interface WaitForUIChangeResponse {
+  success: boolean;
+  observed_change: 'hierarchy_diff' | 'text_change' | 'state_change' | null;
+  snapshot_revision?: number;
+  timeout: boolean;
+  elapsed_ms: number;
+  expected_change?: 'hierarchy_diff' | 'text_change' | 'state_change';
+  reason?: string;
+  loading_state?: LoadingState | null;
 }
 
 export interface SwipeResponse {

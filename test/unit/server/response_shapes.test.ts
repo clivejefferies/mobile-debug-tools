@@ -8,6 +8,7 @@ import { ToolsObserve } from '../../../src/observe/index.js'
 async function run() {
   const originalInstallAppHandler = (ToolsManage as any).installAppHandler
   const originalWaitForUIHandler = (ToolsInteract as any).waitForUIHandler
+  const originalWaitForUIChangeHandler = (ToolsInteract as any).waitForUIChangeHandler
   const originalTapElementHandler = (ToolsInteract as any).tapElementHandler
   const originalTapHandler = (ToolsInteract as any).tapHandler
   const originalExpectScreenHandler = (ToolsInteract as any).expectScreenHandler
@@ -145,12 +146,16 @@ async function run() {
     ;(ToolsObserve as any).getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock', osVersion: '14', model: 'Pixel', simulator: true },
       resolution: { width: 1080, height: 2400 },
+      screen: 'Notifications',
       elements: [{
         text: 'Notifications',
         depth: 0,
         center: { x: 50, y: 20 },
         state: { checked: true, selected: 'Notifications' }
-      }]
+      }],
+      snapshot_revision: 12,
+      captured_at_ms: 1710000000123,
+      loading_state: { active: true, signal: 'progress_indicator', source: 'ui_tree' }
     })
 
     ;(ToolsInteract as any).expectStateHandler = async () => ({
@@ -227,8 +232,12 @@ async function run() {
 
     ;(ToolsObserve as any).getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock', osVersion: '14', model: 'Pixel', simulator: true },
+      screen: 'Login',
       resolution: { width: 1080, height: 2400 },
-      elements: [{ text: 'Login', depth: 0, center: { x: 50, y: 20 } }]
+      elements: [{ text: 'Login', depth: 0, center: { x: 50, y: 20 } }],
+      snapshot_revision: 12,
+      captured_at_ms: 1710000000123,
+      loading_state: { active: true, signal: 'progress_indicator', source: 'ui_tree' }
     })
 
     const uiTreeResponse = await handleToolCall('get_ui_tree', { platform: 'android' })
@@ -236,16 +245,21 @@ async function run() {
     assert.strictEqual(uiTreePayload.elements.length, 1)
     assert.strictEqual(uiTreePayload.resolution.height, 2400)
     assert.strictEqual(uiTreePayload.elements[0].text, 'Login')
+    assert.strictEqual(uiTreePayload.snapshot_revision, 12)
+    assert.strictEqual(uiTreePayload.loading_state.signal, 'progress_indicator')
 
     ;(ToolsObserve as any).captureDebugSnapshotHandler = async () => ({
       raw: {
         timestamp: 1710000000000,
+        snapshot_revision: 12,
+        captured_at_ms: 1710000000123,
         reason: 'manual',
         activity: 'com.example.MainActivity',
         fingerprint: 'fp_raw',
         screenshot: 'base64',
-        ui_tree: { screen: 'Home', elements: [] },
+        ui_tree: { screen: 'Home', elements: [], snapshot_revision: 12, captured_at_ms: 1710000000123, loading_state: { active: true, signal: 'spinner', source: 'snapshot' } },
         logs: [],
+        loading_state: { active: true, signal: 'spinner', source: 'snapshot' },
         device: { platform: 'android', id: 'mock', osVersion: '14', model: 'Pixel', simulator: true }
       },
       semantic: {
@@ -260,13 +274,33 @@ async function run() {
     const snapshotResponse = await handleToolCall('capture_debug_snapshot', { platform: 'android' })
     const snapshotPayload = JSON.parse((snapshotResponse as any).content[0].text)
     assert.strictEqual(snapshotPayload.raw.fingerprint, 'fp_raw')
+    assert.strictEqual(snapshotPayload.raw.snapshot_revision, 12)
+    assert.strictEqual(snapshotPayload.raw.loading_state.signal, 'spinner')
     assert.strictEqual(snapshotPayload.semantic.screen, 'Home')
     assert.strictEqual(snapshotPayload.semantic.confidence, 0.8)
+
+    ;(ToolsInteract as any).waitForUIChangeHandler = async () => ({
+      success: true,
+      observed_change: 'text_change',
+      snapshot_revision: 13,
+      timeout: false,
+      elapsed_ms: 1550,
+      expected_change: 'text_change',
+      loading_state: { active: false, signal: 'spinner', source: 'ui_tree' },
+      reason: 'UI change observed'
+    })
+
+    const waitForUIChangeResponse = await handleToolCall('wait_for_ui_change', { expected_change: 'text_change' })
+    const waitForUIChangePayload = JSON.parse((waitForUIChangeResponse as any).content[0].text)
+    assert.strictEqual(waitForUIChangePayload.success, true)
+    assert.strictEqual(waitForUIChangePayload.observed_change, 'text_change')
+    assert.strictEqual(waitForUIChangePayload.snapshot_revision, 13)
 
     console.log('server response-shape tests passed')
   } finally {
     ;(ToolsManage as any).installAppHandler = originalInstallAppHandler
     ;(ToolsInteract as any).waitForUIHandler = originalWaitForUIHandler
+    ;(ToolsInteract as any).waitForUIChangeHandler = originalWaitForUIChangeHandler
     ;(ToolsInteract as any).tapElementHandler = originalTapElementHandler
     ;(ToolsInteract as any).tapHandler = originalTapHandler
     ;(ToolsInteract as any).expectScreenHandler = originalExpectScreenHandler

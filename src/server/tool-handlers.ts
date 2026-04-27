@@ -288,6 +288,16 @@ async function handleWaitForUI(args: ToolCallArgs) {
   return wrapResponse(res)
 }
 
+async function handleWaitForUIChange(args: ToolCallArgs) {
+  const platform = getStringArg(args, 'platform') as PlatformArg | undefined
+  const deviceId = getStringArg(args, 'deviceId')
+  const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
+  const stability_window_ms = getNumberArg(args, 'stability_window_ms') ?? 250
+  const expected_change = getStringArg(args, 'expected_change') as 'hierarchy_diff' | 'text_change' | 'state_change' | undefined
+  const res = await ToolsInteract.waitForUIChangeHandler({ platform, deviceId, timeout_ms, stability_window_ms, expected_change })
+  return wrapResponse(res)
+}
+
 async function handleFindElement(args: ToolCallArgs) {
   const query = requireStringArg(args, 'query')
   const exact = getBooleanArg(args, 'exact') ?? false
@@ -473,6 +483,7 @@ export const toolHandlers: Record<string, ToolHandler> = {
   get_current_screen: handleGetCurrentScreen,
   get_screen_fingerprint: handleGetScreenFingerprint,
   wait_for_screen_change: handleWaitForScreenChange,
+  wait_for_ui_change: handleWaitForUIChange,
   expect_screen: handleExpectScreen,
   expect_element_visible: handleExpectElementVisible,
   expect_state: handleExpectState,
