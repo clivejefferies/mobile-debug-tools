@@ -1,6 +1,6 @@
 # Mobile Debug Tools
 
-A minimal, secure MCP server for AI-assisted mobile development. Build, install, and inspect Android/iOS apps from an MCP-compatible client.
+A minimal, secure MCP server for AI-assisted mobile development. Build, install, interact and inspect Android/iOS apps from an MCP-compatible client.
 
 > **Support:**
 > * KMP
