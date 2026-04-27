@@ -71,6 +71,7 @@ interface UiChangeSignatureSet {
 
 export class ToolsInteract {
   private static readonly _maxResolvedUiElements = 256
+  private static readonly _uiChangeKinds: Array<'hierarchy_diff' | 'text_change' | 'state_change'> = ['hierarchy_diff', 'text_change', 'state_change']
   private static readonly _sliderSearchLookahead = 8
   private static readonly _sliderNegativeGapTolerancePx = 32
   private static readonly _sliderPositiveGapLimitPx = 640
@@ -209,22 +210,38 @@ export class ToolsInteract {
 
   private static _buildUiChangeSignatures(tree: any): UiChangeSignatureSet {
     const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
-    const textPayload = elements.map((el) => ({
-      text: ToolsInteract._normalize(el?.text ?? el?.label ?? el?.value ?? ''),
-      contentDescription: ToolsInteract._normalize(el?.contentDescription ?? el?.contentDesc ?? el?.accessibilityLabel ?? ''),
-      resourceId: ToolsInteract._normalize(el?.resourceId ?? el?.resourceID ?? el?.id ?? '')
-    }))
-    const statePayload = elements.map((el) => ({
-      checked: el?.state?.checked ?? null,
-      selected: el?.state?.selected ?? null,
-      focused: el?.state?.focused ?? null,
-      expanded: el?.state?.expanded ?? null,
-      enabled: el?.state?.enabled ?? null,
-      text_value: el?.state?.text_value ?? null,
-      value: el?.state?.value ?? null,
-      raw_value: el?.state?.raw_value ?? null,
-      value_range: el?.state?.value_range ?? null
-    }))
+    const textPayload: Array<{ text: string, contentDescription: string, resourceId: string }> = []
+    const statePayload: Array<{
+      checked: boolean | null
+      selected: boolean | string | { id: string; label?: string } | null
+      focused: boolean | null
+      expanded: boolean | null
+      enabled: boolean | null
+      text_value: string | null
+      value: number | string | null
+      raw_value: number | string | null
+      value_range: UIElementState['value_range']
+    }> = []
+
+    for (const el of elements) {
+      textPayload.push({
+        text: ToolsInteract._normalize(el?.text ?? el?.label ?? el?.value ?? ''),
+        contentDescription: ToolsInteract._normalize(el?.contentDescription ?? el?.contentDesc ?? el?.accessibilityLabel ?? ''),
+        resourceId: ToolsInteract._normalize(el?.resourceId ?? el?.resourceID ?? el?.id ?? '')
+      })
+
+      statePayload.push({
+        checked: el?.state?.checked ?? null,
+        selected: el?.state?.selected ?? null,
+        focused: el?.state?.focused ?? null,
+        expanded: el?.state?.expanded ?? null,
+        enabled: el?.state?.enabled ?? null,
+        text_value: el?.state?.text_value ?? null,
+        value: el?.state?.value ?? null,
+        raw_value: el?.state?.raw_value ?? null,
+        value_range: el?.state?.value_range ?? null
+      })
+    }
 
     return {
       hierarchy: computeSnapshotSignature(tree),
@@ -240,8 +257,7 @@ export class ToolsInteract {
   }
 
   private static _matchesUiChange(expected: 'hierarchy_diff' | 'text_change' | 'state_change' | undefined, initial: UiChangeSignatureSet, current: UiChangeSignatureSet): 'hierarchy_diff' | 'text_change' | 'state_change' | null {
-    const changeKinds: Array<'hierarchy_diff' | 'text_change' | 'state_change'> = ['hierarchy_diff', 'text_change', 'state_change']
-    const candidates = expected ? [expected] : changeKinds
+    const candidates = expected ? [expected] : ToolsInteract._uiChangeKinds
 
     for (const changeKind of candidates) {
       if (changeKind === 'hierarchy_diff' && initial.hierarchy !== current.hierarchy) return changeKind

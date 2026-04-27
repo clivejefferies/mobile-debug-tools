@@ -54,6 +54,7 @@ export function detectLoadingState(tree: Pick<GetUITreeResponse, 'elements' | 'e
   if (!tree || tree.error || !Array.isArray(tree.elements)) return null
 
   for (const element of tree.elements) {
+    if (!element?.visible) continue
     const text = normalize(element?.text ?? element?.contentDescription ?? '')
     const type = normalize(element?.type ?? '')
     const combined = `${type} ${text}`

@@ -2,6 +2,12 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.26.0]
+- RFC-003 wait/synchronization contract with `snapshot_revision`, `captured_at_ms`, and `loading_state`
+- Added `wait_for_ui_change` for stable in-place UI mutations
+- Updated `get_ui_tree` and `capture_debug_snapshot` to surface snapshot metadata
+- Emulator-validated the new UI-change flow against the Modul8 app
+
 ## [0.25.1]
 - Platform-native element identity metadata for UI targeting
 - Hierarchy-independent element references
