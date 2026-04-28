@@ -600,8 +600,9 @@ export class ToolsInteract {
     if (!q) return { found: false, error: 'Empty query' }
 
     let best: RankedResolutionCandidate | null = null
-    const ranked: RankedResolutionCandidate[] = []
-    let lastTree: any = null
+    let bestTree: any = null
+    let bestIterationCandidates: RankedResolutionCandidate[] = []
+    let shouldStop = false
 
     const scoreElement = (el: UiElement | null, idx: number): RankedResolutionCandidate | null => {
       if (!el || !el.visible) return null
@@ -664,39 +665,43 @@ export class ToolsInteract {
 
     while (Date.now() <= deadline) {
       try {
-      const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId })
-      lastTree = tree
+        const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId })
         if (tree && Array.isArray((tree as any).elements)) {
           const elements = ((tree as any).elements as UiElement[])
+          const iterationCandidates: RankedResolutionCandidate[] = []
+          let iterationImprovedBest = false
           for (let i = 0; i < elements.length; i++) {
             const el = elements[i]
             try {
               const candidate = scoreElement(el, i)
               if (!candidate) continue
-              ranked.push(candidate)
+              iterationCandidates.push(candidate)
               if (!best || candidate.score > best.score) {
                 best = candidate
+                bestTree = tree
+                iterationImprovedBest = true
+                if (best.score >= 0.95) {
+                  shouldStop = true
+                  break
+                }
               }
             } catch (e) { console.error('Error scoring element:', e) }
           }
+          if (iterationImprovedBest) {
+            bestIterationCandidates = iterationCandidates.slice()
+          }
         }
       } catch (e) { console.error('Error fetching UI tree:', e) }
-      if (Date.now() > deadline) break
+      if (shouldStop || Date.now() > deadline) break
       await new Promise(r => setTimeout(r, 100))
     }
 
     if (!best) return { found: false, error: 'Element not found' }
 
-    ranked.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      if (b.interactable !== a.interactable) return Number(b.interactable) - Number(a.interactable)
-      return a.idx - b.idx
-    })
-
     // If the best match is not interactable, try to resolve an actionable ancestor.
     try {
-      const elements = (lastTree && Array.isArray(lastTree.elements)) ? (lastTree.elements as UiElement[]) : []
-      const screen = lastTree?.resolution && typeof lastTree.resolution === 'object' ? lastTree.resolution as UiResolution : null
+      const elements = (bestTree && Array.isArray(bestTree.elements)) ? (bestTree.elements as UiElement[]) : []
+      const screen = bestTree?.resolution && typeof bestTree.resolution === 'object' ? bestTree.resolution as UiResolution : null
       let chosen = best as { el: UiElement, idx: number }
       const childBounds = Array.isArray(chosen?.el?.bounds) ? chosen.el.bounds : null
 
@@ -780,15 +785,11 @@ export class ToolsInteract {
 
     const boundsObj = Array.isArray(best.el.bounds) ? { left: best.el.bounds[0], top: best.el.bounds[1], right: best.el.bounds[2], bottom: best.el.bounds[3] } : null
     const tapCoordinates = boundsObj ? { x: Math.floor((boundsObj.left + boundsObj.right) / 2), y: Math.floor((boundsObj.top + boundsObj.bottom) / 2) } : null
-    const uniqueRanked = ranked.filter((candidate, index, array) => index === array.findIndex((other) => other.idx === candidate.idx && other.el === candidate.el))
-    const originalBest = uniqueRanked[0] ?? best
+    const uniqueRanked = bestIterationCandidates.filter((candidate, index, array) => index === array.findIndex((other) => other.idx === candidate.idx && other.el === candidate.el))
     const alternateCandidates = uniqueRanked
       .filter((candidate) => candidate.idx !== best.idx || candidate.el !== best.el)
       .slice(0, 3)
       .map((candidate) => ToolsInteract._summarizeResolutionCandidate(candidate))
-    if ((originalBest.idx !== best.idx || originalBest.el !== best.el) && !alternateCandidates.some((candidate) => candidate.text === originalBest.el.text && candidate.resource_id === (originalBest.el.resourceId ?? originalBest.el.resourceID ?? originalBest.el.id ?? null))) {
-      alternateCandidates.unshift(ToolsInteract._summarizeResolutionCandidate(originalBest))
-    }
 
     const outEl = {
       text: best.el.text ?? null,
