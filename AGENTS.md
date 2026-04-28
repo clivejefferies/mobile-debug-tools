@@ -41,10 +41,13 @@ Portable agent skills live under `skills/`.
 - `skills/README.md` — repo-wide skill convention
 - `skills/mcp-builder/` — build/install/toolchain guidance
 - `skills/test-authoring/` — test creation and placement guidance
+- `skills/rfc-review/` — RFC review rubric and response template
 
 If the task is about **creating or updating tests**, load `skills/test-authoring/SKILL.md` first.
 
 If the task is about **building, installing, or diagnosing native tooling**, load `skills/mcp-builder/SKILL.md` first.
+
+If the task is about **reviewing an RFC or spec draft**, load `skills/rfc-review/SKILL.md` first.
 
 ### Repository docs
 
