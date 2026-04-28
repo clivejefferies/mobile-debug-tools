@@ -4,10 +4,22 @@
 
 Ordered by:
 
+
 1. Impact on agent reliability  
 2. Reduction in retries / brittleness  
 3. Breadth of app coverage improved  
 4. Implementation complexity vs payoff
+
+## Capability Status Definitions
+
+- **Completed**  
+  Capability implemented and considered part of the baseline platform.
+
+- **Spec Ready**  
+  Capability design or RFC is mature and implementation-ready, but not yet delivered.
+
+- **Planned**  
+  Capability is prioritized on the roadmap, but detailed specification and/or implementation work remains ahead.
 
 ## Program-Level Success Metrics
 Track roadmap impact across releases using:
@@ -38,9 +50,12 @@ Higher task success with fewer retries.
 ## Current Focus
 
 - Wait and Synchronization Reliability
+- Actionability Resolution
 
 ## Upcoming Work
 
+- Adjustable Control Support
+- Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
 - Better Compose / Custom Control Semantics
 
@@ -53,11 +68,10 @@ Higher task success with fewer retries.
 
 # Stronger State Verification
 
-## Why first
+## Rationale
 Highest leverage improvement.
 
-**Status:** Completed  
-**Priority:** P1
+**Status:** Completed
 
 Most failures are not “can’t act,” they’re:
 - uncertain state
@@ -85,19 +99,18 @@ Very high.
 
 ## Dependencies
 Blocks or strengthens:
-- Priority 5 — Better Compose / Custom Control Semantics
-- Priority 6 — Pinch to Zoom verification
-- Priority 7 — Action Trace Correlation
+- Better Compose / Custom Control Semantics
+- Pinch to Zoom
+- Action Trace Correlation
 
 ---
 
 # Richer Element Identity
 
-## Why second
+## Rationale
 Directly reduces selector brittleness.
 
-**Status:** Completed  
-**Priority:** P2
+**Status:** Completed
 
 Improves:
 - targeting stability
@@ -125,19 +138,18 @@ Very high.
 
 ## Dependencies
 Blocks or strengthens:
-- Priority 4 — Long Press targeting reliability
-- Priority 5 — Better Compose / Custom Control Semantics
-- Priority 6 — Pinch to Zoom targeting
+- Long Press Gesture
+- Better Compose / Custom Control Semantics
+- Pinch to Zoom
 
 ---
 
 # Wait and Synchronization Reliability
 
-## Why third
+## Rationale
 Reliable async synchronization is foundational for agent success and should precede gesture expansion.
 
-**Status:** Spec Ready  
-**Priority:** P3
+**Status:** Spec Ready
 
 Addresses failures where agents:
 - skip UI waits after actions
@@ -170,22 +182,158 @@ Very high.
 
 ## Dependencies
 Depends on:
-- Priority 1 — Stronger State Verification
-- Priority 2 — Richer Element Identity
+- Stronger State Verification
+- Richer Element Identity
 
 Blocks or strengthens:
-- Priority 5 — Better Compose / Custom Control Semantics
-- Priority 7 — Action Trace Correlation
+- Better Compose / Custom Control Semantics
+- Action Trace Correlation
+
+---
+
+# Actionability Resolution
+
+## Rationale
+Reduces failures caused by interacting with discoverable but non-actionable UI nodes.
+
+**Status:** Planned
+
+Addresses cases where:
+- visible text is not the true click target
+- child nodes differ from actionable containers
+- affordance exists but handler ownership is ambiguous
+
+## Scope
+- Actionable container resolution
+- Executable-target preference rules
+- Actionability confidence metadata
+- Post-action state verification integration
+
+## Expected Impact
+High.
+
+## Exit Criteria
+- Actionable target resolution implemented
+- Preference rules defined for executable containers over leaf nodes
+- Actionability confidence surfaced
+- Benchmark flows show reduced false taps and submit ambiguity
+
+## Success Metrics
+- Reduced mis-targeted action failures
+- Lower retarget retries
+- Higher first-attempt action success
+
+## Dependencies
+Depends on:
+- Stronger State Verification
+- Richer Element Identity
+- Wait and Synchronization Reliability
+
+Blocks or strengthens:
+- Adjustable Control Support
+- Better Compose / Custom Control Semantics
+
+---
+
+# Adjustable Control Support
+
+## Rationale
+High leverage improvement for sliders and parameterized controls.
+
+**Status:** Planned
+
+Addresses friction around:
+- coordinate-calibrated slider interaction
+- snapping and quantized controls
+- weak state confirmation after adjustment
+
+## Scope
+New semantic control support:
+
+```json
+set_slider_value(target, value, tolerance?)
+```
+
+Includes:
+- semantic adjustable control manipulation
+- read-back verification loop
+- tolerance-aware value setting
+- fallback coordinate calibration only when needed
+
+## Expected Impact
+High.
+
+## Exit Criteria
+- Adjustable control primitive implemented
+- Verification loop reads and confirms resulting values
+- Tolerance model defined
+- Benchmark slider/custom control flows validated
+
+## Success Metrics
+- Higher custom control interaction success rate
+- Fewer retries adjusting controls
+- Reduced coordinate-guessing failures
+
+## Dependencies
+Depends on:
+- Stronger State Verification
+- Richer Element Identity
+- Actionability Resolution
+
+Blocks or strengthens:
+- Better Compose / Custom Control Semantics
+- Pinch to Zoom
+
+---
+
+# Signal-Oriented Diagnostic Filtering
+
+## Rationale
+Improves observability by separating causal signals from diagnostic noise.
+
+**Status:** Planned
+
+Addresses friction from:
+- noisy log streams
+- weak signal extraction
+- difficult action-to-signal attribution
+
+## Scope
+- Structured diagnostic classification
+- Noise filtering heuristics
+- Signal relevance scoring
+- App vs system event tagging
+
+## Expected Impact
+High.
+
+## Exit Criteria
+- Diagnostic signal classification model defined
+- Noise filtering available in representative flows
+- Relevant action-linked signals surfaced separately from background noise
+- Debug workflows validated with filtered signals
+
+## Success Metrics
+- Lower time-to-root-cause
+- Faster identification of relevant action signals
+- Reduced diagnostic ambiguity
+
+## Dependencies
+Depends on:
+- Stronger State Verification
+- Wait and Synchronization Reliability
+
+Strengthens:
+- Action Trace Correlation
 
 ---
 
 # Long Press Gesture
 
-## Why fourth
+## Rationale
 High utility, relatively low complexity.
 
-**Status:** Planned  
-**Priority:** P4
+**Status:** Planned
 
 Unlocks many currently awkward interactions:
 
@@ -223,26 +371,26 @@ High.
 
 ## Dependencies
 Depends on:
-- Priority 2 — Richer Element Identity
+- Richer Element Identity
 
 Strengthens:
-- Priority 5 semantics interaction contracts
+- Better Compose / Custom Control Semantics
 
 ---
 
 # Better Compose / Custom Control Semantics
 
-## Why fifth
-Important, but strengthened by priorities 1–4 first.
+## Rationale
+Important, but strengthened by earlier capabilities first.
 
-**Status:** Planned  
-**Priority:** P5
+**Status:** Planned
 
 Semantics become more useful once:
 - identity is stronger
 - verification is stronger
 - gestures are richer
 - synchronization is more reliable
+- action execution is more precise
 
 ## Scope
 - Composite control traits
@@ -268,20 +416,22 @@ High.
 
 ## Dependencies
 Depends on:
-- Priority 1 — Stronger State Verification
-- Priority 2 — Richer Element Identity
-- Priority 3 — Wait and Synchronization Reliability
-- Priority 4 — Long Press
+- Stronger State Verification
+- Richer Element Identity
+- Wait and Synchronization Reliability
+- Actionability Resolution
+- Adjustable Control Support
+- Signal-Oriented Diagnostic Filtering
+- Long Press Gesture
 
 ---
 
 # Pinch to Zoom
 
-## Why sixth
+## Rationale
 Valuable, but narrower than long press.
 
-**Status:** Planned  
-**Priority:** P6
+**Status:** Planned
 
 Applies mainly to:
 - maps
@@ -317,19 +467,18 @@ Medium-high.
 
 ## Dependencies
 Depends on:
-- Priority 1 — Stronger State Verification
-- Priority 2 — Richer Element Identity
+- Stronger State Verification
+- Richer Element Identity
 
 ---
 
 # Action Trace Correlation
 
-## Why seventh
+## Rationale
 Very valuable for debugging,
 but less critical than improving control success first.
 
-**Status:** Planned  
-**Priority:** P7
+**Status:** Planned
 
 Improves diagnosis more than task completion.
 
@@ -353,75 +502,93 @@ Medium-high.
 
 ## Dependencies
 Depends on:
-- Priority 1 — Stronger State Verification
-- Priority 2 — Richer Element Identity
-- Priority 3 — Wait and Synchronization Reliability
+- Stronger State Verification
+- Richer Element Identity
+- Wait and Synchronization Reliability
 
 ---
 
 # Roadmap Sequence
 
 ## Dependency Summary
-Foundational sequence:
 
-Layer 1 (Foundations)
-- Priority 1
-- Priority 2
+Foundation
+- Stronger State Verification
+- Richer Element Identity
 
-Layer 2 (Synchronization)
-- Priority 3 depends on 1,2
+Synchronization & Actionability
+- Wait and Synchronization Reliability
+- Actionability Resolution
 
-Layer 3 (Interaction Expansion)
-- Priority 4 depends on 2
-- Priority 5 depends on 1,2,3,4
-- Priority 6 depends on 1,2
+Control Precision & Observability
+- Adjustable Control Support
+- Signal-Oriented Diagnostic Filtering
 
-Layer 4 (Observability)
-- Priority 7 depends on 1,2,3
+Interaction Expansion
+- Long Press Gesture
+- Better Compose / Custom Control Semantics
+- Pinch to Zoom
+
+Deep Observability
+- Action Trace Correlation
 
 ## Wave 1 (Current Focus)
 - Stronger State Verification
 - Richer Element Identity
 - Wait and Synchronization Reliability
+- Actionability Resolution
 
 Focus:
 Make core loop more reliable.
 
 ---
 
-## Wave 2 (Expansion)
-- Long Press
-- Better Compose Semantics
+## Wave 2 (Control Precision + Diagnostics)
+- Adjustable Control Support
+- Signal-Oriented Diagnostic Filtering
+
+Focus:
+Improve control precision and signal observability.
+
+---
+
+## Wave 3 (Interaction Expansion)
+- Long Press Gesture
+- Better Compose / Custom Control Semantics
 
 Focus:
 Expand interaction capability.
 
 ---
 
-## Wave 3 (Advanced)
+## Wave 4 (Advanced Gestures + Deep Observability)
 - Pinch to Zoom
 - Action Trace Correlation
 
 Focus:
-Advanced gestures + observability.
+Advanced gestures + deep observability.
 
 ---
 
-# Capability Sequence
+# Roadmap Ordering
 
-Execution Order:
+Roadmap Ordering:
 1. Stronger State Verification
 2. Richer Element Identity
 3. Wait and Synchronization Reliability
-4. Long Press
-5. Better Compose / Custom Control Semantics
-6. Pinch to Zoom
-7. Action Trace Correlation
+4. Actionability Resolution
+5. Adjustable Control Support
+6. Signal-Oriented Diagnostic Filtering
+7. Long Press Gesture
+8. Better Compose / Custom Control Semantics
+9. Pinch to Zoom
+10. Action Trace Correlation
 
 Rationale:
-- Priorities 1–3 harden control, verification, and synchronization.
-- Priorities 4–6 expand interaction capability.
-- Priority 7 adds observability once control reliability matures.
+- Early roadmap items harden state, targeting, synchronization, action execution.
+- Mid roadmap items improve control precision and signal observability.
+- Later interaction-focused items expand interaction coverage.
+- Final observability work deepens debugging observability.
 
 ---
 
