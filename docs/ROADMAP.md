@@ -136,7 +136,7 @@ Blocks or strengthens:
 ## Why third
 Reliable async synchronization is foundational for agent success and should precede gesture expansion.
 
-**Status:** Completed  
+**Status:** Spec Ready  
 **Priority:** P3
 
 Addresses failures where agents:
@@ -184,7 +184,7 @@ Blocks or strengthens:
 ## Why fourth
 High utility, relatively low complexity.
 
-**Status:** Completed  
+**Status:** Planned  
 **Priority:** P4
 
 Unlocks many currently awkward interactions:
@@ -235,7 +235,7 @@ Strengthens:
 ## Why fifth
 Important, but strengthened by priorities 1–4 first.
 
-**Status:** Completed  
+**Status:** Planned  
 **Priority:** P5
 
 Semantics become more useful once:
@@ -280,7 +280,7 @@ Depends on:
 ## Why sixth
 Valuable, but narrower than long press.
 
-**Status:** Completed  
+**Status:** Planned  
 **Priority:** P6
 
 Applies mainly to:
@@ -328,7 +328,7 @@ Depends on:
 Very valuable for debugging,
 but less critical than improving control success first.
 
-**Status:** Completed  
+**Status:** Planned  
 **Priority:** P7
 
 Improves diagnosis more than task completion.
