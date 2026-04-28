@@ -47,6 +47,7 @@ async function handleStartApp(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'start_app',
+    sourceModule: 'server',
     device: res.device,
     selector: { appId },
     success: !!res.appStarted,
@@ -82,6 +83,7 @@ async function handleRestartApp(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'restart_app',
+    sourceModule: 'server',
     device: res.device,
     selector: { appId },
     success: !!res.appRestarted,
@@ -319,6 +321,7 @@ async function handleTap(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'tap',
+    sourceModule: 'server',
     selector: { x, y },
     success: !!res.success,
     uiFingerprintBefore,
@@ -348,6 +351,7 @@ async function handleSwipe(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'swipe',
+    sourceModule: 'server',
     selector: { x1, y1, x2, y2, duration },
     success: !!res.success,
     uiFingerprintBefore,
@@ -369,6 +373,7 @@ async function handleScrollToElement(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'scroll_to_element',
+    sourceModule: 'server',
     selector: selector ?? null,
     resolved: res?.success && res?.element ? {
       elementId: null,
@@ -395,6 +400,7 @@ async function handleTypeText(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint('android', deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'type_text',
+    sourceModule: 'server',
     selector: { text },
     success: !!res.success,
     uiFingerprintBefore,
@@ -411,6 +417,7 @@ async function handlePressBack(args: ToolCallArgs) {
   const uiFingerprintAfter = await captureActionFingerprint('android', deviceId)
   return wrapResponse(buildActionExecutionResult({
     actionType: 'press_back',
+    sourceModule: 'server',
     selector: { key: 'back' },
     success: !!res.success,
     uiFingerprintBefore,
