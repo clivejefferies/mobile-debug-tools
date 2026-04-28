@@ -53,9 +53,9 @@ Higher task success with fewer retries.
 ## Upcoming Work
 
 - Adjustable Control Support
+- Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
-- Better Compose / Custom Control Semantics
 
 ## Later Horizon
 
@@ -160,6 +160,7 @@ Addresses failures where agents:
 - wait_for_ui_change (hierarchy diff based waiting)
 - Structured loading state detection
 - Snapshot revision / staleness metadata
+- Focused snapshot views / incremental snapshot diffs
 - Compose-aware wait robustness improvements
 
 ## Expected Impact
@@ -169,6 +170,7 @@ Very high.
 - wait_for_ui_change implemented
 - Loading state detection available for representative controls
 - Snapshot revision or staleness metadata exposed
+- Focused or diff-oriented snapshots validated in benchmark flows
 - UI-first sync guidance added to spec guardrails
 - In-place update waits validated on benchmark flows
 
@@ -379,9 +381,9 @@ Strengthens:
 # Better Compose / Custom Control Semantics
 
 ## Rationale
-Important, but strengthened by earlier capabilities first.
+Higher priority after agent feedback exposed custom control semantics as a core reliability gap, not a later optimization.
 
-**Status:** Planned
+**Status:** Spec Ready
 
 Semantics become more useful once:
 - identity is stronger
@@ -419,7 +421,6 @@ Depends on:
 - Wait and Synchronization Reliability
 - Actionability Resolution
 - Adjustable Control Support
-- Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
 
 ---
@@ -543,19 +544,19 @@ Make core loop more reliable.
 
 ## Wave 2 (Control Precision + Diagnostics)
 - Adjustable Control Support
+- Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
 
 Focus:
-Improve control precision and signal observability.
+Improve control precision, custom control semantics, and signal observability.
 
 ---
 
 ## Wave 3 (Interaction Expansion)
 - Long Press Gesture
-- Better Compose / Custom Control Semantics
 
 Focus:
-Expand interaction capability.
+Expand interaction capability after core control reliability is improved.
 
 ---
 
@@ -576,9 +577,9 @@ Roadmap Ordering:
 3. Wait and Synchronization Reliability
 4. Actionability Resolution
 5. Adjustable Control Support
-6. Signal-Oriented Diagnostic Filtering
-7. Long Press Gesture
-8. Better Compose / Custom Control Semantics
+6. Better Compose / Custom Control Semantics
+7. Signal-Oriented Diagnostic Filtering
+8. Long Press Gesture
 9. Pinch to Zoom
 10. Action Trace Correlation
 
