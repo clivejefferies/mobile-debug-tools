@@ -44,6 +44,7 @@ Higher task success with fewer retries.
 
 - Stronger State Verification — Complete (Foundational verification layer shipped)
 - Richer Element Identity — Complete (Identity and selector confidence foundations shipped)
+- Better Compose / Custom Control Semantics — Complete (Semantic role enrichment and custom-adjustable inference shipped)
 
 ## Current Focus
 
@@ -54,7 +55,6 @@ Higher task success with fewer retries.
 
 - Environment Auto-Configuration and Toolchain Discovery
 - Adjustable Control Support
-- Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
 # Stronger State Verification
@@ -435,7 +435,7 @@ Strengthens:
 ## Rationale
 Higher priority after agent feedback exposed custom control semantics as a core reliability gap, not a later optimization.
 
-**Status:** Spec Ready
+**Status:** Completed
 
 Semantics become more useful once:
 - identity is stronger
@@ -446,8 +446,8 @@ Semantics become more useful once:
 
 ## Scope
 - Composite control traits
-- Control role enrichment (adjustable, expandable, selectable_group)
-- Interaction contracts metadata
+- Control role enrichment (`slider`, `stepper`, `dropdown`, `segmented_control`, `custom_adjustable`)
+- Interaction contract metadata (`supported_actions`, `adjustable`, `state_shape`)
 - Custom widget gesture affordance hints
 - Semantic confidence annotations
 - Compose-aware selectors for waits (merged semantics and element relationships)
@@ -457,7 +457,7 @@ High.
 
 ## Exit Criteria
 - Semantic traits implemented for major custom control classes
-- Interaction contracts surfaced in snapshot model
+- Interaction contracts surfaced in observation and resolution paths
 - Confidence model defined for derived semantics
 - Custom control manipulation success validated in benchmark flows
 

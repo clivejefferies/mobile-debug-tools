@@ -1,6 +1,6 @@
 {
   "name": "mobile-debug-mcp",
-  "version": "0.26.4",
+  "version": "0.26.5",
   "description": "MCP server for mobile app debugging (Android + iOS), with focus on security and reliability",
   "type": "module",
   "bin": {

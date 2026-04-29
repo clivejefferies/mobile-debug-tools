@@ -78,6 +78,52 @@ async function run() {
     assert.ok((res4.resolution?.alternates || []).length >= 1, 'Parent promotion should preserve alternates')
     process.stdout.write('Test 4: ' + (pass4 ? 'PASS' : 'FAIL') + '\n');
 
+    // Test 4b: semantic-only stepper should be discoverable by supported action
+    ;(ToolsObserve as any).getUITreeHandler = async () => ({
+      device: { platform: 'android', id: 'mock' },
+      screen: '',
+      resolution: { width: 1080, height: 1920 },
+      elements: [
+        {
+          text: null,
+          contentDescription: 'Quantity stepper',
+          type: 'android.widget.NumberPicker',
+          clickable: false,
+          enabled: true,
+          visible: true,
+          bounds: [10,10,200,80],
+          resourceId: 'picker_quantity',
+          semantic: {
+            is_clickable: false,
+            is_container: true,
+            semantic_role: 'stepper',
+            supported_actions: ['increment', 'decrement'],
+            adjustable: true,
+            state_shape: 'discrete'
+          }
+        }
+      ]
+    })
+
+    const res4b: any = await ToolsInteract.findElementHandler({ query: 'increment', exact: false, platform: 'android', timeoutMs: 300 })
+    process.stdout.write('res4b ' + JSON.stringify(res4b, null, 2) + '\n');
+    const pass4b = res4b.found === true && res4b.element && res4b.element.resourceId === 'picker_quantity' && res4b.element.semantic?.semantic_role === 'stepper'
+    assert.ok(pass4b, 'Semantic-only steppers should be discoverable by supported actions')
+    assert.strictEqual(res4b.resolution?.reason, 'semantic_action_match')
+    process.stdout.write('Test 4b: ' + (pass4b ? 'PASS' : 'FAIL') + '\n');
+
+    const res4bb: any = await ToolsInteract.findElementHandler({ query: 'increment', exact: true, platform: 'android', timeoutMs: 300 })
+    process.stdout.write('res4bb ' + JSON.stringify(res4bb, null, 2) + '\n');
+    const pass4bb = res4bb.found === true && res4bb.element && res4bb.element.resourceId === 'picker_quantity' && res4bb.resolution?.reason === 'semantic_action_match'
+    assert.ok(pass4bb, 'Exact searches should still match exact semantic actions')
+    process.stdout.write('Test 4bb: ' + (pass4bb ? 'PASS' : 'FAIL') + '\n');
+
+    const res4c: any = await ToolsInteract.findElementHandler({ query: 'control', exact: true, platform: 'android', timeoutMs: 300 })
+    process.stdout.write('res4c ' + JSON.stringify(res4c, null, 2) + '\n');
+    const pass4c = res4c.found === false
+    assert.ok(pass4c, 'Exact searches should not fall back to broad semantic keywords')
+    process.stdout.write('Test 4c: ' + (pass4c ? 'PASS' : 'FAIL') + '\n');
+
     // Test 5: duration label should resolve to the nearby slider control
     ;(ToolsObserve as any).getUITreeHandler = async () => ({
       device: { platform: 'android', id: 'mock' },

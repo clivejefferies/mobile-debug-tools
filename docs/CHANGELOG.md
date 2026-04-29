@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.26.5]
+- Introduces a semantic control model to improve the identification and interaction with custom and composite UI controls. 
+
 ## [0.26.4]
 - Improved slider accuracy
 

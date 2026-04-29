@@ -16,6 +16,7 @@ import type {
   ExpectStateResponse,
   ExpectScreenResponse,
   WaitForUIChangeResponse,
+  UIElementSemanticMetadata,
   UIElementState,
   TapElementResponse
 } from '../types.js'
@@ -48,7 +49,7 @@ interface UiElement {
   role?: string | null
   test_tag?: string | null
   selector?: { value: string | null, confidence: { score: number, reason: string } | null } | null
-  semantic?: { is_clickable: boolean, is_container: boolean } | null
+  semantic?: UIElementSemanticMetadata | null
 }
 
 interface ResolvedUiElementContext {
@@ -342,6 +343,12 @@ export class ToolsInteract {
     return !!el.state?.value_range || /slider|seekbar|stepper|adjustable|range/.test(type) || /slider|seekbar|stepper|adjustable|range/.test(role)
   }
 
+  private static _isSemanticActionable(el: UiElement | null): boolean {
+    if (!el?.semantic) return false
+    if (el.semantic.adjustable) return true
+    return Array.isArray(el.semantic.supported_actions) && el.semantic.supported_actions.length > 0
+  }
+
   private static _readNumericControlValue(el: UiElement | null, property: string): number | null {
     if (!el?.state) return null
     const stateValue = el.state[property as keyof UIElementState]
@@ -460,12 +467,12 @@ export class ToolsInteract {
 
   private static _resolveActionableAncestor(elements: UiElement[], chosen: { el: UiElement, idx: number } | null): { el: UiElement, idx: number } | null {
     if (!chosen) return null
-    if (chosen.el.clickable || chosen.el.focusable) return chosen
+    if (chosen.el.clickable || chosen.el.focusable || ToolsInteract._isSemanticActionable(chosen.el)) return chosen
 
     let current = chosen
     let safety = 0
 
-    while (safety < 20 && current.el && !(current.el.clickable || current.el.focusable) && current.el.parentId !== undefined && current.el.parentId !== null) {
+    while (safety < 20 && current.el && !(current.el.clickable || current.el.focusable || ToolsInteract._isSemanticActionable(current.el)) && current.el.parentId !== undefined && current.el.parentId !== null) {
       const parentId = current.el.parentId
       let parentIndex: number | null = null
 
@@ -474,12 +481,12 @@ export class ToolsInteract {
 
       if (parentIndex !== null && elements[parentIndex]) {
         current = { el: elements[parentIndex], idx: parentIndex }
-        if (current.el.clickable || current.el.focusable) return current
+        if (current.el.clickable || current.el.focusable || ToolsInteract._isSemanticActionable(current.el)) return current
       } else if (typeof parentId === 'string') {
         const foundIndex = elements.findIndex((el) => el.resourceId === parentId || el.id === parentId)
         if (foundIndex === -1) break
         current = { el: elements[foundIndex], idx: foundIndex }
-        if (current.el.clickable || current.el.focusable) return current
+        if (current.el.clickable || current.el.focusable || ToolsInteract._isSemanticActionable(current.el)) return current
       } else {
         break
       }
@@ -496,7 +503,7 @@ export class ToolsInteract {
 
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i]
-      if (!el || !(el.clickable || el.focusable)) continue
+      if (!el || !(el.clickable || el.focusable || ToolsInteract._isSemanticActionable(el))) continue
       const bounds = ToolsInteract._normalizeBounds(el.bounds)
       if (!bounds) continue
       const [pl, pt, pr, pb] = bounds
@@ -1196,12 +1203,14 @@ export class ToolsInteract {
       const [l,t,r,b] = bounds
       if (r <= l || b <= t) return null
       // Do not early-return on non-interactable elements — score them so we can locate their clickable ancestor later
-      const interactable = !!(el.clickable || el.enabled || el.focusable)
+      const interactable = !!(el.clickable || el.enabled || el.focusable || ToolsInteract._isSemanticActionable(el))
 
       const text = normalize(el.text ?? el.label ?? el.value ?? '')
       const content = normalize(el.contentDescription ?? el.contentDesc ?? el.accessibilityLabel ?? '')
       const resourceId = normalize(el.resourceId ?? el.resourceID ?? el.id ?? '')
       const className = normalize(el.type ?? el.class ?? '')
+      const semanticRole = normalize(el.semantic?.semantic_role ?? '')
+      const semanticActions = Array.isArray(el.semantic?.supported_actions) ? el.semantic.supported_actions.map((action) => normalize(action)).filter(Boolean) : []
 
       let score = 0
       let reason = 'best_scoring_candidate'
@@ -1241,6 +1250,29 @@ export class ToolsInteract {
         } else if (className && className.includes(q)) {
           score = 0.3
           reason = 'partial_class_match'
+        }
+      }
+      if (!exact) {
+        if (!score && semanticRole && semanticRole.includes(q)) {
+          score = 0.5
+          reason = 'semantic_role_match'
+        }
+        if (semanticActions.some((action) => action.includes(q))) {
+          score = Math.max(score, score > 0 ? 0.65 : 0.6)
+          reason = 'semantic_action_match'
+        }
+        if (score === 0 && el.semantic?.adjustable && /slider|stepper|dropdown|segment|control|adjust/.test(q)) {
+          score = 0.45
+          reason = 'semantic_control_match'
+        }
+      } else {
+        if (!score && semanticRole && semanticRole === q) {
+          score = 0.5
+          reason = 'semantic_role_match'
+        }
+        if (semanticActions.some((action) => action === q)) {
+          score = Math.max(score, score > 0 ? 0.65 : 0.6)
+          reason = 'semantic_action_match'
         }
       }
       if (score > 0 && interactable) score += 0.05
@@ -1352,7 +1384,7 @@ export class ToolsInteract {
         }
       }
 
-      if (best && !(best.el.clickable || best.el.focusable)) {
+      if (best && !(best.el.clickable || best.el.focusable || ToolsInteract._isSemanticActionable(best.el))) {
         const nearbyActionable = ToolsInteract._resolveNearbyActionableControl(elements, { el: best.el, idx: best.idx }, screen)
         if (nearbyActionable) {
           best = {

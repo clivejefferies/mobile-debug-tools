@@ -73,6 +73,9 @@ function normalizeIOSType(value: unknown): string {
 
 function inferIOSRole(type: string, traits: string[]): string | null {
   if (/slider|adjustable/.test(type) || traits.some((trait) => /adjustable|slider/.test(trait))) return 'slider'
+  if (/stepper/.test(type)) return 'stepper'
+  if (/picker|pop up button|dropdown/.test(type)) return 'dropdown'
+  if (/segmented control/.test(type)) return 'segmented_control'
   if (/button/.test(type) || traits.some((trait) => /button/.test(trait))) return 'button'
   if (/cell/.test(type)) return 'cell'
   if (/switch/.test(type)) return 'switch'
@@ -113,11 +116,47 @@ function buildIOSSelector(type: string, label: string | null, value: string | nu
   return null
 }
 
-function buildIOSSemantic(type: string, traits: string[]): UIElementSemanticMetadata {
-  return {
+function buildIOSSemantic(type: string, traits: string[], role: string | null, value: string | null): UIElementSemanticMetadata {
+  const semantic: UIElementSemanticMetadata = {
     is_clickable: traits.includes("UIAccessibilityTraitButton") || /adjustable|slider/.test(type) || type === "Button" || type === "Cell",
     is_container: /window|application|group|scroll view|collection view/.test(type)
   }
+
+  if (role === 'slider') {
+    semantic.semantic_role = 'slider'
+    semantic.adjustable = true
+    semantic.supported_actions = ['adjust']
+    semantic.state_shape = 'continuous'
+  } else if (role === 'stepper') {
+    semantic.semantic_role = 'stepper'
+    semantic.adjustable = true
+    semantic.supported_actions = ['increment', 'decrement']
+    semantic.state_shape = 'discrete'
+  } else if (role === 'dropdown') {
+    semantic.semantic_role = 'dropdown'
+    semantic.supported_actions = ['tap', 'expand']
+    semantic.state_shape = 'semantic'
+  } else if (role === 'segmented_control') {
+    semantic.semantic_role = 'segmented_control'
+    semantic.supported_actions = ['tap']
+    semantic.state_shape = 'discrete'
+  } else if (traits.some((trait) => /adjustable|slider/i.test(trait)) || /adjustable|slider/.test(type)) {
+    semantic.semantic_role = 'custom_adjustable'
+    semantic.adjustable = true
+    semantic.supported_actions = ['adjust']
+    semantic.state_shape = 'continuous'
+  } else if (semantic.is_clickable) {
+    semantic.supported_actions = ['tap']
+  }
+
+  if (semantic.state_shape === undefined && semantic.adjustable && value !== null) {
+    const numericValue = parseIOSNumber(value)
+    if (numericValue !== null && numericValue >= 0 && numericValue <= 1) {
+      semantic.state_shape = 'continuous'
+    }
+  }
+
+  return semantic
 }
 
 function isIOSAdjustable(node: IDBElement, type: string, traits: string[]): boolean {
@@ -184,8 +223,8 @@ export function traverseIDBNode(node: IDBElement, elements: UIElement[], parentI
   const normalizedType = normalizeIOSType(type)
   const stableId = getIOSStableId(node)
   const selector = buildIOSSelector(type, label, value, stableId)
-  const semantic = buildIOSSemantic(normalizedType, traits)
   const role = inferIOSRole(normalizedType, traits)
+  const semantic = buildIOSSemantic(normalizedType, traits, role, value)
   
   const clickable = traits.includes("UIAccessibilityTraitButton") || type === "Button" || type === "Cell";
   

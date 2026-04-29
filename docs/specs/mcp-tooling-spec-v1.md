@@ -244,6 +244,7 @@ Raw layer contents include:
 - UI hierarchy or accessibility tree
 - normalized readable element state where exposed by the platform
 - platform-native identity hints such as stable identifiers, roles, and test tags
+- semantic control metadata when derivable from the raw tree, including `semantic_role`, `supported_actions`, `adjustable`, and `state_shape`
 - snapshot metadata such as `snapshot_revision` and `captured_at_ms`
 - `loading_state` when a reliable loading signal is detectable
 - screenshot when available
@@ -291,6 +292,27 @@ Semantic signals MAY be used as input to `classify_action_outcome`.
 Semantic output MUST NOT replace classification or verification.
 
 Classification remains a supplementary, post-action interpretation mechanism.
+
+### 9.4 Semantic Control Metadata
+
+When present, semantic control metadata MAY include:
+
+```ts
+{
+  semantic_role?: 'slider' | 'stepper' | 'dropdown' | 'segmented_control' | 'custom_adjustable' | 'composite_control' | null,
+  supported_actions?: string[] | null,
+  adjustable?: boolean | null,
+  state_shape?: 'continuous' | 'discrete' | 'semantic' | null
+}
+```
+
+Rules:
+
+- semantic control metadata is derived and best-effort
+- raw platform roles and state remain authoritative on conflict
+- `adjustable` MAY be inferred from platform traits when no known role matches
+- `state_shape` MUST respect known control roles before value-based heuristics
+- `supported_actions` are hints only and MUST NOT be treated as guaranteed executable actions
 
 ## 10. Classification
 

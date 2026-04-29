@@ -107,6 +107,10 @@ export interface UIResolutionSelector {
 export interface UIElementSemanticMetadata {
   is_clickable: boolean;
   is_container: boolean;
+  semantic_role?: 'slider' | 'stepper' | 'dropdown' | 'segmented_control' | 'custom_adjustable' | 'composite_control' | null;
+  supported_actions?: string[] | null;
+  adjustable?: boolean | null;
+  state_shape?: 'continuous' | 'discrete' | 'semantic' | null;
 }
 
 export interface LoadingState {

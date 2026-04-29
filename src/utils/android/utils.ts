@@ -342,6 +342,9 @@ function normalizeClassName(value: unknown): string {
 
 function inferAndroidRole(className: string): string | null {
   if (/seekbar|slider/.test(className)) return 'slider'
+  if (/stepper|numberpicker/.test(className)) return 'stepper'
+  if (/spinner|dropdown/.test(className)) return 'dropdown'
+  if (/segment|tablayout/.test(className)) return 'segmented_control'
   if (/switch|toggle/.test(className)) return 'switch'
   if (/checkbox/.test(className)) return 'checkbox'
   if (/radiobutton|radio/.test(className)) return 'radio'
@@ -375,11 +378,35 @@ function buildAndroidSelector(text: string | null, contentDescription: string | 
   return null
 }
 
-function buildAndroidSemantic(clickable: boolean, className: string): UIElementSemanticMetadata {
-  return {
+function buildAndroidSemantic(clickable: boolean, className: string, role: string | null): UIElementSemanticMetadata {
+  const semantic: UIElementSemanticMetadata = {
     is_clickable: clickable,
     is_container: /recyclerview|scroll|layout|viewgroup|frame/.test(className)
   }
+
+  if (role === 'slider') {
+    semantic.semantic_role = 'slider'
+    semantic.adjustable = true
+    semantic.supported_actions = ['adjust']
+    semantic.state_shape = 'continuous'
+  } else if (role === 'stepper') {
+    semantic.semantic_role = 'stepper'
+    semantic.adjustable = true
+    semantic.supported_actions = ['increment', 'decrement']
+    semantic.state_shape = 'discrete'
+  } else if (role === 'dropdown') {
+    semantic.semantic_role = 'dropdown'
+    semantic.supported_actions = ['tap', 'expand']
+    semantic.state_shape = 'semantic'
+  } else if (role === 'segmented_control') {
+    semantic.semantic_role = 'segmented_control'
+    semantic.supported_actions = ['tap']
+    semantic.state_shape = 'discrete'
+  } else if (clickable) {
+    semantic.supported_actions = ['tap']
+  }
+
+  return semantic
 }
 
 function isSliderLikeAndroid(node: any): boolean {
@@ -459,7 +486,7 @@ export function traverseNode(node: any, elements: UIElement[], parentIndex: numb
     const stableId = resourceId ?? (typeof contentDescription === 'string' && contentDescription.trim().length > 0 ? contentDescription : null)
     const testTag = stableId
     const selector = buildAndroidSelector(text, contentDescription, resourceId, normalizeClassName(className))
-    const semantic = buildAndroidSemantic(clickable, normalizeClassName(className))
+    const semantic = buildAndroidSemantic(clickable, normalizeClassName(className), role)
 
     const isUseful = clickable || (text && text.length > 0) || (contentDescription && contentDescription.length > 0);
 
