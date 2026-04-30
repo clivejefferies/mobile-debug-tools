@@ -50,11 +50,14 @@ Higher task success with fewer retries.
 
 - Wait and Synchronization Reliability
 - Actionability Resolution
+- Verification Stabilization and Temporal Convergence
 
 ## Upcoming Work
 
+- Adjustable Control Precision Hardening
 - Environment Auto-Configuration and Toolchain Discovery
 - Adjustable Control Support
+- Verification Stabilization and Temporal Convergence
 - Signal-Oriented Diagnostic Filtering
 - Long Press Gesture
 # Stronger State Verification
@@ -243,6 +246,53 @@ Blocks or strengthens:
 
 ---
 
+# Verification Stabilization and Temporal Convergence
+
+## Rationale
+Real-world feedback exposed false-negative readiness failures caused by transient UI timing, even when target state had actually converged.
+
+**Status:** Planned
+
+Addresses friction where agents:
+- fail readiness checks on transient timing races
+- act on stale snapshots
+- misclassify eventual success as timeout failure
+- encounter lag between UI convergence and verification success
+
+## Scope
+- Bounded recheck before readiness failure
+- Temporal debounce for transient state mismatches
+- Verify-until-stable semantics for readiness checks
+- Stability confirmation windows
+- Snapshot freshness and convergence heuristics
+
+## Expected Impact
+Very high.
+
+## Exit Criteria
+- False-negative readiness failures materially reduced
+- Stability confirmation logic implemented
+- Benchmark async flows validate improved convergence detection
+- Verification timing behavior documented in guardrails
+
+## Success Metrics
+- Higher first-pass verification success
+- Lower false timeout failures
+- Higher wait success rate
+- Fewer retries caused by premature failure classification
+
+## Dependencies
+Depends on:
+- Stronger State Verification
+- Wait and Synchronization Reliability
+
+Strengthens:
+- Actionability Resolution
+- Adjustable Control Support
+- Recovery and replanning readiness
+
+---
+
 # Actionability Resolution
 
 ## Rationale
@@ -335,6 +385,48 @@ Depends on:
 Blocks or strengthens:
 - Better Compose / Custom Control Semantics
 - Pinch to Zoom
+
+---
+
+# Adjustable Control Precision Hardening
+
+## Rationale
+Post-implementation feedback shows semantics exist, but fine-grained adjustable targeting and convergence still need hardening.
+
+**Status:** Planned
+
+Addresses friction around:
+- slider thumb targeting precision
+- tap vs drag adjustment strategy selection
+- snapping and quantized convergence behavior
+- repeated adjustment retries before landing on target value
+
+## Scope
+- Fine-grained slider targeting refinement
+- Drag vs tap adjustment strategy heuristics
+- Improved value snapping convergence
+- Control-specific adjustment fallback policies
+
+## Expected Impact
+High.
+
+## Exit Criteria
+- Benchmark slider flows reach target values with fewer retries
+- Adjustment strategy selection validated across representative controls
+- Reduced repeated-tap convergence failures
+
+## Success Metrics
+- Fewer retries for adjustable controls
+- Higher first-attempt target value success
+- Reduced control convergence failures
+
+## Dependencies
+Depends on:
+- Adjustable Control Support
+- Better Compose / Custom Control Semantics
+
+Strengthens:
+- Recovery readiness
 
 ---
 
@@ -574,11 +666,13 @@ Synchronization & Actionability
 
 Control Precision & Observability
 - Adjustable Control Support
+- Adjustable Control Precision Hardening
+- Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
+- Verification Stabilization and Temporal Convergence
 
 Interaction Expansion
 - Long Press Gesture
-- Better Compose / Custom Control Semantics
 - Pinch to Zoom
 
 Deep Observability
@@ -598,11 +692,13 @@ Make core loop reliable and reduce onboarding friction.
 
 ## Wave 2 (Control Precision + Diagnostics)
 - Adjustable Control Support
+- Adjustable Control Precision Hardening
 - Better Compose / Custom Control Semantics
 - Signal-Oriented Diagnostic Filtering
+- Verification Stabilization and Temporal Convergence
 
 Focus:
-Improve control precision, custom control semantics, and signal observability.
+Improve control precision, verification convergence, custom control reliability, and signal observability.
 
 ---
 
@@ -629,14 +725,16 @@ Roadmap Ordering:
 1. Stronger State Verification
 2. Richer Element Identity
 3. Wait and Synchronization Reliability
-4. Environment Auto-Configuration and Toolchain Discovery
-5. Actionability Resolution
-6. Adjustable Control Support
-7. Better Compose / Custom Control Semantics
-8. Signal-Oriented Diagnostic Filtering
-9. Long Press Gesture
-10. Pinch to Zoom
-11. Action Trace Correlation
+4. Verification Stabilization and Temporal Convergence
+5. Environment Auto-Configuration and Toolchain Discovery
+6. Actionability Resolution
+7. Adjustable Control Support
+8. Adjustable Control Precision Hardening
+9. Better Compose / Custom Control Semantics
+10. Signal-Oriented Diagnostic Filtering
+11. Long Press Gesture
+12. Pinch to Zoom
+13. Action Trace Correlation
 
 Rationale:
 - Early roadmap items harden state, targeting, synchronization, environment readiness, and action execution.
@@ -649,7 +747,7 @@ Rationale:
 ## Future Considerations
 Still out of scope:
 
-- Recovery planning logic
+- Full autonomous recovery planning (deferred until after verification stabilization)
 - Autonomous retry strategy
 - MCP-level agent orchestration
 - Autonomous recovery hinting (future consideration only)

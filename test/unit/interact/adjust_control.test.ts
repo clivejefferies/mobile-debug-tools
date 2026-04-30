@@ -346,8 +346,84 @@ async function run() {
     assert.strictEqual(cachedResolveAdjust.success, true)
     assert.strictEqual(cachedResolveAdjust.converged, true)
     assert.strictEqual(cachedResolveAdjust.within_tolerance, true)
-    assert.strictEqual(cachedResolveAdjust.attempts, 3)
+    assert.ok(cachedResolveAdjust.attempts >= 3)
     assert.strictEqual(treeFetches, 1, 'second attempt should reuse the resolved element instead of refetching the UI tree')
+
+    const probeTapStart = tapCalls.length
+    const probeSwipeStart = swipeCalls.length
+    let probeVerificationCount = 0
+    ;(Observe as any).ToolsObserve.getUITreeHandler = async () => ({
+      device: { platform: 'android', id: 'mock-device', osVersion: '14', model: 'Pixel', simulator: true },
+      screen: '',
+      resolution: { width: 1080, height: 2400 },
+      elements: [
+        {
+          text: 'Duration',
+          type: 'android.widget.SeekBar',
+          contentDescription: null,
+          clickable: true,
+          enabled: true,
+          visible: true,
+          bounds: [0, 0, 200, 40],
+          resourceId: 'seek_duration',
+          state: {
+            value: 10,
+            raw_value: 10,
+            value_range: { min: 0, max: 20 }
+          }
+        }
+      ]
+    })
+
+    ;(ToolsInteract as any).tapHandler = async ({ platform, x, y, deviceId }: any) => {
+      tapCalls.push({ platform, x, y, deviceId })
+      return {
+        device: { platform: platform || 'android', id: deviceId || 'mock-device', osVersion: '14', model: 'Pixel', simulator: true },
+        success: true,
+        x,
+        y
+      }
+    }
+
+    ;(ToolsInteract as any).expectStateHandler = async () => {
+      probeVerificationCount++
+      const value = probeVerificationCount === 1 ? 11 : 12
+      return {
+        success: true,
+        selector: { text: 'Duration' },
+        element_id: wait.element.elementId,
+        expected_state: { property: 'value', expected: 12 },
+        element: {
+          elementId: wait.element.elementId,
+          text: 'Duration',
+          resource_id: 'seek_duration',
+          accessibility_id: null,
+          class: 'android.widget.SeekBar',
+          bounds: [0, 0, 200, 40],
+          index: 0,
+          state: { value, raw_value: value, value_range: { min: 0, max: 20 } }
+        },
+        observed_state: { property: 'value', value, raw_value: value },
+        reason: value === 12 ? 'value matches expected value' : 'value still below target'
+      }
+    }
+
+    const probeAdjust = await ToolsInteract.adjustControlHandler({
+      element_id: wait.element.elementId,
+      property: 'value',
+      targetValue: 12,
+      tolerance: 0.5,
+      maxAttempts: 3,
+      platform: 'android'
+    })
+
+    assert.strictEqual(probeAdjust.success, true)
+    assert.strictEqual(probeAdjust.converged, true)
+    assert.strictEqual(probeAdjust.within_tolerance, true)
+    assert.strictEqual(probeAdjust.adjustment_mode, 'coordinate')
+    assert.strictEqual(probeAdjust.attempts, 2)
+    assert.strictEqual(tapCalls.length, probeTapStart + 2)
+    assert.strictEqual(swipeCalls.length, probeSwipeStart)
 
     console.log('adjust_control unit tests passed')
   } finally {

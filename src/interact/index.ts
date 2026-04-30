@@ -417,6 +417,59 @@ export class ToolsInteract {
     return ToolsInteract._buildControlPoint(bounds, safeRatio, axis)
   }
 
+  private static _buildAdjustmentProbePoints(
+    bounds: [number, number, number, number],
+    targetValue: number,
+    currentValue: number | null,
+    min: number,
+    max: number,
+    axis: 'horizontal' | 'vertical'
+  ) {
+    const targetPoint = ToolsInteract._buildConservativeControlPoint(bounds, targetValue, currentValue, min, max, axis)
+    const currentPoint = currentValue !== null
+      ? ToolsInteract._buildControlPoint(bounds, (currentValue - min) / (max - min), axis)
+      : ToolsInteract._buildControlPoint(bounds, 0.5, axis)
+
+    const [left, top, right, bottom] = bounds
+    const width = Math.max(1, right - left)
+    const height = Math.max(1, bottom - top)
+    const crossAxisBumps = axis === 'horizontal'
+      ? [Math.max(24, Math.floor(height * 0.75)), Math.max(40, Math.floor(height * 1.5))]
+      : [Math.max(24, Math.floor(width * 0.75)), Math.max(40, Math.floor(width * 1.5))]
+
+    const clampPoint = (point: { x: number, y: number }) => ({
+      x: axis === 'horizontal'
+        ? Math.max(left, Math.min(right, point.x))
+        : Math.max(left, Math.min(right + Math.max(width, height), point.x)),
+      y: axis === 'vertical'
+        ? Math.max(top, Math.min(bottom, point.y))
+        : Math.max(top, Math.min(bottom + Math.max(height, width), point.y))
+    })
+
+    const probes = [targetPoint, currentPoint]
+    for (const bump of crossAxisBumps) {
+      if (axis === 'horizontal') {
+        probes.push(
+          { x: targetPoint.x, y: bottom + bump },
+          { x: currentPoint.x, y: bottom + bump }
+        )
+      } else {
+        probes.push(
+          { x: right + bump, y: targetPoint.y },
+          { x: right + bump, y: currentPoint.y }
+        )
+      }
+    }
+
+    return Array.from(
+      new Map(
+        probes
+          .map(clampPoint)
+          .map((point) => [`${point.x}:${point.y}`, point] as const)
+      ).values()
+    )
+  }
+
   private static _controlAxis(el: UiElement, bounds: [number, number, number, number]): 'horizontal' | 'vertical' {
     const type = ToolsInteract._normalize(el.type ?? el.class ?? '')
     const role = ToolsInteract._normalize(el.role ?? '')
@@ -1012,6 +1065,7 @@ export class ToolsInteract {
       const currentPoint = currentValue !== null
         ? ToolsInteract._buildControlPoint(bounds, (currentValue - min) / (max - min), axis)
         : ToolsInteract._buildControlPoint(bounds, 0.5, axis)
+      const probePoints = ToolsInteract._buildAdjustmentProbePoints(bounds, targetValue, currentValue, min, max, axis)
 
       const runVerification = async (): Promise<{
         verification: any
@@ -1047,61 +1101,133 @@ export class ToolsInteract {
         }
       }
 
-      lastAdjustmentMode = 'coordinate'
-      const primaryActionResult = await ToolsInteract.tapHandler({
-        platform: resolvedPlatform,
-        x: targetPoint.x,
-        y: targetPoint.y,
-        deviceId: resolvedDeviceId
-      })
-      let actionDevice = primaryActionResult.device ?? currentDevice
-      attemptCount++
+      let actionDevice: any = currentDevice
+      let observedState: { property: string; value: number | null; raw_value?: number | null } | null = actualState
+      let verification: any = null
+      let verificationResult: any = { verification: null, observedState: actualState, withinTolerance: false }
 
-      if (!primaryActionResult.success) {
-        lastAdjustmentMode = 'gesture'
-        const fallbackActionResult = await ToolsInteract.swipeHandler({
+      for (let i = 0; i < probePoints.length; i++) {
+        const probePoint = probePoints[i]
+        lastAdjustmentMode = 'coordinate'
+        const actionResult = await ToolsInteract.tapHandler({
           platform: resolvedPlatform,
-          x1: currentPoint.x,
-          y1: currentPoint.y,
-          x2: targetPoint.x,
-          y2: targetPoint.y,
-          duration: 220,
+          x: probePoint.x,
+          y: probePoint.y,
           deviceId: resolvedDeviceId
         })
         attemptCount++
+        actionDevice = actionResult.device ?? actionDevice
 
-        if (!fallbackActionResult.success) {
-          return buildFailure('UNKNOWN', fallbackActionResult.error ?? primaryActionResult.error ?? 'adjustment gesture failed', resolvedTarget, fallbackActionResult.device ?? primaryActionResult.device, actualState, attemptCount, lastAdjustmentMode, false)
-        }
-
-        actionDevice = fallbackActionResult.device ?? actionDevice
-      }
-
-      let verificationResult = await runVerification()
-      let observedState = verificationResult.observedState
-      lastObservedState = observedState
-
-      if (!verificationResult.withinTolerance && currentValue !== null) {
-        lastAdjustmentMode = 'gesture'
-        const fallbackActionResult = await ToolsInteract.swipeHandler({
-          platform: resolvedPlatform,
-          x1: currentPoint.x,
-          y1: currentPoint.y,
-          x2: targetPoint.x,
-          y2: targetPoint.y,
-          duration: 220,
-          deviceId: resolvedDeviceId
-        })
-        attemptCount++
-        if (!fallbackActionResult.success) {
-          return buildFailure('UNKNOWN', fallbackActionResult.error ?? 'adjustment gesture failed', resolvedTarget, fallbackActionResult.device, observedState ?? actualState, attemptCount, lastAdjustmentMode, false)
+        if (!actionResult.success) {
+          continue
         }
 
         verificationResult = await runVerification()
         observedState = verificationResult.observedState
+        lastObservedState = observedState
+
+        if (verificationResult.withinTolerance) {
+          const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
+          const base = buildActionExecutionResult({
+            actionType,
+            sourceModule: 'interact',
+            device: actionDevice ?? currentDevice,
+            selector: targetSelector,
+            resolved: resolvedTarget,
+            success: true,
+            uiFingerprintBefore: fingerprintBefore,
+            uiFingerprintAfter,
+            details: {
+              target_value: targetValue,
+              tolerance: normalizedTolerance,
+              property,
+              attempts: attemptCount,
+              adjustment_mode: lastAdjustmentMode,
+              actual_state: observedState,
+              converged: true,
+              within_tolerance: true,
+              reason: verificationResult.verification?.reason ?? 'control converged to target value'
+            }
+          }) as AdjustControlResponse
+
+          return {
+            ...base,
+            target_state: {
+              property,
+              target_value: targetValue,
+              tolerance: normalizedTolerance
+            },
+            actual_state: observedState,
+            within_tolerance: true,
+            converged: true,
+            attempts: attemptCount,
+            adjustment_mode: lastAdjustmentMode
+          }
+        }
       }
 
-      const verification = verificationResult.verification
+      if (currentValue !== null) {
+        lastAdjustmentMode = 'gesture'
+        const fallbackActionResult = await ToolsInteract.swipeHandler({
+          platform: resolvedPlatform,
+          x1: currentPoint.x,
+          y1: currentPoint.y,
+          x2: targetPoint.x,
+          y2: targetPoint.y,
+          duration: 220,
+          deviceId: resolvedDeviceId
+        })
+        attemptCount++
+        if (!fallbackActionResult.success) {
+          return buildFailure('UNKNOWN', fallbackActionResult.error ?? 'adjustment gesture failed', resolvedTarget, fallbackActionResult.device ?? actionDevice, observedState ?? actualState, attemptCount, lastAdjustmentMode, false)
+        }
+
+        actionDevice = fallbackActionResult.device ?? actionDevice
+        verificationResult = await runVerification()
+        observedState = verificationResult.observedState
+        lastObservedState = observedState
+
+        if (verificationResult.withinTolerance) {
+          const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
+          const base = buildActionExecutionResult({
+            actionType,
+            sourceModule: 'interact',
+            device: actionDevice ?? currentDevice,
+            selector: targetSelector,
+            resolved: resolvedTarget,
+            success: true,
+            uiFingerprintBefore: fingerprintBefore,
+            uiFingerprintAfter,
+            details: {
+              target_value: targetValue,
+              tolerance: normalizedTolerance,
+              property,
+              attempts: attemptCount,
+              adjustment_mode: lastAdjustmentMode,
+              actual_state: observedState,
+              converged: true,
+              within_tolerance: true,
+              reason: verificationResult.verification?.reason ?? 'control converged to target value'
+            }
+          }) as AdjustControlResponse
+
+          return {
+            ...base,
+            target_state: {
+              property,
+              target_value: targetValue,
+              tolerance: normalizedTolerance
+            },
+            actual_state: observedState,
+            within_tolerance: true,
+            converged: true,
+            attempts: attemptCount,
+            adjustment_mode: lastAdjustmentMode
+          }
+        }
+      }
+
+      verification = verificationResult.verification
       lastObservedState = observedState
 
       if (verificationResult.withinTolerance) {
@@ -1494,6 +1620,10 @@ export class ToolsInteract {
     let lastMatchedCount = 0
     let lastMatchedElement: ActionTargetResolved | null = null
     let lastConditionSatisfied = false
+    let matchedAt: number | null = null
+    let stableMatchCount = 0
+    const stableObservationCount = 2
+    const snapshotStaleThresholdMs = 500
 
     // Precompute normalized selector values and helpers (constant across polls)
     const normalize = ToolsInteract._normalize
@@ -1599,25 +1729,35 @@ export class ToolsInteract {
             lastMatchedCount = matchedCount
             lastConditionSatisfied = conditionMet
             lastMatchedElement = matchedElement ? ToolsInteract._buildResolvedElement(resolvedPlatform, resolvedDeviceId, matchedElement.el, matchedElement.idx) : null
+            const now = Date.now()
 
-            if (conditionMet) {
-              const now = Date.now()
-              const latency_ms = now - overallStart
-              const outEl = lastMatchedElement
+            const snapshotAgeMs = typeof tree?.captured_at_ms === 'number' ? now - tree.captured_at_ms : null
+            const snapshotFresh = snapshotAgeMs === null || snapshotAgeMs <= snapshotStaleThresholdMs
 
-              return {
-                status: 'success',
-                matched: matchedCount,
-                element: outEl,
-                metrics: { latency_ms, poll_count: totalPollCount, attempts },
-                requested,
-                observed: {
-                  matched_count: matchedCount,
-                  condition_satisfied: true,
-                  selected_index: outEl?.index ?? null,
-                  last_matched_element: outEl
+            if (conditionMet && snapshotFresh) {
+              if (matchedAt === null) matchedAt = now
+              stableMatchCount++
+              if (stableMatchCount >= stableObservationCount) {
+                const latency_ms = now - overallStart
+                const outEl = lastMatchedElement
+
+                return {
+                  status: 'success',
+                  matched: matchedCount,
+                  element: outEl,
+                  metrics: { latency_ms, poll_count: totalPollCount, attempts },
+                  requested,
+                  observed: {
+                    matched_count: matchedCount,
+                    condition_satisfied: true,
+                    selected_index: outEl?.index ?? null,
+                    last_matched_element: outEl
+                  }
                 }
               }
+            } else {
+              stableMatchCount = 0
+              matchedAt = null
             }
 
           } catch (e) {
@@ -1982,189 +2122,256 @@ export class ToolsInteract {
     property,
     expected,
     platform,
-    deviceId
+    deviceId,
+    stabilization_window_ms = 1000,
+    stable_observation_count = 2,
+    snapshot_stale_threshold_ms = 500,
+    poll_interval_ms = 150
   }: {
     selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean },
     element_id?: string,
     property: string,
     expected: boolean | number | string | Record<string, unknown>,
     platform?: 'android' | 'ios',
-    deviceId?: string
+    deviceId?: string,
+    stabilization_window_ms?: number,
+    stable_observation_count?: number,
+    snapshot_stale_threshold_ms?: number,
+    poll_interval_ms?: number
   }): Promise<ExpectStateResponse> {
-    const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
-    const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
-    const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
-    const treeDeviceId = tree?.device?.id || deviceId
-
-    let matched: { el: UiElement, idx: number } | null = null
-
-    if (element_id) {
-      const resolved = ToolsInteract._resolvedUiElements.get(element_id)
-      if (resolved) {
-        const current = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
-        if (current) matched = { el: current.el, idx: current.index }
-      }
-    }
-
-    if (!matched && selector) {
-      matched = ToolsInteract._findFirstMatchingElement(elements, selector)
-    }
-
-    if (!matched) {
-      return {
-        success: false,
-        selector,
-        element_id: element_id ?? null,
-        expected_state: { property, expected },
-        reason: 'element not found',
-        failure_code: 'ELEMENT_NOT_FOUND',
-        retryable: true
-      }
-    }
-
-    const resolvedElement = ToolsInteract._resolvedTargetFromElement(
-      ToolsInteract._computeElementId(treePlatform, treeDeviceId, matched.el, matched.idx),
-      matched.el,
-      matched.idx
-    )
-    const observedState = matched.el.state ?? null
-    const actual = observedState?.[property as keyof UIElementState] ?? null
-
     const compareBoolean = (value: unknown) => typeof value === 'boolean' ? value : null
     const compareString = (value: unknown) => typeof value === 'string' ? value : null
     const compareNumber = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+    const start = Date.now()
+    const deadline = start + Math.max(500, stabilization_window_ms)
+    const stableTarget = Math.max(1, Math.floor(stable_observation_count || 2))
+    const pollDelay = Math.max(100, Math.min(poll_interval_ms || 150, 200))
+    const staleThreshold = Math.max(300, Math.min(snapshot_stale_threshold_ms || 500, 800))
 
-    let success = false
-    let reason = ''
-    let rawValue: boolean | number | string | null = null
-    let observedValue: boolean | number | string | Record<string, unknown> | null = actual as any
+    let attempts = 0
+    let stableCount = 0
+    let lastReason = 'element not found'
+    let lastFailureCode: 'ELEMENT_NOT_FOUND' | 'UNKNOWN' = 'ELEMENT_NOT_FOUND'
+    let lastObservedElement: (ActionTargetResolved & { state?: UIElementState | null }) | null = null
+    let lastObservedValue: boolean | number | string | Record<string, unknown> | null = null
+    let lastRawValue: boolean | number | string | null = null
+    let lastResolvedElementId: string | null = element_id ?? null
 
-    switch (property) {
-      case 'checked':
-      case 'focused':
-      case 'expanded':
-      case 'enabled': {
-        const expectedBool = compareBoolean(expected)
-        const actualBool = compareBoolean(actual)
-        if (expectedBool === null) {
-          reason = `expected ${property} must be boolean`
-        } else if (actualBool === null) {
-          reason = `${property} state unavailable`
-        } else {
-          rawValue = actualBool
-          success = actualBool === expectedBool
-          reason = success ? `${property} matches expected value` : `expected ${property}=${expectedBool} but observed ${actualBool}`
+    while (Date.now() <= deadline) {
+      attempts++
+      const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+      const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
+      const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
+      const treeDeviceId = tree?.device?.id || deviceId
+      const treeAgeMs = typeof tree?.captured_at_ms === 'number' ? Date.now() - tree.captured_at_ms : null
+
+      let matched: { el: UiElement, idx: number } | null = null
+
+      if (element_id) {
+        const resolved = ToolsInteract._resolvedUiElements.get(element_id)
+        if (resolved) {
+          const current = ToolsInteract._findCurrentResolvedElement(elements, treePlatform, treeDeviceId, resolved)
+          if (current) matched = { el: current.el, idx: current.index }
         }
-        observedValue = actualBool
-        break
       }
-      case 'value':
-      case 'raw_value': {
-        const expectedNumber = compareNumber(expected)
-        const actualNumber = compareNumber(actual)
-        if (expectedNumber !== null && actualNumber !== null) {
-          success = actualNumber === expectedNumber
-          rawValue = actualNumber
-          observedValue = actualNumber
-          reason = success ? 'value matches expected value' : `expected value=${expectedNumber} but observed ${actualNumber}`
+
+      if (!matched && selector) {
+        matched = ToolsInteract._findFirstMatchingElement(elements, selector)
+      }
+
+      if (!matched) {
+        lastReason = 'element not found'
+        lastFailureCode = 'ELEMENT_NOT_FOUND'
+        stableCount = 0
+        await sleep(pollDelay)
+        continue
+      }
+
+      const resolvedElement = ToolsInteract._resolvedTargetFromElement(
+        ToolsInteract._computeElementId(treePlatform, treeDeviceId, matched.el, matched.idx),
+        matched.el,
+        matched.idx
+      )
+      lastResolvedElementId = resolvedElement.elementId
+      lastObservedElement = { ...resolvedElement, state: matched.el.state ?? null }
+
+      if (treeAgeMs !== null && treeAgeMs > staleThreshold) {
+        lastReason = 'stale snapshot'
+        lastFailureCode = 'UNKNOWN'
+        stableCount = 0
+        await sleep(pollDelay)
+        continue
+      }
+
+      const observedState = matched.el.state ?? null
+      const actual = observedState?.[property as keyof UIElementState] ?? null
+
+      let success = false
+      let reason = ''
+      let rawValue: boolean | number | string | null = null
+      let observedValue: boolean | number | string | Record<string, unknown> | null = actual as any
+
+      switch (property) {
+        case 'checked':
+        case 'focused':
+        case 'expanded':
+        case 'enabled': {
+          const expectedBool = compareBoolean(expected)
+          const actualBool = compareBoolean(actual)
+          if (expectedBool === null) {
+            reason = `expected ${property} must be boolean`
+          } else if (actualBool === null) {
+            reason = `${property} state unavailable`
+          } else {
+            rawValue = actualBool
+            success = actualBool === expectedBool
+            reason = success ? `${property} matches expected value` : `expected ${property}=${expectedBool} but observed ${actualBool}`
+          }
+          observedValue = actualBool
           break
         }
-        const expectedString = typeof expected === 'string' ? expected : null
-        const actualString = compareString(actual)
-        if (expectedString !== null && actualString !== null) {
-          success = actualString === expectedString
-          rawValue = actualString
-          observedValue = actualString
-          reason = success ? 'value matches expected value' : `expected value=${expectedString} but observed ${actualString}`
-        } else {
-          reason = 'value state unavailable'
-        }
-        break
-      }
-      case 'selected': {
-        const expectedBool = typeof expected === 'boolean' ? expected : null
-        const expectedString = typeof expected === 'string'
-          ? expected
-          : expected && typeof expected === 'object'
-            ? String((expected as { id?: unknown; label?: unknown }).id ?? (expected as { id?: unknown; label?: unknown }).label ?? '')
-            : null
-        if (!observedState || observedState.selected === undefined || observedState.selected === null) {
-          reason = 'selected state unavailable'
-          break
-        }
-        if (expectedBool !== null) {
-          const actualBool = typeof observedState.selected === 'boolean' ? observedState.selected : null
-          if (actualBool === null) {
-            reason = 'selected state is not boolean'
+        case 'value':
+        case 'raw_value': {
+          const expectedNumber = compareNumber(expected)
+          const actualNumber = compareNumber(actual)
+          if (expectedNumber !== null && actualNumber !== null) {
+            success = actualNumber === expectedNumber
+            rawValue = actualNumber
+            observedValue = actualNumber
+            reason = success ? 'value matches expected value' : `expected value=${expectedNumber} but observed ${actualNumber}`
             break
           }
-          rawValue = actualBool
-          observedValue = actualBool
-          success = actualBool === expectedBool
-          reason = success ? 'selected matches expected value' : `expected selected=${expectedBool} but observed ${actualBool}`
+          const expectedString = typeof expected === 'string' ? expected : null
+          const actualString = compareString(actual)
+          if (expectedString !== null && actualString !== null) {
+            success = actualString === expectedString
+            rawValue = actualString
+            observedValue = actualString
+            reason = success ? 'value matches expected value' : `expected value=${expectedString} but observed ${actualString}`
+          } else {
+            reason = 'value state unavailable'
+          }
           break
         }
-        const actualSelected = typeof observedState.selected === 'object' && observedState.selected !== null
-          ? String((observedState.selected as { id?: unknown; label?: unknown }).id ?? (observedState.selected as { id?: unknown; label?: unknown }).label ?? '')
-          : String(observedState.selected)
-        const actualString = actualSelected.trim()
-        if (!expectedString) {
-          reason = 'expected selected must be boolean, string, or object with id/label'
-          break
-        }
-        rawValue = actualString
-        observedValue = actualString
-        success = actualString === expectedString
-        reason = success ? 'selected matches expected value' : `expected selected=${expectedString} but observed ${actualString}`
-        break
-      }
-      case 'text_value': {
-        const expectedString = typeof expected === 'string' ? expected : null
-        const actualString = compareString(actual)
-        if (!expectedString) {
-          reason = 'expected text_value must be string'
-        } else if (!actualString) {
-          reason = 'text_value state unavailable'
-        } else {
-          success = actualString === expectedString
+        case 'selected': {
+          const expectedBool = typeof expected === 'boolean' ? expected : null
+          const expectedString = typeof expected === 'string'
+            ? expected
+            : expected && typeof expected === 'object'
+              ? String((expected as { id?: unknown; label?: unknown }).id ?? (expected as { id?: unknown; label?: unknown }).label ?? '')
+              : null
+          if (!observedState || observedState.selected === undefined || observedState.selected === null) {
+            reason = 'selected state unavailable'
+            break
+          }
+          if (expectedBool !== null) {
+            const actualBool = typeof observedState.selected === 'boolean' ? observedState.selected : null
+            if (actualBool === null) {
+              reason = 'selected state is not boolean'
+              break
+            }
+            rawValue = actualBool
+            observedValue = actualBool
+            success = actualBool === expectedBool
+            reason = success ? 'selected matches expected value' : `expected selected=${expectedBool} but observed ${actualBool}`
+            break
+          }
+          const actualSelected = typeof observedState.selected === 'object' && observedState.selected !== null
+            ? String((observedState.selected as { id?: unknown; label?: unknown }).id ?? (observedState.selected as { id?: unknown; label?: unknown }).label ?? '')
+            : String(observedState.selected)
+          const actualString = actualSelected.trim()
+          if (!expectedString) {
+            reason = 'expected selected must be boolean, string, or object with id/label'
+            break
+          }
           rawValue = actualString
           observedValue = actualString
-          reason = success ? 'text_value matches expected value' : `expected text_value=${expectedString} but observed ${actualString}`
+          success = actualString === expectedString
+          reason = success ? 'selected matches expected value' : `expected selected=${expectedString} but observed ${actualString}`
+          break
         }
-        break
-      }
-      default: {
-        if (actual !== null && actual !== undefined) {
-          success = actual === expected
-          observedValue = actual as any
-          rawValue = typeof actual === 'string' || typeof actual === 'number' || typeof actual === 'boolean' ? actual : null
-          reason = success ? `${property} matches expected value` : `expected ${property} to match but observed ${String(actual)}`
-        } else {
-          reason = `unsupported or unavailable state property: ${property}`
+        case 'text_value': {
+          const expectedString = typeof expected === 'string' ? expected : null
+          const actualString = compareString(actual)
+          if (!expectedString) {
+            reason = 'expected text_value must be string'
+          } else if (!actualString) {
+            reason = 'text_value state unavailable'
+          } else {
+            success = actualString === expectedString
+            rawValue = actualString
+            observedValue = actualString
+            reason = success ? 'text_value matches expected value' : `expected text_value=${expectedString} but observed ${actualString}`
+          }
+          break
+        }
+        default: {
+          if (actual !== null && actual !== undefined) {
+            success = actual === expected
+            observedValue = actual as any
+            rawValue = typeof actual === 'string' || typeof actual === 'number' || typeof actual === 'boolean' ? actual : null
+            reason = success ? `${property} matches expected value` : `expected ${property} to match but observed ${String(actual)}`
+          } else {
+            reason = `unsupported or unavailable state property: ${property}`
+          }
         }
       }
-    }
 
-    if (!success && !reason) {
-      reason = `${property} did not match expected value`
+      if (success) {
+        stableCount++
+        if (stableCount >= stableTarget) {
+          return {
+            success: true,
+            selector,
+            element_id: lastResolvedElementId,
+            expected_state: { property, expected },
+            element: lastObservedElement,
+            observed_state: {
+              property,
+              value: observedValue,
+              ...(rawValue !== null ? { raw_value: rawValue } : {})
+            },
+            reason,
+            stabilization_attempts: attempts,
+            stabilization_window_ms: Date.now() - start,
+            stable_observation_count: stableCount,
+            snapshot_freshness_ms: treeAgeMs ?? undefined
+          } as ExpectStateResponse & {
+            stabilization_attempts?: number;
+            stabilization_window_ms?: number;
+            stable_observation_count?: number;
+            snapshot_freshness_ms?: number;
+          }
+        }
+      } else {
+        stableCount = 0
+        lastReason = reason || lastReason
+        lastFailureCode = 'UNKNOWN'
+      }
+
+      if (!success) {
+        lastObservedValue = observedValue
+        lastRawValue = rawValue
+      }
+
+      await sleep(pollDelay)
     }
 
     return {
-      success,
+      success: false,
       selector,
-      element_id: element_id ?? resolvedElement.elementId,
+      element_id: lastResolvedElementId,
       expected_state: { property, expected },
-      element: {
-        ...resolvedElement,
-        state: observedState
-      },
+      element: lastObservedElement,
       observed_state: {
         property,
-        value: observedValue,
-        ...(rawValue !== null ? { raw_value: rawValue } : {})
+        value: lastObservedValue,
+        ...(lastRawValue !== null ? { raw_value: lastRawValue } : {})
       },
-      reason,
-      ...(success ? {} : { failure_code: 'UNKNOWN', retryable: false })
+      reason: lastReason,
+      failure_code: lastFailureCode,
+      retryable: true
     }
   }
 

@@ -415,6 +415,10 @@ export interface ExpectStateResponse {
   reason?: string;
   failure_code?: 'ELEMENT_NOT_FOUND' | 'UNKNOWN';
   retryable?: boolean;
+  stabilization_attempts?: number;
+  stabilization_window_ms?: number;
+  stable_observation_count?: number;
+  snapshot_freshness_ms?: number;
 }
 
 export interface AdjustControlResponse extends ActionExecutionResult {
