@@ -16,7 +16,10 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 - Xcode command-line tools for iOS support
 - [idb](https://github.com/facebook/idb) for iOS device support
 
-## Configuration example
+## Configuration
+
+
+### VS Code
 
 ```json
 {
@@ -29,7 +32,21 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
   }
 }
 ```
-You will need to add ADB_PATH for Android and XCRUN_PATH and IDB_PATH for iOS.
+
+### Codex
+Use STDIO
+
+command: npx
+
+args: 
+* --yes
+* mobile-debug-mcp
+
+environment variables:
+* ADB_PATH: /path/to/adb
+* XCRUN_PATH: /usr/bin/xcrun
+* IDC_PATH: /path/to/idb"
+
 
 ## Usage
 
