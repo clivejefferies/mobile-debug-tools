@@ -777,6 +777,22 @@ export class ToolsInteract {
     let resolvedDeviceId = deviceId
     const fingerprintBefore = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
     let semanticFallbackElement: FindElementResponse['element'] | null = null
+    const traceSteps: TraceStep[] = []
+    let traceAttemptIndex = 0
+
+    const recordTraceStep = (
+      stage: TraceStep['stage'],
+      result: TraceStep['result'],
+      metadata?: Record<string, unknown>
+    ) => {
+      traceSteps.push(createTraceStep({
+        stage,
+        timestamp: Date.now(),
+        result,
+        attemptIndex: traceAttemptIndex++,
+        metadata
+      }))
+    }
 
     const buildFailure = (
       failureCode: ActionFailureCode,
@@ -789,6 +805,22 @@ export class ToolsInteract {
       retryable = false,
       uiFingerprintAfter: string | null = null
     ): AdjustControlResponse => {
+      if (!traceSteps.some((step) => step.stage === 'resolve')) {
+        recordTraceStep('resolve', 'failure',
+        {
+          reason,
+          failure_code: failureCode
+        })
+      }
+      if (!traceSteps.some((step) => step.stage === 'recover')) {
+        recordTraceStep('recover', retryable ? 'retry' : 'failure', {
+          reason,
+          failure_code: failureCode,
+          retry_allowed: retryable,
+          recovery_attempts: attempts,
+          retry_depth: attempts
+        })
+      }
       const base = buildActionExecutionResult({
         actionType,
         sourceModule: 'interact',
@@ -809,7 +841,8 @@ export class ToolsInteract {
           converged: false,
           within_tolerance: false,
           reason
-        }
+        },
+        traceSteps
       }) as AdjustControlResponse
 
       return {
@@ -1034,11 +1067,25 @@ export class ToolsInteract {
 
       lastObservedState = actualState
 
+      if (!traceSteps.some((step) => step.stage === 'resolve')) {
+        recordTraceStep('resolve', 'success', {
+          resolved_target: resolvedTarget,
+          current_value: currentValue,
+          adjustment_mode: lastAdjustmentMode
+        })
+      }
+
       if (property !== 'value' && property !== 'raw_value') {
         return buildFailure('ELEMENT_NOT_INTERACTABLE', 'adjust_control currently supports numeric value and raw_value properties only', resolvedTarget, currentDevice, actualState, attemptCount, lastAdjustmentMode, false)
       }
 
       if (currentValue !== null && Math.abs(currentValue - targetValue) <= normalizedTolerance) {
+        recordTraceStep('verify', 'success', {
+          property,
+          target_value: targetValue,
+          actual_state: actualState,
+          reason: 'control already within tolerance'
+        })
         const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
         const base = buildActionExecutionResult({
           actionType,
@@ -1059,7 +1106,8 @@ export class ToolsInteract {
             converged: true,
             within_tolerance: true,
             reason: 'control already within tolerance'
-          }
+          },
+          traceSteps
         }) as AdjustControlResponse
 
         return {
@@ -1144,6 +1192,11 @@ export class ToolsInteract {
       for (let i = 0; i < probePoints.length; i++) {
         const probePoint = probePoints[i]
         lastAdjustmentMode = 'coordinate'
+        recordTraceStep('execute', 'retry', {
+          attempt: attemptCount + 1,
+          mode: 'coordinate',
+          point: probePoint
+        })
         const actionResult = await ToolsInteract.tapHandler({
           platform: resolvedPlatform,
           x: probePoint.x,
@@ -1154,12 +1207,25 @@ export class ToolsInteract {
         actionDevice = actionResult.device ?? actionDevice
 
         if (!actionResult.success) {
+          recordTraceStep('execute', 'retry', {
+            attempt: attemptCount,
+            mode: 'coordinate',
+            point: probePoint,
+            success: false
+          })
           continue
         }
 
         verificationResult = await runVerification()
         observedState = verificationResult.observedState
         lastObservedState = observedState
+        recordTraceStep('verify', verificationResult.withinTolerance ? 'success' : 'retry', {
+          attempt: attemptCount,
+          property,
+          target_value: targetValue,
+          actual_state: observedState,
+          reason: verificationResult.verification?.reason ?? 'control did not converge yet'
+        })
 
         if (verificationResult.withinTolerance) {
           const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
@@ -1182,7 +1248,8 @@ export class ToolsInteract {
               converged: true,
               within_tolerance: true,
               reason: verificationResult.verification?.reason ?? 'control converged to target value'
-            }
+            },
+            traceSteps
           }) as AdjustControlResponse
 
           return {
@@ -1203,6 +1270,12 @@ export class ToolsInteract {
 
       if (currentValue !== null) {
         lastAdjustmentMode = 'gesture'
+        recordTraceStep('execute', 'retry', {
+          attempt: attemptCount + 1,
+          mode: 'gesture',
+          start: currentPoint,
+          end: targetPoint
+        })
         const fallbackActionResult = await ToolsInteract.swipeHandler({
           platform: resolvedPlatform,
           x1: currentPoint.x,
@@ -1214,6 +1287,13 @@ export class ToolsInteract {
         })
         attemptCount++
         if (!fallbackActionResult.success) {
+          recordTraceStep('execute', 'failure', {
+            attempt: attemptCount,
+            mode: 'gesture',
+            start: currentPoint,
+            end: targetPoint,
+            success: false
+          })
           return buildFailure('UNKNOWN', fallbackActionResult.error ?? 'adjustment gesture failed', resolvedTarget, fallbackActionResult.device ?? actionDevice, observedState ?? actualState, attemptCount, lastAdjustmentMode, false)
         }
 
@@ -1221,6 +1301,13 @@ export class ToolsInteract {
         verificationResult = await runVerification()
         observedState = verificationResult.observedState
         lastObservedState = observedState
+        recordTraceStep('verify', verificationResult.withinTolerance ? 'success' : 'retry', {
+          attempt: attemptCount,
+          property,
+          target_value: targetValue,
+          actual_state: observedState,
+          reason: verificationResult.verification?.reason ?? 'gesture adjustment did not converge yet'
+        })
 
         if (verificationResult.withinTolerance) {
           const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
@@ -1243,7 +1330,8 @@ export class ToolsInteract {
               converged: true,
               within_tolerance: true,
               reason: verificationResult.verification?.reason ?? 'control converged to target value'
-            }
+            },
+            traceSteps
           }) as AdjustControlResponse
 
           return {
@@ -1266,6 +1354,13 @@ export class ToolsInteract {
       lastObservedState = observedState
 
       if (verificationResult.withinTolerance) {
+        recordTraceStep('verify', 'success', {
+          attempt: attemptCount,
+          property,
+          target_value: targetValue,
+          actual_state: observedState,
+          reason: verification?.reason ?? 'control converged to target value'
+        })
         const uiFingerprintAfter = await ToolsInteract._captureFingerprint(resolvedPlatform, resolvedDeviceId)
         const base = buildActionExecutionResult({
           actionType,
@@ -1286,7 +1381,8 @@ export class ToolsInteract {
             converged: true,
             within_tolerance: true,
             reason: verification?.reason ?? 'control converged to target value'
-          }
+          },
+          traceSteps
         }) as AdjustControlResponse
 
         return {
@@ -2232,52 +2328,30 @@ export class ToolsInteract {
     let lastObservedValue: boolean | number | string | Record<string, unknown> | null = null
     let lastRawValue: boolean | number | string | null = null
     let lastResolvedElementId: string | null = element_id ?? null
-    let lastSnapshotFreshnessMs: number | null = null
+    const traceSteps: TraceStep[] = []
+    let traceAttemptIndex = 0
+    let resolveRecorded = false
 
-    const buildStateTrace = (outcome: 'success' | 'failure'): ActionTrace => {
-      const traceTimestamp = Date.now()
-      return {
-        action_id: nextActionId('expect_state', traceTimestamp),
-        steps: [
-          createTraceStep({
-            stage: 'resolve',
-            timestamp: traceTimestamp,
-            result: lastObservedElement ? 'success' : 'failure',
-            attemptIndex: 0,
-            metadata: {
-              selector: selector ?? null,
-              element_id: lastResolvedElementId,
-              matched: !!lastObservedElement
-            }
-          }),
-          createTraceStep({
-            stage: 'stabilize',
-            timestamp: traceTimestamp + 1,
-            result: outcome,
-            attemptIndex: 1,
-            metadata: {
-              stabilization_attempts: attempts,
-              stable_observation_count: outcome === 'success' ? stableCount : 0,
-              snapshot_freshness_ms: lastSnapshotFreshnessMs
-            }
-          }),
-          createTraceStep({
-            stage: 'verify',
-            timestamp: traceTimestamp + 2,
-            result: outcome,
-            attemptIndex: 2,
-            metadata: {
-              property,
-              expected,
-              observed_value: lastObservedValue,
-              reason: outcome === 'success' ? 'value matches expected state' : lastReason
-            }
-          })
-        ],
-        final_outcome: outcome,
-        attempts
-      }
+    const recordTraceStep = (
+      stage: TraceStep['stage'],
+      result: TraceStep['result'],
+      metadata?: Record<string, unknown>
+    ) => {
+      traceSteps.push(createTraceStep({
+        stage,
+        timestamp: Date.now(),
+        result,
+        attemptIndex: traceAttemptIndex++,
+        metadata
+      }))
     }
+
+    const buildStateTrace = (outcome: 'success' | 'failure'): ActionTrace => ({
+      action_id: nextActionId('expect_state', Date.now()),
+      steps: traceSteps,
+      final_outcome: outcome,
+      attempts
+    })
 
     while (Date.now() <= deadline) {
       attempts++
@@ -2286,8 +2360,6 @@ export class ToolsInteract {
       const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
       const treeDeviceId = tree?.device?.id || deviceId
       const treeAgeMs = typeof tree?.captured_at_ms === 'number' ? Date.now() - tree.captured_at_ms : null
-      lastSnapshotFreshnessMs = treeAgeMs
-
       let matched: { el: UiElement, idx: number } | null = null
 
       if (element_id) {
@@ -2306,6 +2378,19 @@ export class ToolsInteract {
         lastReason = 'element not found'
         lastFailureCode = 'ELEMENT_NOT_FOUND'
         stableCount = 0
+        recordTraceStep('resolve', 'retry', {
+          selector: selector ?? null,
+          element_id: lastResolvedElementId,
+          matched: false,
+          reason: lastReason,
+          attempt: attempts
+        })
+        recordTraceStep('stabilize', 'retry', {
+          stabilization_attempts: attempts,
+          stable_observation_count: stableCount,
+          snapshot_freshness_ms: treeAgeMs,
+          reason: lastReason
+        })
         await sleep(pollDelay)
         continue
       }
@@ -2322,8 +2407,31 @@ export class ToolsInteract {
         lastReason = 'stale snapshot'
         lastFailureCode = 'UNKNOWN'
         stableCount = 0
+        recordTraceStep('resolve', 'retry', {
+          selector: selector ?? null,
+          element_id: lastResolvedElementId,
+          matched: true,
+          reason: lastReason,
+          attempt: attempts
+        })
+        recordTraceStep('stabilize', 'retry', {
+          stabilization_attempts: attempts,
+          stable_observation_count: stableCount,
+          snapshot_freshness_ms: treeAgeMs,
+          reason: lastReason
+        })
         await sleep(pollDelay)
         continue
+      }
+
+      if (!resolveRecorded) {
+        recordTraceStep('resolve', 'success', {
+          selector: selector ?? null,
+          element_id: lastResolvedElementId,
+          matched: true,
+          reason: 'element resolved'
+        })
+        resolveRecorded = true
       }
 
       const observedState = matched.el.state ?? null
@@ -2442,6 +2550,18 @@ export class ToolsInteract {
 
       if (success) {
         stableCount++
+        recordTraceStep('stabilize', 'success', {
+          stabilization_attempts: attempts,
+          stable_observation_count: stableCount,
+          snapshot_freshness_ms: treeAgeMs,
+          reason
+        })
+        recordTraceStep('verify', 'success', {
+          property,
+          expected,
+          observed_value: observedValue,
+          reason
+        })
         if (stableCount >= stableTarget) {
           return {
             success: true,
@@ -2471,6 +2591,18 @@ export class ToolsInteract {
         stableCount = 0
         lastReason = reason || lastReason
         lastFailureCode = 'UNKNOWN'
+        recordTraceStep('stabilize', 'retry', {
+          stabilization_attempts: attempts,
+          stable_observation_count: stableCount,
+          snapshot_freshness_ms: treeAgeMs,
+          reason: lastReason
+        })
+        recordTraceStep('verify', 'retry', {
+          property,
+          expected,
+          observed_value: observedValue,
+          reason: lastReason
+        })
       }
 
       if (!success) {

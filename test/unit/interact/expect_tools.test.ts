@@ -6,6 +6,7 @@ async function run() {
   console.log('Starting expect_* unit tests...')
   const originalGetScreenFingerprintHandler = (Observe as any).ToolsObserve.getScreenFingerprintHandler
   const originalGetCurrentScreenHandler = (Observe as any).ToolsObserve.getCurrentScreenHandler
+  const originalGetUITreeHandler = (Observe as any).ToolsObserve.getUITreeHandler
   const originalWaitForUIHandler = (ToolsInteract as any).waitForUIHandler
 
   try {
@@ -91,10 +92,40 @@ async function run() {
     assert.strictEqual(timeoutResult.retryable, true)
     assert.strictEqual(timeoutResult.trace.final_outcome, 'failure')
 
+    let uiTreeCallCount = 0
+    ;(Observe as any).ToolsObserve.getUITreeHandler = async () => {
+      uiTreeCallCount++
+      return {
+        device: { platform: 'android', id: 'emulator-5554' },
+        captured_at_ms: Date.now(),
+        elements: [{
+          elementId: 'el_state',
+          text: 'Stateful',
+          resource_id: 'rid_state',
+          accessibility_id: null,
+          class: 'TextView',
+          bounds: [0, 0, 10, 10],
+          index: 0,
+          state: { enabled: true, value: 7 }
+        }]
+      }
+    }
+    const expectState = await ToolsInteract.expectStateHandler({
+      selector: { text: 'Stateful' },
+      property: 'value',
+      expected: 7,
+      platform: 'android'
+    })
+    assert.strictEqual(expectState.success, true)
+    assert.strictEqual(uiTreeCallCount >= 2, true)
+    assert.ok(expectState.trace.steps.filter((step) => step.stage === 'stabilize').length >= 2)
+    assert.ok(expectState.trace.steps.filter((step) => step.stage === 'verify').length >= 2)
+
     console.log('expect_* unit tests passed')
   } finally {
     ;(Observe as any).ToolsObserve.getScreenFingerprintHandler = originalGetScreenFingerprintHandler
     ;(Observe as any).ToolsObserve.getCurrentScreenHandler = originalGetCurrentScreenHandler
+    ;(Observe as any).ToolsObserve.getUITreeHandler = originalGetUITreeHandler
     ;(ToolsInteract as any).waitForUIHandler = originalWaitForUIHandler
   }
 }

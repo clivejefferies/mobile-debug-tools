@@ -96,10 +96,6 @@ export async function captureActionFingerprint(platform?: 'android' | 'ios', dev
   }
 }
 
-function isResolutionFailure(code: ActionFailureCode): boolean {
-  return code === 'ELEMENT_NOT_FOUND' || code === 'AMBIGUOUS_TARGET' || code === 'STALE_REFERENCE'
-}
-
 export function createTraceStep({
   stage,
   timestamp,
@@ -135,7 +131,8 @@ export function buildActionTrace({
   failure,
   details,
   recovery,
-  attempts = 1
+  attempts = 1,
+  steps
 }: {
   actionId: string
   actionType: string
@@ -147,17 +144,27 @@ export function buildActionTrace({
   details?: Record<string, unknown>
   recovery?: RecoveryState
   attempts?: number
+  steps?: TraceStep[]
 }): ActionTrace {
+  if (steps && steps.length > 0) {
+    return {
+      action_id: actionId,
+      steps,
+      final_outcome: success ? 'success' : 'failure',
+      attempts: Math.max(1, Math.floor(attempts || steps.length))
+    }
+  }
+
   const start = Date.now()
-  const steps: TraceStep[] = []
+  const builtSteps: TraceStep[] = []
   let attemptIndex = 0
   const totalAttempts = Math.max(1, Math.floor(attempts || 1))
 
   if (selector || resolved) {
-    const stageResult: TraceResult = resolved ? 'success' : (failure && isResolutionFailure(failure.failureCode) ? 'failure' : 'retry')
-    steps.push(createTraceStep({
+    const stageResult: TraceResult = resolved ? 'success' : 'failure'
+    builtSteps.push(createTraceStep({
       stage: 'resolve',
-      timestamp: start + steps.length,
+      timestamp: start,
       result: stageResult,
       attemptIndex: attemptIndex++,
       metadata: {
@@ -169,9 +176,9 @@ export function buildActionTrace({
     }))
   }
 
-  steps.push(createTraceStep({
+  builtSteps.push(createTraceStep({
     stage: 'execute',
-    timestamp: start + steps.length,
+    timestamp: Date.now(),
     result: success ? 'success' : 'failure',
     attemptIndex: attemptIndex++,
     metadata: {
@@ -193,9 +200,9 @@ export function buildActionTrace({
   ))
 
   if (hasStabilizeDetails) {
-    steps.push(createTraceStep({
+    builtSteps.push(createTraceStep({
       stage: 'stabilize',
-      timestamp: start + steps.length,
+      timestamp: Date.now(),
       result: success ? 'success' : 'failure',
       attemptIndex: attemptIndex++,
       metadata: {
@@ -207,9 +214,9 @@ export function buildActionTrace({
   }
 
   if (hasVerifyDetails) {
-    steps.push(createTraceStep({
+    builtSteps.push(createTraceStep({
       stage: 'verify',
-      timestamp: start + steps.length,
+      timestamp: Date.now(),
       result: success ? 'success' : 'failure',
       attemptIndex: attemptIndex++,
       metadata: {
@@ -222,9 +229,9 @@ export function buildActionTrace({
   }
 
   if (failure) {
-    steps.push(createTraceStep({
+    builtSteps.push(createTraceStep({
       stage: 'recover',
-      timestamp: start + steps.length,
+      timestamp: Date.now(),
       result: failure.retryable ? 'retry' : 'failure',
       attemptIndex: attemptIndex++,
       metadata: {
@@ -237,8 +244,8 @@ export function buildActionTrace({
     }))
   }
 
-  if (!steps.length) {
-    steps.push(createTraceStep({
+  if (!builtSteps.length) {
+    builtSteps.push(createTraceStep({
       stage: 'execute',
       timestamp: start,
       result: success ? 'success' : 'failure',
@@ -249,7 +256,7 @@ export function buildActionTrace({
 
   return {
     action_id: actionId,
-    steps,
+    steps: builtSteps,
     final_outcome: success ? 'success' : 'failure',
     attempts: totalAttempts
   }
@@ -344,7 +351,8 @@ export function buildActionExecutionResult({
   uiFingerprintAfter,
   failure,
   details,
-  sourceModule
+  sourceModule,
+  traceSteps
 }: {
   actionType: string
   device?: ActionExecutionResult['device']
@@ -356,6 +364,7 @@ export function buildActionExecutionResult({
   failure?: { failureCode: ActionFailureCode; retryable: boolean }
   details?: Record<string, unknown>
   sourceModule: 'server' | 'interact'
+  traceSteps?: TraceStep[]
 }): ActionExecutionResult {
   const timestampMs = Date.now()
   const timestamp = new Date(timestampMs).toISOString()
@@ -388,7 +397,8 @@ export function buildActionExecutionResult({
       failure,
       details,
       recovery: recoveryState,
-      attempts
+      attempts,
+      steps: traceSteps
     }),
     ui_fingerprint_before: uiFingerprintBefore,
     ui_fingerprint_after: uiFingerprintAfter,

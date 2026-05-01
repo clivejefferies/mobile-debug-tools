@@ -1,4 +1,5 @@
 import assert from 'assert'
+import { createTraceStep } from '../../../src/server/common.js'
 import { buildActionExecutionResult, inferGenericFailure, requireBooleanArg } from '../../../src/server/common.js'
 
 function run() {
@@ -44,7 +45,26 @@ function run() {
   assert.strictEqual(notInteractableResult.recovery?.runtime_code, 'ELEMENT_NOT_INTERACTABLE')
   assert.strictEqual(notInteractableResult.recovery?.retry_allowed, true)
   assert.strictEqual(notInteractableResult.trace.steps[0].stage, 'resolve')
+  assert.strictEqual(notInteractableResult.trace.steps[0].result, 'failure')
   assert.strictEqual(notInteractableResult.trace.steps.at(-1)?.stage, 'recover')
+
+  const traceSteps = [
+    createTraceStep({ stage: 'resolve', timestamp: 100, result: 'success', attemptIndex: 0 }),
+    createTraceStep({ stage: 'execute', timestamp: 200, result: 'retry', attemptIndex: 1 }),
+    createTraceStep({ stage: 'verify', timestamp: 300, result: 'success', attemptIndex: 2 })
+  ]
+  const tracedResult = buildActionExecutionResult({
+    actionType: 'tap',
+    sourceModule: 'server',
+    selector: { x: 1, y: 1 },
+    success: true,
+    uiFingerprintBefore: 'before',
+    uiFingerprintAfter: 'after',
+    details: { attempts: 3 },
+    traceSteps
+  })
+  assert.deepStrictEqual(tracedResult.trace.steps, traceSteps)
+  assert.strictEqual(tracedResult.trace.attempts, 3)
 
   console.log('server common tests passed')
 }
