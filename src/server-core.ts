@@ -1,6 +1,9 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import type { SchemaOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
 import {
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
   ListToolsRequestSchema,
   CallToolRequestSchema
 } from '@modelcontextprotocol/sdk/types.js'
@@ -13,7 +16,7 @@ export { wrapResponse, toolDefinitions, handleToolCall }
 
 export const serverInfo = {
   name: 'mobile-debug-mcp',
-  version: '0.28.0'
+  version: '0.29.0'
 }
 
 export function createServer() {
@@ -21,10 +24,23 @@ export function createServer() {
     serverInfo,
     {
       capabilities: {
+        resources: {},
         tools: {}
       }
     }
   )
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: []
+  }))
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: []
+  }))
+
+  server.setRequestHandler(ReadResourceRequestSchema, async () => ({
+    contents: []
+  }))
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: toolDefinitions
