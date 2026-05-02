@@ -18,8 +18,9 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 
 ## Configuration
 
+<details>
 
-### VS Code
+<summary>Copilot</summary>
 
 ```json
 {
@@ -33,7 +34,12 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 }
 ```
 
-### Codex
+</details>
+
+<details>
+
+<summary>Codex</summary>
+
 Use STDIO
 
 command: npx
@@ -47,6 +53,7 @@ environment variables:
 * XCRUN_PATH: /usr/bin/xcrun
 * IDC_PATH: /path/to/idb"
 
+</details>
 
 ## Usage
 
