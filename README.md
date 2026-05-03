@@ -20,6 +20,22 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 
 <details>
 
+<summary>Android Studio</summary>
+
+```json
+{
+  "mcpServers": {
+    "mobile-debug": {
+      "command": "npx",
+      "args": ["--yes","mobile-debug-mcp","server"],
+      "env": { "ADB_PATH": "/path/to/adb", "XCRUN_PATH": "/usr/bin/xcrun", "IDB_PATH": "/path/to/idb" }
+    }
+  }
+}
+```
+
+</details>
+
 <summary>Copilot</summary>
 
 ```json
