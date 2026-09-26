@@ -47,7 +47,11 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device UDID (iOS) or Serial (Android). Defaults to booted/connected.'
-        }
+        },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        actionTimeoutMs: { type: 'number', minimum: 100, maximum: 30000 },
+        verificationTimeoutMs: { type: 'number', minimum: 100, maximum: 60000 }
       },
       required: ['platform', 'appId']
     }
@@ -250,6 +254,7 @@ Failure Handling:
       properties: {
         reason: { type: 'string', description: 'Optional reason for snapshot' },
         includeLogs: { type: 'boolean', description: 'Whether to include logs', default: true },
+        includeScreenshot: { type: 'boolean', description: 'Whether to collect screenshot bytes', default: true },
         logLines: { type: 'number', description: 'Maximum number of log lines to include', default: 200 },
         platform: { type: 'string', enum: ['android', 'ios'], description: 'Optional platform override' },
         appId: { type: 'string', description: 'Optional appId to scope logs (package/bundle id)' },
@@ -307,7 +312,9 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device Serial (Android) or UDID (iOS). Defaults to connected/booted device.'
-        }
+        },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        sinceSnapshotRevision: { type: 'number', minimum: 1 }
       },
       required: ['platform']
     }
@@ -783,9 +790,14 @@ This tool reports execution success only. Verification must be done with a separ
         elementId: {
           type: 'string',
           description: 'A unique element identifier returned by wait_for_ui'
-        }
-      },
-      required: ['elementId']
+        },
+        selector: { type: 'object', properties: { text: { type: 'string' }, resource_id: { type: 'string' }, accessibility_id: { type: 'string' }, contains: { type: 'boolean' } } },
+        waitFor: { type: 'object', properties: { condition: { type: 'string', enum: ['exists', 'visible', 'clickable'] }, timeoutMs: { type: 'number', minimum: 100, maximum: 10000 }, pollIntervalMs: { type: 'number', minimum: 50, maximum: 1000 }, match: { type: 'object', properties: { index: { type: 'number' } } } } },
+        platform: { type: 'string', enum: ['android', 'ios'] },
+        deviceId: { type: 'string' },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' }
+      }
     }
   },
   {
@@ -1060,6 +1072,20 @@ BEHAVIOUR after outcome:
         }
       },
       required: ['uiChanged']
+    }
+  },
+  {
+    name: 'run_journey',
+    description: 'Run an ordered, bounded sequence of start_app, tap, wait, and deterministic assertion steps against one device. Stops after the first failed step.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: { type: 'string', enum: ['android', 'ios'] },
+        deviceId: { type: 'string' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'compact' },
+        steps: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'object', properties: { id: { type: 'string' }, type: { type: 'string', enum: ['start_app', 'tap', 'wait', 'assert'] } }, required: ['id', 'type'] } }
+      },
+      required: ['platform', 'steps']
     }
   },
   {

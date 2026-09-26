@@ -5,7 +5,7 @@ import type {
   CaptureDebugSnapshotRawResponse,
   SnapshotSemanticResponse
 } from '../types.js'
-import { deriveSnapshotMetadata } from './snapshot-metadata.js'
+import { deriveSnapshotMetadata, getStateDelta } from './snapshot-metadata.js'
 
 export { AndroidObserve } from './android.js'
 export { iOSObserve } from './ios.js'
@@ -170,9 +170,21 @@ export class ToolsObserve {
     }
   }
 
-  static async getUITreeHandler({ platform, deviceId }: { platform?: 'android' | 'ios', deviceId?: string }) {
+  static async getUITreeHandler({ platform, deviceId, responseMode = 'debug', sinceSnapshotRevision }: { platform?: 'android' | 'ios', deviceId?: string, responseMode?: 'compact' | 'debug', sinceSnapshotRevision?: number }) {
     const { observe, resolved } = await ToolsObserve.resolveObserve(platform, deviceId)
-    return await observe.getUITree(resolved.id)
+    const tree = await observe.getUITree(resolved.id) as any
+    if (responseMode !== 'compact') return tree
+    const revision = tree?.snapshot_revision ?? null
+    const baseRevision = sinceSnapshotRevision
+    if (!Number.isInteger(baseRevision) || revision === null) {
+      return { delta_available: false, snapshot_revision: revision }
+    }
+    const delta = getStateDelta(`${resolved.platform}:${resolved.id}`, baseRevision as number, revision)
+    return delta ? { delta_available: true, state_delta: delta, snapshot_revision: revision } : {
+      delta_available: false,
+      snapshot_revision: revision,
+      reason: 'BASE_REVISION_UNAVAILABLE'
+    }
   }
 
   static async getCurrentScreenHandler({ deviceId }: { deviceId?: string }) {
@@ -244,7 +256,7 @@ export class ToolsObserve {
     return await (observe as any).getScreenFingerprint(resolved.id)
   }
 
-  static async captureDebugSnapshotHandler({ reason, includeLogs = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
+  static async captureDebugSnapshotHandler({ reason, includeLogs = true, includeScreenshot = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; includeScreenshot?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
     const timestamp = Date.now()
     const raw: CaptureDebugSnapshotRawResponse = {
       timestamp,
@@ -261,7 +273,7 @@ export class ToolsObserve {
     // Parallel fetches for performance: screenshot, current screen, fingerprint, ui tree, and log stream/get logs
     const sid = sessionId || 'default'
     const tasks: Record<string, Promise<any>> = {
-      screenshot: ToolsObserve.captureScreenshotHandler({ platform, deviceId }),
+      screenshot: includeScreenshot ? ToolsObserve.captureScreenshotHandler({ platform, deviceId }) : Promise.resolve(null),
       currentScreen: (!platform || platform === 'android') ? ToolsObserve.getCurrentScreenHandler({ deviceId }) : Promise.resolve(null),
       fingerprint: ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }),
       uiTree: ToolsObserve.getUITreeHandler({ platform, deviceId }),

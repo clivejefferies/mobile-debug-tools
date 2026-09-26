@@ -5,6 +5,9 @@ interface SnapshotState {
   revision: number
   signature: string | null
   elementSignatures: Map<string, string>
+  elements: Map<string, UIElement>
+  history: Map<number, Map<string, UIElement>>
+  updatedAt: number
 }
 
 const snapshotStateByDevice = new Map<string, SnapshotState>()
@@ -53,8 +56,9 @@ function stableElementIdentity(element: UIElement, index: number) {
   })).digest('hex')}`
 }
 
-function buildElementSignatures(tree: Pick<GetUITreeResponse, 'elements'> | null | undefined) {
+function buildElementRecords(tree: Pick<GetUITreeResponse, 'elements'> | null | undefined) {
   const signatures = new Map<string, string>()
+  const elementsByIdentity = new Map<string, UIElement>()
   const elements = Array.isArray(tree?.elements) ? tree!.elements! : []
 
   for (let index = 0; index < elements.length; index++) {
@@ -62,9 +66,10 @@ function buildElementSignatures(tree: Pick<GetUITreeResponse, 'elements'> | null
     if (!element) continue
     const identity = stableElementIdentity(element, index)
     signatures.set(identity, crypto.createHash('sha1').update(JSON.stringify(stableElementSignature(element))).digest('hex'))
+    elementsByIdentity.set(identity, element)
   }
 
-  return signatures
+  return { signatures, elementsByIdentity }
 }
 
 function summarizeSnapshotDelta(previous: SnapshotState | undefined, currentElements: Map<string, string>): SnapshotDelta | null {
@@ -142,9 +147,9 @@ export function deriveSnapshotMetadata(
   const signature = signatureOverride ?? computeSnapshotSignature(tree)
   const previous = snapshotStateByDevice.get(deviceKey)
   const hasValidTree = !!tree && !tree.error
-  const currentElementSignatures = hasValidTree
-    ? buildElementSignatures(tree)
-    : previous?.elementSignatures ?? new Map<string, string>()
+  const records = hasValidTree ? buildElementRecords(tree) : null
+  const currentElementSignatures = records?.signatures ?? previous?.elementSignatures ?? new Map<string, string>()
+  const currentElements = records?.elementsByIdentity ?? previous?.elements ?? new Map<string, UIElement>()
 
   let revision = 1
   if (previous) {
@@ -155,10 +160,17 @@ export function deriveSnapshotMetadata(
     }
   }
 
+  const history = previous?.history ?? new Map<number, Map<string, UIElement>>()
+  if (hasValidTree && signature !== previous?.signature) history.set(revision, currentElements)
+  while (history.size > 8) history.delete(history.keys().next().value as number)
+
   snapshotStateByDevice.set(deviceKey, {
     revision,
     signature,
-    elementSignatures: currentElementSignatures
+    elementSignatures: currentElementSignatures,
+    elements: currentElements,
+    history,
+    updatedAt: Date.now()
   })
 
   return {
@@ -166,6 +178,37 @@ export function deriveSnapshotMetadata(
     captured_at_ms: Date.now(),
     snapshot_delta: hasValidTree ? summarizeSnapshotDelta(previous, currentElementSignatures) : null,
     loading_state: detectLoadingState(tree, source)
+  }
+}
+
+export function getStateDelta(deviceKey: string, baseRevision: number, currentRevision: number) {
+  const state = snapshotStateByDevice.get(deviceKey)
+  const base = state?.history.get(baseRevision)
+  const current = state?.history.get(currentRevision)
+  if (!base || !current) return null
+
+  const added: UIElement[] = []
+  const changed: UIElement[] = []
+  const removed: Array<{ stable_id?: string, resourceId?: string, contentDescription?: string, text?: string, index: number }> = []
+  for (const [identity, element] of current) {
+    const before = base.get(identity)
+    if (!before) added.push(element)
+    else if (JSON.stringify(stableElementSignature(before)) !== JSON.stringify(stableElementSignature(element))) changed.push(element)
+  }
+  let index = 0
+  for (const [identity, element] of base) {
+    if (!current.has(identity)) removed.push({ stable_id: element.stable_id ?? undefined, resourceId: element.resourceId ?? undefined, contentDescription: element.contentDescription ?? undefined, text: element.text ?? undefined, index: index++ })
+  }
+  const all = added.length + changed.length + removed.length
+  const limit = 200
+  return {
+    base_snapshot_revision: baseRevision,
+    snapshot_revision: currentRevision,
+    added: added.slice(0, limit),
+    changed: changed.slice(0, Math.max(0, limit - added.length)),
+    removed: removed.slice(0, Math.max(0, limit - added.length - changed.length)),
+    truncated: all > limit,
+    ...(all > limit ? { omitted_changes: all - limit } : {})
   }
 }
 

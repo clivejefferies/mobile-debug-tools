@@ -24,6 +24,7 @@ import {
   requireObjectArg,
   requireStringArg,
   ToolCallArgs,
+  ToolCallResult,
   ToolHandler,
   wrapResponse,
   wrapToolError
@@ -36,16 +37,42 @@ type WaitForUiMatchArg = { index?: number }
 type WaitForUiRetryArg = { max_attempts?: number, backoff_ms?: number }
 type ScrollSelectorArg = { text?: string, resourceId?: string, contentDesc?: string, className?: string }
 type ClassifyNetworkRequestArg = { endpoint: string, status: 'success' | 'failure' | 'retryable' }
+type VerificationMode = 'none' | 'light' | 'full'
+type ResponseMode = 'compact' | 'debug'
+
+function interactionControls(args: ToolCallArgs) {
+  const verificationMode = (getStringArg(args, 'verificationMode') as VerificationMode | undefined) ?? 'full'
+  const responseMode = (getStringArg(args, 'responseMode') as ResponseMode | undefined) ?? 'debug'
+  if (!['none', 'light', 'full'].includes(verificationMode) || !['compact', 'debug'].includes(responseMode)) throw new Error('INVALID_ARGUMENT')
+  return { verificationMode, responseMode }
+}
+
+function compactAction(result: any, verificationMode: VerificationMode, started = true, stateDelta?: unknown) {
+  return {
+    action_id: result.action_id,
+    action_type: result.action_type,
+    success: !!result.success,
+    lifecycle_state: result.success ? (verificationMode === 'full' ? 'verified' : 'pending_verification') : 'failed',
+    ...(result.failure_code ? { failure_code: result.failure_code } : {}),
+    ...(typeof result.retryable === 'boolean' ? { retryable: result.retryable } : {}),
+    delivery_status: result.success ? 'delivered' : (started ? 'unknown' : 'not_delivered'),
+    dispatch_started: started,
+    verification: { mode: verificationMode, status: result.success ? (verificationMode === 'none' ? 'not_requested' : verificationMode === 'light' ? 'observed' : 'verified') : 'failed' },
+    ...(stateDelta ? { state_delta: stateDelta } : {}),
+    timing: { total_ms: 0 }
+  }
+}
 
 async function handleStartApp(args: ToolCallArgs) {
   const platform = requireStringArg(args, 'platform') as PlatformArg
   const appId = requireStringArg(args, 'appId')
   const deviceId = getStringArg(args, 'deviceId')
-  const uiFingerprintBefore = await captureActionFingerprint(platform, deviceId)
+  const { verificationMode, responseMode } = interactionControls(args)
+  const uiFingerprintBefore = verificationMode === 'full' ? await captureActionFingerprint(platform, deviceId) : null
   ToolsNetwork.notifyActionStart()
   const res = await (platform === 'android' ? new AndroidManage().startApp(appId, deviceId) : new iOSManage().startApp(appId, deviceId))
-  const uiFingerprintAfter = await captureActionFingerprint(platform, deviceId)
-  return wrapResponse(buildActionExecutionResult({
+  const uiFingerprintAfter = verificationMode === 'full' ? await captureActionFingerprint(platform, deviceId) : null
+  const result = buildActionExecutionResult({
     actionType: 'start_app',
     sourceModule: 'server',
     device: res.device,
@@ -61,7 +88,8 @@ async function handleStartApp(args: ToolCallArgs) {
       ...(typeof res.error === 'string' ? { error: res.error } : {}),
       ...(res.observedApp ? { observed_app: res.observedApp } : {})
     }
-  }))
+  })
+  return wrapResponse(responseMode === 'compact' ? compactAction(result, verificationMode) : result)
 }
 
 async function handleTerminateApp(args: ToolCallArgs) {
@@ -206,14 +234,17 @@ async function handleCaptureDebugSnapshot(args: ToolCallArgs) {
   const appId = getStringArg(args, 'appId')
   const deviceId = getStringArg(args, 'deviceId')
   const sessionId = getStringArg(args, 'sessionId')
-  const res = await ToolsObserve.captureDebugSnapshotHandler({ reason, includeLogs, logLines, platform, appId, deviceId, sessionId })
+  const includeScreenshot = getBooleanArg(args, 'includeScreenshot')
+  const res = await ToolsObserve.captureDebugSnapshotHandler({ reason, includeLogs, includeScreenshot, logLines, platform, appId, deviceId, sessionId })
   return wrapResponse(res)
 }
 
 async function handleGetUITree(args: ToolCallArgs) {
   const platform = requireStringArg(args, 'platform') as PlatformArg
   const deviceId = getStringArg(args, 'deviceId')
-  const res = await ToolsObserve.getUITreeHandler({ platform, deviceId })
+  const responseMode = (getStringArg(args, 'responseMode') as ResponseMode | undefined) ?? 'debug'
+  const sinceSnapshotRevision = getNumberArg(args, 'sinceSnapshotRevision')
+  const res = await ToolsObserve.getUITreeHandler({ platform, deviceId, responseMode, sinceSnapshotRevision })
   return wrapResponse(res)
 }
 
@@ -358,10 +389,71 @@ async function handleTap(args: ToolCallArgs) {
 }
 
 async function handleTapElement(args: ToolCallArgs) {
-  const elementId = requireStringArg(args, 'elementId')
+  const elementId = getStringArg(args, 'elementId')
+  const selector = getObjectArg<ExpectElementSelectorArg>(args, 'selector')
+  if ((elementId ? 1 : 0) + (selector ? 1 : 0) !== 1) throw new Error('Exactly one of elementId or selector is required')
+  const { verificationMode, responseMode } = interactionControls(args)
+  let resolvedId = elementId
+  if (selector) {
+    const waitFor = getObjectArg<WaitForUiMatchArg>(args, 'waitFor') as any
+    const resolution = await ToolsInteract.waitForUIHandler({ selector, condition: waitFor?.condition ?? 'clickable', timeout_ms: waitFor?.timeoutMs ?? 1500, poll_interval_ms: waitFor?.pollIntervalMs ?? 100, match: waitFor?.match, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') }) as any
+    if (resolution.status !== 'success' || !resolution.element?.elementId) return wrapResponse({ success: false, action_type: 'tap_element', failure_code: resolution.error?.code ?? 'ELEMENT_NOT_FOUND', retryable: true })
+    resolvedId = resolution.element.elementId
+  }
   ToolsNetwork.notifyActionStart()
-  const res = await ToolsInteract.tapElementHandler({ elementId })
-  return wrapResponse(res)
+  const res = await ToolsInteract.tapElementHandler({ elementId: resolvedId! }) as any
+  let delta: unknown
+  if (res.success && verificationMode === 'light') {
+    const tree = await ToolsObserve.getUITreeHandler({ platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId'), responseMode: 'compact' }) as any
+    delta = tree.state_delta
+  }
+  return wrapResponse(responseMode === 'compact' ? compactAction(res, verificationMode, true, delta) : res)
+}
+
+function payloadOf(response: ToolCallResult) {
+  const text = response.content.find((item: any) => item.type === 'text')?.text
+  return text ? JSON.parse(text) : null
+}
+
+async function handleRunJourney(args: ToolCallArgs) {
+  const platform = requireStringArg(args, 'platform') as PlatformArg
+  const deviceId = getStringArg(args, 'deviceId')
+  const responseMode = (getStringArg(args, 'responseMode') as ResponseMode | undefined) ?? 'compact'
+  const steps = getArrayArg<Record<string, unknown>>(args, 'steps')
+  if (!steps || steps.length === 0 || steps.length > 50) throw new Error('INVALID_ARGUMENT: steps must contain 1–50 entries')
+  const ids = steps.map((step) => step.id)
+  if (ids.some((id) => typeof id !== 'string') || new Set(ids).size !== ids.length) throw new Error('INVALID_ARGUMENT: step ids must be unique strings')
+  const started = Date.now()
+  const results: any[] = []
+  let stoppedAt: string | null = null
+  for (let index = 0; index < steps.length; index++) {
+    const step = steps[index]
+    const stepStart = Date.now()
+    let result: any
+    if (stoppedAt) {
+      results.push({ id: step.id, type: step.type, status: 'not_run', success: false, reason: 'PREVIOUS_STEP_FAILED', result: null, timing: { total_ms: 0 } })
+      continue
+    }
+    if (step.type === 'tap') {
+      result = payloadOf(await handleTapElement({ ...step, platform, deviceId, responseMode, verificationMode: (step.verificationMode as string | undefined) ?? 'light' }))
+    } else if (step.type === 'wait') {
+      result = await ToolsInteract.waitForUIHandler({ selector: step.selector as ExpectElementSelectorArg, condition: (step.condition as any) ?? 'exists', timeout_ms: (step.timeoutMs as number | undefined) ?? 5000, poll_interval_ms: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId })
+      result = { success: result.status === 'success', ...result }
+    } else if (step.type === 'assert') {
+      const assertion = step.assertion as any
+      if (assertion?.kind === 'element_visible') result = await ToolsInteract.expectElementVisibleHandler({ selector: assertion.selector, timeout_ms: (step.timeoutMs as number | undefined) ?? 5000, poll_interval_ms: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId })
+      else if (assertion?.kind === 'state_equals') result = await ToolsInteract.expectStateHandler({ selector: assertion.selector, element_id: assertion.elementId, property: assertion.property, expected: assertion.expected, platform, deviceId })
+      else result = { success: false, failure_code: 'INVALID_ASSERTION' }
+    } else if (step.type === 'start_app') {
+      result = payloadOf(await handleStartApp({ platform, deviceId, appId: step.appId, responseMode, verificationMode: (step.verificationMode as string | undefined) ?? 'full' }))
+    } else {
+      result = { success: false, failure_code: 'UNSUPPORTED_JOURNEY_STEP' }
+    }
+    const success = !!result?.success
+    results.push({ id: step.id, type: step.type, status: success ? 'passed' : 'failed', success, result, timing: { total_ms: Date.now() - stepStart } })
+    if (!success) stoppedAt = step.id as string
+  }
+  return wrapResponse({ success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, timing: { total_ms: Date.now() - started } })
 }
 
 async function handleSwipe(args: ToolCallArgs) {
@@ -528,6 +620,7 @@ export const toolHandlers: Record<string, ToolHandler> = {
   find_element: handleFindElement,
   tap: handleTap,
   tap_element: handleTapElement,
+  run_journey: handleRunJourney,
   swipe: handleSwipe,
   scroll_to_element: handleScrollToElement,
   type_text: handleTypeText,

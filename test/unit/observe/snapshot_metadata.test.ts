@@ -1,5 +1,5 @@
 import assert from 'assert'
-import { deriveSnapshotMetadata, resetSnapshotMetadataForTests } from '../../../src/observe/snapshot-metadata.js'
+import { deriveSnapshotMetadata, getStateDelta, resetSnapshotMetadataForTests } from '../../../src/observe/snapshot-metadata.js'
 
 async function run() {
   console.log('Starting snapshot_metadata unit tests...')
@@ -56,6 +56,15 @@ async function run() {
     mutated_elements: 1,
     total_elements: 1
   })
+
+  const delta = getStateDelta(deviceKey, 1, 2)
+  assert.ok(delta)
+  assert.strictEqual(delta!.added.length, 0)
+  assert.strictEqual(delta!.removed.length, 0)
+  assert.strictEqual(delta!.changed.length, 1)
+  assert.strictEqual(delta!.changed[0].text, 'Beta')
+  assert.strictEqual(delta!.truncated, false)
+  assert.strictEqual(getStateDelta(deviceKey, 99, 2), null)
 
   resetSnapshotMetadataForTests()
   console.log('snapshot_metadata unit tests passed')
