@@ -1,5 +1,6 @@
 import { spawn } from "child_process"
 import { remainingBudget } from '../utils/operation-budget.js'
+import { execCmd } from '../utils/exec.js'
 import { createObservationMeasurement } from './performance-metrics.js'
 import { promises as fs } from "fs"
 import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo, UIElementSemanticMetadata, UIElementState, UIResolutionSelector, SelectorConfidence } from "../types.js"
@@ -571,26 +572,11 @@ export class iOSObserve {
          }
 
          const output = await measurement.physicalRead(async () => {
-           const result = await new Promise<string>((resolve, reject) => {
-             const child = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
-             let stdout = '';
-             let stderr = '';
-
-             child.stdout.on('data', (data) => stdout += data.toString());
-             child.stderr.on('data', (data) => stderr += data.toString());
-
-             child.on('error', (err) => reject(new Error(`Failed to execute idb: ${err.message}`)));
-             
-             child.on('close', (code) => {
-                 if (code !== 0) {
-                     reject(new Error(`idb failed (code ${code}): ${stderr.trim()}`));
-                 } else {
-                     resolve(stdout);
-                 }
-             });
-           })
-           if (!result.trim()) throw new Error('Empty idb UI tree output')
-           return result
+           const result = await execCmd(getIdbCmd(), args, { timeout: remainingBudget() })
+           if (result.stderr === 'ACTION_TIMEOUT') throw new Error('ACTION_TIMEOUT')
+           if (result.exitCode !== 0) throw new Error(`idb failed (code ${result.exitCode}): ${result.stderr}`)
+           if (!result.stdout.trim()) throw new Error('Empty idb UI tree output')
+           return result.stdout
          })
 
          if (output && output.trim().length > 0) {

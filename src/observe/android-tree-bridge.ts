@@ -14,10 +14,12 @@ interface Bridge {
   hostPort: number
   child: ChildProcess
   closed: boolean
+  childClosed: boolean
 }
 
 const active = new Map<string, Bridge>()
 const starting = new Map<string, Promise<Bridge>>()
+const stopping = new Map<string, Promise<void>>()
 
 export function androidTreeBridgeEnabled(): boolean {
   return Boolean(process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK)
@@ -54,24 +56,47 @@ function request(bridge: Bridge, command: 'PING' | 'TREE' | 'STOP', timeoutMs: n
   })
 }
 
-async function stop(bridge: Bridge) {
-  if (bridge.closed) return
+function waitForChildClose(bridge: Bridge, timeoutMs: number): Promise<void> {
+  if (bridge.childClosed) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    const onClose = () => { clearTimeout(timer); resolve() }
+    const timer = setTimeout(() => {
+      bridge.child.off('close', onClose)
+      reject(new Error('Android UI tree bridge child did not exit'))
+    }, timeoutMs)
+    bridge.child.once('close', onClose)
+  })
+}
+
+async function stop(bridge: Bridge): Promise<void> {
+  const pending = stopping.get(bridge.deviceId)
+  if (pending) return pending
   bridge.closed = true
-  active.delete(bridge.deviceId)
-  try {
+  const cleanup = (async () => {
     await request(bridge, 'STOP', 1000).catch(() => '')
-    await unbudgetedAdb(bridge.deviceId, ['shell', 'am', 'force-stop', packageName])
-    if (bridge.child.exitCode === null && bridge.child.signalCode === null) {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('Android UI tree bridge child did not exit')), 5000)
-        bridge.child.once('close', () => { clearTimeout(timer); resolve() })
-      })
+    let forceStopError: unknown
+    try { await unbudgetedAdb(bridge.deviceId, ['shell', 'am', 'force-stop', packageName]) }
+    catch (error) { forceStopError = error }
+    try { await waitForChildClose(bridge, 1000) }
+    catch {
+      bridge.child.kill('SIGTERM')
+      try { await waitForChildClose(bridge, 1000) }
+      catch {
+        bridge.child.kill('SIGKILL')
+        await waitForChildClose(bridge, 2000).catch(() => {})
+      }
     }
-  } catch (error) {
-    throw new Error(`BRIDGE_CLEANUP_UNCONFIRMED: ${error instanceof Error ? error.message : String(error)}`)
-  } finally {
-    await unbudgetedAdb(bridge.deviceId, ['forward', '--remove', `tcp:${bridge.hostPort}`]).catch(() => {})
-  }
+    let forwardError: unknown
+    try { await unbudgetedAdb(bridge.deviceId, ['forward', '--remove', `tcp:${bridge.hostPort}`]) }
+    catch (error) { forwardError = error }
+    if (forceStopError || !bridge.childClosed || forwardError) {
+      const reason = forceStopError ?? (!bridge.childClosed ? 'instrumentation child did not close' : forwardError)
+      throw new Error(`BRIDGE_CLEANUP_UNCONFIRMED: ${reason instanceof Error ? reason.message : String(reason)}`)
+    }
+    if (active.get(bridge.deviceId) === bridge) active.delete(bridge.deviceId)
+  })()
+  stopping.set(bridge.deviceId, cleanup)
+  try { await cleanup } finally { stopping.delete(bridge.deviceId) }
 }
 
 async function launch(deviceId: string, apk: string): Promise<Bridge> {
@@ -86,14 +111,16 @@ async function launch(deviceId: string, apk: string): Promise<Bridge> {
   const hostPort = Number(await execAdb(['forward', 'tcp:0', `tcp:${devicePort}`], deviceId))
   if (!Number.isInteger(hostPort) || hostPort <= 0) throw new Error('Android UI tree bridge could not obtain a host port')
   const child = spawn(getAdbCmd(), ['-s', deviceId, 'shell', 'am', 'instrument', '-w', component], { stdio: 'ignore' })
-  const bridge: Bridge = { deviceId, hostPort, child, closed: false }
+  const bridge: Bridge = { deviceId, hostPort, child, closed: false, childClosed: false }
+  child.once('close', () => { bridge.childClosed = true })
+  child.once('error', () => { /* Startup detects the failed child before a tree read. */ })
+  active.set(deviceId, bridge)
   try {
     const deadline = Date.now() + Math.min(remainingBudget(3000), 3000)
     while (Date.now() < deadline) {
-      if (child.exitCode !== null) throw new Error('Android UI tree bridge exited during startup')
+      if (bridge.childClosed || child.exitCode !== null || child.signalCode !== null) throw new Error('Android UI tree bridge exited during startup')
       try {
         if ((await request(bridge, 'PING', 250)).startsWith('OK\n')) {
-          active.set(deviceId, bridge)
           return bridge
         }
       } catch { /* The instrumentation process may still be starting. */ }
@@ -107,11 +134,11 @@ async function launch(deviceId: string, apk: string): Promise<Bridge> {
 }
 
 async function ensure(deviceId: string, apk: string): Promise<Bridge> {
-  const ready = active.get(deviceId)
-  if (ready && !ready.closed && ready.child.exitCode === null && ready.child.signalCode === null) return ready
-  if (ready) await stop(ready)
   const pending = starting.get(deviceId)
   if (pending) return pending
+  const ready = active.get(deviceId)
+  if (ready && !ready.closed && !ready.childClosed && ready.child.exitCode === null && ready.child.signalCode === null) return ready
+  if (ready) await stop(ready)
   const promise = launch(deviceId, apk)
   starting.set(deviceId, promise)
   try { return await promise } finally { starting.delete(deviceId) }

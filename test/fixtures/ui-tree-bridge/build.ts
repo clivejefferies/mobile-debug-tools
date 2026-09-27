@@ -1,14 +1,19 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export function buildBridge() {
   const root = path.dirname(fileURLToPath(import.meta.url))
   const out = path.join(root, 'build')
-  const sdk = process.env.ANDROID_HOME ?? path.join(process.env.HOME!, 'Library/Android/sdk')
+  const sdk = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME ||
+    (process.platform === 'darwin' && process.env.HOME ? path.join(process.env.HOME, 'Library/Android/sdk') : '')
+  if (!sdk) throw new Error('Android SDK not found: set ANDROID_SDK_ROOT or ANDROID_HOME')
   const buildTools = path.join(sdk, 'build-tools', '36.0.0')
   const androidJar = path.join(sdk, 'platforms', 'android-36', 'android.jar')
+  if (!existsSync(androidJar) || !existsSync(buildTools)) {
+    throw new Error(`Android SDK 36 platform and build-tools 36.0.0 are required under ${sdk}`)
+  }
   const java = process.env.JAVA_HOME
   const tool = (name: string) => java ? path.join(java, 'bin', name) : name
   const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: out, stdio: 'pipe' })
