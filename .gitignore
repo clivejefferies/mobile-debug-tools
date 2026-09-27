@@ -3,6 +3,7 @@ node_modules/
 
 # TypeScript build output
 dist/
+test/fixtures/latency-journey-app/build/
 
 # Logs
 *.log

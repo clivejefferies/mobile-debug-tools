@@ -9,6 +9,7 @@ import { computeScreenFingerprint } from "../utils/ui/index.js"
 import { parsePngSize } from "../utils/image.js"
 import { deriveSnapshotMetadata } from "./snapshot-metadata.js"
 import { remainingBudget } from '../utils/operation-budget.js'
+import { createObservationMeasurement } from './performance-metrics.js'
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
@@ -18,12 +19,20 @@ export class AndroidObserve {
   }
 
   async getUITree(deviceId?: string): Promise<GetUITreeResponse> {
-    const metadata = await getAndroidDeviceMetadata("", deviceId)
+    const measurement = createObservationMeasurement('android')
+    let metadata
+    try {
+      metadata = await measurement.timed('metadata_ms', () => getAndroidDeviceMetadata("", deviceId))
+    } catch (error) {
+      measurement.setOutcome('unavailable')
+      measurement.finish()
+      throw error
+    }
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
       // Get screen resolution first
-      const resolution = await getScreenResolution(deviceId);
+      const resolution = await measurement.timed('resolution_ms', () => getScreenResolution(deviceId));
       if (resolution.width === 0 && resolution.height === 0) {
           throw new Error("Failed to get screen resolution. Is the device connected and authorized?");
       }
@@ -37,20 +46,20 @@ export class AndroidObserve {
         remainingBudget()
         attempts++;
         try {
-           // Stabilization delay
-           await delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100))); // 300ms, 400ms, 500ms...
+           // The first read starts immediately so it remains fresh for in-place UI changes.
+           // Delay only a retry after a failed or invalid acquisition.
+           if (attempts > 1) {
+             await measurement.timed('observation_wait_ms', () => delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100))));
+           }
            remainingBudget()
 
-           // Dump UI hierarchy
-           await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId);
-           
-           // Read the file
-           xmlContent = await execAdb(['shell', 'cat', '/sdcard/ui.xml'], deviceId);
-           
-           // Check validity
-           if (xmlContent && xmlContent.trim().length > 0 && !xmlContent.includes("ERROR:")) {
-              break; // Success
-           }
+           xmlContent = await measurement.physicalRead(async () => {
+             await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId)
+             const content = await execAdb(['shell', 'cat', '/sdcard/ui.xml'], deviceId)
+             if (!content || !content.trim() || content.includes('ERROR:')) throw new Error('Empty or invalid UI dump')
+             return content
+           })
+           break
         } catch (e) {
            if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
            console.error(`Attempt ${attempts} failed: ${e}`);
@@ -65,7 +74,7 @@ export class AndroidObserve {
         ignoreAttributes: false,
         attributeNamePrefix: "@_"
       });
-      const result = parser.parse(xmlContent);
+      const result = await measurement.timed('parse_ms', async () => parser.parse(xmlContent));
       
       const elements: UIElement[] = [];
       
@@ -85,17 +94,22 @@ export class AndroidObserve {
         elements
       }, 'ui_tree')
 
-      return {
+      measurement.setOutcome('observed')
+      const response = measurement.bindObservation({
         device: deviceInfo,
         screen: "",
         resolution,
         elements,
         ...snapshotMetadata
-      };
+      })
+      measurement.finish()
+      return response
     } catch (e) {
       const errorMessage = `Failed to get UI tree. ADB Path: '${getAdbCmd()}'. Error: ${e instanceof Error ? e.message : String(e)}`;
       console.error(errorMessage);
       const snapshotMetadata = deriveSnapshotMetadata(`android:${deviceInfo.id}`, null, 'ui_tree')
+      measurement.setOutcome('unavailable')
+      measurement.finish()
       return {
           device: deviceInfo,
           screen: "",

@@ -14,6 +14,7 @@ import { ToolsObserve } from '../observe/index.js'
 import { classifyActionOutcome } from '../interact/classify.js'
 import { ToolsNetwork } from '../network/index.js'
 import { getSystemStatus } from '../system/index.js'
+import { recordObservationConsumer, recordObservationEvent, withObservationContext } from '../observe/performance-metrics.js'
 import {
   buildActionExecutionResult,
   captureActionFingerprint,
@@ -102,12 +103,27 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
     if (!result.success && typeof result.retryable !== 'boolean') result.retryable = !dispatchStarted
     result.action_id ??= randomUUID()
     result.action_type ??= type
+    recordObservationEvent({
+      step_id: args._stepId as string | undefined,
+      action_type: type,
+      dispatch_ms: timing.dispatch_ms,
+      verification_mode: controls.verificationMode,
+      dispatch_started: dispatchStarted
+    })
     let delta: unknown
     let observationAvailable = false
     if (result.success && controls.verificationMode === 'light') {
-      const tree = await measure('post_observation_ms', () => runWithBudget(controls.verificationTimeoutMs, () =>
-        ToolsObserve.getUITreeHandler({ platform: (args.platform as PlatformArg | undefined) ?? result.device?.platform, deviceId: (args.deviceId as string | undefined) ?? result.device?.id }))).catch(() => null) as any
+      const verificationStarted = performance.now()
+      const tree = await withObservationContext({ stepId: args._stepId as string | undefined, purpose: 'verification' }, () =>
+        measure('post_observation_ms', () => runWithBudget(controls.verificationTimeoutMs, () =>
+          ToolsObserve.getUITreeHandler({ platform: (args.platform as PlatformArg | undefined) ?? result.device?.platform, deviceId: (args.deviceId as string | undefined) ?? result.device?.id })))).catch(() => null) as any
       observationAvailable = !!tree && !tree.error
+      recordObservationEvent({
+        verification_budget_ms: controls.verificationTimeoutMs,
+        verification_elapsed_ms: performance.now() - verificationStarted,
+        verification_outcome: observationAvailable ? 'observed' : 'unavailable',
+        verification_budget_expired: !observationAvailable && performance.now() - verificationStarted >= controls.verificationTimeoutMs
+      })
       if (observationAvailable && tree.device) delta = ToolsObserve.getLatestStateDelta(tree.device.platform, tree.device.id) ?? undefined
     }
     const compact = compactAction(result, controls.verificationMode, dispatchStarted, delta, performance.now() - started)
@@ -321,7 +337,9 @@ async function handleGetUITree(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const responseMode = (getStringArg(args, 'responseMode') as ResponseMode | undefined) ?? 'debug'
   const sinceSnapshotRevision = getNumberArg(args, 'sinceSnapshotRevision')
-  const res = await ToolsObserve.getUITreeHandler({ platform, deviceId, responseMode, sinceSnapshotRevision })
+  const metricsStepId = process.env.MOBILE_DEBUG_MCP_UI_TREE_METRICS === '1' ? getStringArg(args, '_metricsStepId') : undefined
+  const res = await withObservationContext({ stepId: metricsStepId, purpose: metricsStepId?.includes('post-response') ? 'assertion' : 'debug' }, () =>
+    ToolsObserve.getUITreeHandler({ platform, deviceId, responseMode, sinceSnapshotRevision }))
   return wrapResponse(res)
 }
 
@@ -441,7 +459,9 @@ async function handleFindElement(args: ToolCallArgs) {
   const timeoutMs = getNumberArg(args, 'timeoutMs') ?? 3000
   const platform = getStringArg(args, 'platform') as PlatformArg | undefined
   const deviceId = getStringArg(args, 'deviceId')
-  const res = await ToolsInteract.findElementHandler({ query, exact, timeoutMs, platform, deviceId })
+  const targetStarted = performance.now()
+  const res = await withObservationContext({ purpose: 'target' }, () => ToolsInteract.findElementHandler({ query, exact, timeoutMs, platform, deviceId }))
+  recordObservationEvent({ target_resolution_ms: performance.now() - targetStarted, target_resolution_outcome: res.found ? 'found' : 'not_found', operation: 'find_element' })
   return wrapResponse(res)
 }
 
@@ -477,12 +497,16 @@ async function executeTapElement(args: ToolCallArgs) {
   let freshTree: any
   if (selector) {
     const waitFor = getObjectArg<WaitForUiMatchArg>(args, 'waitFor') as any
-    const resolution = await measure('target_resolution_ms', () => runWithBudget(waitFor?.timeoutMs ?? 1500, () => ToolsInteract.waitForUIHandler({ selector, condition: waitFor?.condition ?? 'clickable', timeout_ms: waitFor?.timeoutMs ?? 1500, poll_interval_ms: waitFor?.pollIntervalMs ?? 100, match: waitFor?.match, singleObservation: true, singleAttempt: !waitFor, rejectAmbiguous: !waitFor, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') }))) as any
+    const targetStarted = performance.now()
+    const resolution = await withObservationContext({ stepId: args._stepId as string | undefined, purpose: 'target' }, () =>
+      measure('target_resolution_ms', () => runWithBudget(waitFor?.timeoutMs ?? 1500, () => ToolsInteract.waitForUIHandler({ selector, condition: waitFor?.condition ?? 'clickable', timeout_ms: waitFor?.timeoutMs ?? 1500, poll_interval_ms: waitFor?.pollIntervalMs ?? 100, match: waitFor?.match, singleObservation: true, singleAttempt: !waitFor, rejectAmbiguous: !waitFor, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') })))) as any
+    recordObservationEvent({ step_id: args._stepId as string | undefined, purpose: 'target', target_resolution_ms: performance.now() - targetStarted, target_resolution_outcome: resolution.status })
     if (resolution.status !== 'success' || !resolution.element?.elementId) return wrapResponse({ success: false, action_type: 'tap_element', failure_code: resolution.error?.code ?? 'ELEMENT_NOT_FOUND', retryable: true })
     resolvedId = resolution.element.elementId
     freshTree = resolution._tree
   }
   ToolsNetwork.notifyActionStart()
+  if (freshTree) recordObservationConsumer(freshTree, 'target', args._stepId as string | undefined)
   const res = await measure('dispatch_ms', () => ToolsInteract.tapElementHandler({ elementId: resolvedId!, freshTree, verificationMode, timeoutMs: actionTimeoutMs, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') })) as any
   return wrapResponse(res)
 }
@@ -549,12 +573,12 @@ async function handleRunJourney(args: ToolCallArgs) {
     }
     try {
     if (step.type === 'tap') {
-      result = payloadOf(await handleTapElement({ ...defaults, ...step, platform, deviceId, responseMode, _journey: true, verificationMode: lightCoveredByAssertion ? 'none' : requestedVerification }))
+      result = payloadOf(await handleTapElement({ ...defaults, ...step, platform, deviceId, responseMode, _journey: true, _stepId: step.id, verificationMode: lightCoveredByAssertion ? 'none' : requestedVerification }))
     } else if (step.type === 'wait') {
-      result = await ToolsInteract.waitForUIHandler({ selector: step.selector as ExpectElementSelectorArg, condition: (step.condition as any) ?? 'exists', timeout_ms: (step.timeoutMs as number | undefined) ?? 5000, poll_interval_ms: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId })
+      result = await withObservationContext({ stepId: step.id, purpose: 'target' }, () => ToolsInteract.waitForUIHandler({ selector: step.selector as ExpectElementSelectorArg, condition: (step.condition as any) ?? 'exists', timeout_ms: (step.timeoutMs as number | undefined) ?? 5000, poll_interval_ms: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId }))
       result = { success: result.status === 'success', ...result }
     } else if (step.type === 'assert') {
-      result = await runWithBudget((step.timeoutMs as number | undefined) ?? 5000, async () => {
+      result = await withObservationContext({ stepId: step.id, purpose: 'assertion' }, () => runWithBudget((step.timeoutMs as number | undefined) ?? 5000, async () => {
       const assertion = step.assertion as any
       if (assertion?.kind === 'element_visible') result = await ToolsInteract.expectElementVisibleHandler({ selector: assertion.selector, timeout_ms: (step.timeoutMs as number | undefined) ?? 5000, poll_interval_ms: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId })
       else if (assertion?.kind === 'element_absent') result = await expectElementAbsent({ selector: assertion.selector, timeoutMs: (step.timeoutMs as number | undefined) ?? 5000, pollIntervalMs: (step.pollIntervalMs as number | undefined) ?? 100, platform, deviceId })
@@ -562,9 +586,9 @@ async function handleRunJourney(args: ToolCallArgs) {
       else if (assertion?.kind === 'state_equals') result = await ToolsInteract.expectStateHandler({ selector: assertion.selector, element_id: assertion.elementId, property: assertion.property, expected: assertion.expected, platform, deviceId, stabilization_window_ms: step.timeoutMs ?? 5000, poll_interval_ms: step.pollIntervalMs ?? 100, exact_budget: true })
       else result = { success: false, failure_code: 'INVALID_ASSERTION' }
       return result
-      })
+      }))
     } else if (step.type === 'start_app') {
-      result = payloadOf(await handleStartApp({ ...defaults, platform, deviceId, appId: step.appId, responseMode, _journey: true, verificationMode: step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
+      result = payloadOf(await handleStartApp({ ...defaults, platform, deviceId, appId: step.appId, responseMode, _journey: true, _stepId: step.id, verificationMode: step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
     } else {
       result = { success: false, failure_code: 'UNSUPPORTED_JOURNEY_STEP' }
     }

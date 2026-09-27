@@ -1,10 +1,23 @@
 import assert from 'node:assert/strict'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { runWithBudget, remainingBudget, markDispatchStarted } from '../../../src/utils/operation-budget.js'
 import { execCmd } from '../../../src/utils/exec.js'
 import { ToolsInteract } from '../../../src/interact/index.js'
 import { ToolsObserve } from '../../../src/observe/index.js'
 
 async function run() {
+  const markerDir = mkdtempSync(path.join(tmpdir(), 'mcp-exec-close-'))
+  try {
+    const marker = path.join(markerDir, 'closed')
+    const command = `process.on('SIGTERM', () => setTimeout(() => { require('fs').writeFileSync(${JSON.stringify(marker)}, 'closed'); process.exit(0) }, 50)); setInterval(() => {}, 1000)`
+    const response = await execCmd(process.execPath, ['-e', command], { timeout: 250 })
+    assert.equal(response.stderr, 'ACTION_TIMEOUT')
+    assert.equal(existsSync(marker), true, 'timeout must await child close before returning')
+  } finally {
+    rmSync(markerDir, { recursive: true, force: true })
+  }
   await runWithBudget(100, async budget => {
     assert.equal(budget.dispatchStarted, false)
     markDispatchStarted()

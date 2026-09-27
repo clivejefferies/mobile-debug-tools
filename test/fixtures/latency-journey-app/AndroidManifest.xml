@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.mobiledebugmcp.latencyfixture" android:versionCode="1" android:versionName="1.0">
+  <uses-permission android:name="android.permission.INTERNET"/>
   <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="35"/>
-  <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Latency fixture" android:allowBackup="false">
+  <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Latency fixture" android:allowBackup="false" android:usesCleartextTraffic="true">
     <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   </application>
 </manifest>

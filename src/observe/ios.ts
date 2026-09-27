@@ -1,5 +1,6 @@
 import { spawn } from "child_process"
 import { remainingBudget } from '../utils/operation-budget.js'
+import { createObservationMeasurement } from './performance-metrics.js'
 import { promises as fs } from "fs"
 import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo, UIElementSemanticMetadata, UIElementState, UIResolutionSelector, SelectorConfidence } from "../types.js"
 import { execCommand, getIOSDeviceMetadata, validateBundleId, getIdbCmd, getXcrunCmd, isIDBInstalled } from "../utils/ios/utils.js"
@@ -525,12 +526,22 @@ export class iOSObserve {
   }
 
   async getUITree(deviceId: string = "booted"): Promise<GetUITreeResponse> {
-    const device = await getIOSDeviceMetadata(deviceId);
+    const measurement = createObservationMeasurement('ios')
+    let device
+    try {
+      device = await measurement.timed('metadata_ms', () => getIOSDeviceMetadata(deviceId))
+    } catch (error) {
+      measurement.setOutcome('unavailable')
+      measurement.finish()
+      throw error
+    }
     const deviceKey = `ios:${device.id}`
     
-    const idbExists = await isIDBInstalled();
+    const idbExists = await measurement.timed('capability_check_ms', () => isIDBInstalled());
     if (!idbExists) {
        const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
+       measurement.setOutcome('unavailable')
+       measurement.finish()
        return {
           device,
           screen: "",
@@ -551,7 +562,7 @@ export class iOSObserve {
       remainingBudget()
       attempts++;
       try {
-         await delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100)));
+         await measurement.timed('observation_wait_ms', () => delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100))));
          remainingBudget()
 
          const args = ['ui', 'describe-all', '--json'];
@@ -559,7 +570,8 @@ export class iOSObserve {
             args.push('--udid', targetUdid);
          }
 
-         const output = await new Promise<string>((resolve, reject) => {
+         const output = await measurement.physicalRead(async () => {
+           const result = await new Promise<string>((resolve, reject) => {
              const child = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
              let stdout = '';
              let stderr = '';
@@ -576,10 +588,13 @@ export class iOSObserve {
                      resolve(stdout);
                  }
              });
-         });
+           })
+           if (!result.trim()) throw new Error('Empty idb UI tree output')
+           return result
+         })
 
          if (output && output.trim().length > 0) {
-             jsonContent = JSON.parse(output);
+             jsonContent = await measurement.timed('parse_ms', async () => JSON.parse(output));
              break; // Success
          }
       } catch (e) {
@@ -589,6 +604,8 @@ export class iOSObserve {
       
        if (attempts === maxAttempts) {
            const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
+           measurement.setOutcome('unavailable')
+           measurement.finish()
            return {
                device,
                screen: "",
@@ -601,14 +618,15 @@ export class iOSObserve {
     }
 
     try {
-        const elements: UIElement[] = [];
-        if (Array.isArray(jsonContent)) {
-          for (const node of jsonContent) {
-            traverseIDBNode(node, elements);
+        const elements: UIElement[] = await measurement.timed('conversion_ms', async () => {
+          const parsed: UIElement[] = []
+          if (Array.isArray(jsonContent)) {
+            for (const node of jsonContent) traverseIDBNode(node, parsed)
+          } else {
+            traverseIDBNode(jsonContent, parsed)
           }
-        } else {
-          traverseIDBNode(jsonContent, elements);
-        }
+          return parsed
+        })
 
         let width = 0;
         let height = 0;
@@ -624,15 +642,20 @@ export class iOSObserve {
           elements
         }, 'ui_tree')
 
-        return {
-            device,
-            screen: "",
-            resolution: { width, height },
-            elements,
-            ...snapshotMetadata
-        };
+        measurement.setOutcome('observed')
+        const response = measurement.bindObservation({
+          device,
+          screen: "",
+          resolution: { width, height },
+          elements,
+          ...snapshotMetadata
+        })
+        measurement.finish()
+        return response
     } catch (e) {
          const snapshotMetadata = deriveSnapshotMetadata(deviceKey, null, 'ui_tree')
+         measurement.setOutcome('unavailable')
+         measurement.finish()
           return {
             device,
             screen: "",
