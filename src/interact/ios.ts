@@ -1,3 +1,4 @@
+import { remainingBudget, markDispatchStarted } from '../utils/operation-budget.js'
 import { spawn } from "child_process"
 import { TapResponse, SwipeResponse } from "../types.js"
 import { getIOSDeviceMetadata, getIdbCmd, isIDBInstalled } from "../utils/ios/utils.js"
@@ -31,7 +32,8 @@ export class iOSInteract {
       }
 
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn(getIdbCmd(), args);
+        markDispatchStarted()
+        const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
         let stderr = '';
         proc.stderr.on('data', d => stderr += d.toString());
         proc.on('close', code => {
@@ -72,7 +74,8 @@ export class iOSInteract {
       }
 
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn(getIdbCmd(), args);
+        markDispatchStarted()
+        const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
         let stderr = '';
         proc.stderr.on('data', d => stderr += d.toString());
         proc.on('close', code => {

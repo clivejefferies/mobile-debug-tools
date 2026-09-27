@@ -1,9 +1,11 @@
+import { remainingBudget } from './operation-budget.js'
 import { spawn } from 'child_process'
 
 export type ExecOptions = { timeout?: number; env?: NodeJS.ProcessEnv; cwd?: string; shell?: boolean }
 
 export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {}): Promise<{ exitCode: number | null, stdout: string, stderr: string }> {
-  const { timeout = 0, env, cwd, shell } = opts
+  const { env, cwd, shell } = opts
+  const timeout = remainingBudget(opts.timeout ?? 0)
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { env: { ...process.env, ...(env || {}) }, cwd, shell })
     let stdout = ''
@@ -15,7 +17,7 @@ export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {
     const timer = timeout && timeout > 0 ? setTimeout(() => {
       timedOut = true
       try { child.kill() } catch { }
-      resolve({ exitCode: null, stdout: stdout.trim(), stderr: stderr.trim() })
+      resolve({ exitCode: null, stdout: stdout.trim(), stderr: 'ACTION_TIMEOUT' })
     }, timeout) : null
 
     child.on('close', (code) => {

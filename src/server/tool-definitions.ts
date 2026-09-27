@@ -1,4 +1,6 @@
-export const toolDefinitions = [
+import { journeyStepsJson } from './journey-schema.js'
+
+export const toolDefinitions: any[] = [
   {
     name: 'start_app',
     description: `Purpose:
@@ -736,7 +738,11 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device Serial/UDID. Defaults to connected/booted device.'
-        }
+        },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        actionTimeoutMs: { type: 'number', minimum: 100, maximum: 30000 },
+        verificationTimeoutMs: { type: 'number', minimum: 100, maximum: 60000 }
       },
       required: ['x', 'y']
     }
@@ -1121,3 +1127,24 @@ Returns { requests: [], count: 0 } when no credible network signals are found.`,
     }
   }
 ]
+
+// Keep the additive execution controls consistent across all action tools.
+for (const tool of toolDefinitions) {
+  if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
+    Object.assign(tool.inputSchema.properties, {
+      verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+      responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+      actionTimeoutMs: { type: 'integer', description: 'Dispatch budget in milliseconds, clamped to 100–30000.' },
+      verificationTimeoutMs: { type: 'integer', description: 'Light observation budget in milliseconds, clamped to 100–60000.' }
+    })
+  }
+  if (tool.name === 'tap_element') Object.assign(tool.inputSchema, { oneOf: [{ required: ['elementId'], not: { required: ['selector'] } }, { required: ['selector'], not: { required: ['elementId'] } }] })
+  if (tool.name === 'run_journey') Object.assign(tool.inputSchema.properties, {
+    steps: journeyStepsJson,
+    captureOnFailure: { type: 'boolean', default: false },
+    defaults: { type: 'object', additionalProperties: false, properties: {
+      verificationMode: { type: 'string', enum: ['none', 'light', 'full'] },
+      actionTimeoutMs: { type: 'integer' }, verificationTimeoutMs: { type: 'integer' }
+    } }
+  })
+}

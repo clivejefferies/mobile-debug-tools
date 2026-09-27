@@ -1,3 +1,4 @@
+import { markDispatchStarted } from '../utils/operation-budget.js'
 import { TapResponse, SwipeResponse, TypeTextResponse, PressBackResponse } from "../types.js"
 import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "../utils/android/utils.js"
 import { AndroidObserve } from "../observe/index.js"
@@ -7,31 +8,33 @@ import { scrollToElementShared } from "../utils/ui/index.js"
 export class AndroidInteract {
   private observe = new AndroidObserve();
 
-  async tap(x: number, y: number, deviceId?: string): Promise<TapResponse> {
+  async tap(x: number, y: number, deviceId?: string, timeoutMs?: number): Promise<TapResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
-      await execAdb(['shell', 'input', 'tap', x.toString(), y.toString()], deviceId)
+      markDispatchStarted()
+      await execAdb(['shell', 'input', 'tap', x.toString(), y.toString()], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, x, y }
     } catch (e) {
       return { device: deviceInfo, success: false, x, y, error: e instanceof Error ? e.message : String(e) }
     }
   }
 
-  async swipe(x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string): Promise<SwipeResponse> {
+  async swipe(x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string, timeoutMs?: number): Promise<SwipeResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
-      await execAdb(['shell', 'input', 'swipe', x1.toString(), y1.toString(), x2.toString(), y2.toString(), duration.toString()], deviceId)
+      markDispatchStarted()
+      await execAdb(['shell', 'input', 'swipe', x1.toString(), y1.toString(), x2.toString(), y2.toString(), duration.toString()], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, start: [x1, y1], end: [x2, y2], duration }
     } catch (e) {
       return { device: deviceInfo, success: false, start: [x1, y1], end: [x2, y2], duration, error: e instanceof Error ? e.message : String(e) }
     }
   }
 
-  async typeText(text: string, deviceId?: string): Promise<TypeTextResponse> {
+  async typeText(text: string, deviceId?: string, timeoutMs?: number): Promise<TypeTextResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
@@ -39,19 +42,21 @@ export class AndroidInteract {
       // Encode spaces as %s to ensure proper input handling by adb shell input text
       const encodedText = text.replace(/\s/g, '%s')
       // Note: 'input text' might fail with some characters or if keyboard isn't ready, but it's the standard ADB way.
-      await execAdb(['shell', 'input', 'text', encodedText], deviceId)
+      markDispatchStarted()
+      await execAdb(['shell', 'input', 'text', encodedText], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, text }
     } catch (e) {
       return { device: deviceInfo, success: false, text, error: e instanceof Error ? e.message : String(e) }
     }
   }
 
-  async pressBack(deviceId?: string): Promise<PressBackResponse> {
+  async pressBack(deviceId?: string, timeoutMs?: number): Promise<PressBackResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
-      await execAdb(['shell', 'input', 'keyevent', '4'], deviceId)
+      markDispatchStarted()
+      await execAdb(['shell', 'input', 'keyevent', '4'], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true }
     } catch (e) {
       return { device: deviceInfo, success: false, error: e instanceof Error ? e.message : String(e) }

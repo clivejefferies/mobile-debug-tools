@@ -49,7 +49,7 @@ async function run() {
 
   const tapElement = toolDefinitions.find((tool) => tool.name === 'tap_element')
   assert(tapElement, 'tap_element should be registered')
-  assert.deepStrictEqual((tapElement as any).inputSchema.required, ['elementId'])
+  assert.deepStrictEqual((tapElement as any).inputSchema.oneOf, [{ required: ['elementId'], not: { required: ['selector'] } }, { required: ['selector'], not: { required: ['elementId'] } }])
   assert.match((tapElement as any).description, /RESOLVE → ACT → WAIT \(if needed\) → EXPECT/)
   assert.match((tapElement as any).description, /If needed, wait for transition using wait_for_\*/)
   assert.match((tapElement as any).description, /Verify outcome using expect_\*/)

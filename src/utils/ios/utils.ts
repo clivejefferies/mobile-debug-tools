@@ -1,3 +1,4 @@
+import { remainingBudget } from '../operation-budget.js'
 import { execFile, spawn, execSync, spawnSync } from "child_process"
 import { DeviceInfo } from "../../types.js"
 import { promises as fsPromises } from 'fs'
@@ -86,6 +87,7 @@ export function validateBundleId(bundleId: string) {
 export function execCommand(args: string[], deviceId: string = "booted"): Promise<IOSResult> {
   return new Promise((resolve, reject) => {
     // Use spawn for better stream control and consistency with Android implementation
+    const budgetMs = remainingBudget()
     const child = spawn(getXcrunCmd(), args)
     
     let stdout = ''
@@ -105,7 +107,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
 
     const DEFAULT_XCRUN_LOG_TIMEOUT = parseInt(process.env.MCP_XCRUN_LOG_TIMEOUT || '', 10) || 30000 // env (ms) or default 30s
   const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000 // env (ms) or default 60s
-  const timeoutMs = args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT // choose appropriate timeout
+  const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT) // choose appropriate timeout
     const timeout = setTimeout(() => {
       child.kill()
       reject(new Error(`Command timed out after ${timeoutMs}ms: ${getXcrunCmd()} ${args.join(' ')}`))
@@ -128,10 +130,11 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
 }
 
 export function execCommandWithDiagnostics(args: string[], deviceId: string = "booted") {
+  const budgetMs = remainingBudget()
   // Run synchronously to capture stdout/stderr and exitCode reliably for diagnostics
   const DEFAULT_XCRUN_LOG_TIMEOUT = parseInt(process.env.MCP_XCRUN_LOG_TIMEOUT || '', 10) || 30000
   const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000
-  const timeoutMs = args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT
+  const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT)
   const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs }) as any
   const runResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,

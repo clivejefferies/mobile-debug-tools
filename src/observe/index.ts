@@ -1,3 +1,4 @@
+import { measure } from '../utils/timing.js'
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { AndroidObserve } from './android.js'
 import { iOSObserve } from './ios.js'
@@ -5,7 +6,7 @@ import type {
   CaptureDebugSnapshotRawResponse,
   SnapshotSemanticResponse
 } from '../types.js'
-import { deriveSnapshotMetadata, getStateDelta } from './snapshot-metadata.js'
+import { deriveSnapshotMetadata, getLatestStateDelta, getStateDelta } from './snapshot-metadata.js'
 
 export { AndroidObserve } from './android.js'
 export { iOSObserve } from './ios.js'
@@ -149,6 +150,9 @@ function deriveSnapshotSemantic(raw: CaptureDebugSnapshotRawResponse): SnapshotS
 }
 
 export class ToolsObserve {
+  static getLatestStateDelta(platform: 'android' | 'ios', deviceId: string) {
+    return getLatestStateDelta(`${platform}:${deviceId}`)
+  }
   // Resolve a target device and return the appropriate observe instance and resolved info.
   private static async resolveObserve(platform?: 'android' | 'ios', deviceId?: string, appId?: string) {
     if (platform === 'android') {
@@ -273,7 +277,7 @@ export class ToolsObserve {
     // Parallel fetches for performance: screenshot, current screen, fingerprint, ui tree, and log stream/get logs
     const sid = sessionId || 'default'
     const tasks: Record<string, Promise<any>> = {
-      screenshot: includeScreenshot ? ToolsObserve.captureScreenshotHandler({ platform, deviceId }) : Promise.resolve(null),
+      screenshot: includeScreenshot ? measure('screenshot_ms', () => ToolsObserve.captureScreenshotHandler({ platform, deviceId })) : Promise.resolve(null),
       currentScreen: (!platform || platform === 'android') ? ToolsObserve.getCurrentScreenHandler({ deviceId }) : Promise.resolve(null),
       fingerprint: ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }),
       uiTree: ToolsObserve.getUITreeHandler({ platform, deviceId }),

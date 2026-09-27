@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft
+Implemented; Android validation passed. iOS device validation pending.
 
 ## 1. Summary
 
@@ -158,6 +158,8 @@ For each `(platform, deviceId)`, the server retains normalized node records for 
 
 For a `light` action, the server takes exactly one post-dispatch tree. It computes `state_delta` against the most recent retained revision for the same device, if one exists; otherwise it returns `state_delta: undefined` and `state_delta_available: false`. It never takes a pre-dispatch tree merely to create a delta. The returned `base_snapshot_revision` tells the client whether its local state can safely apply that delta.
 
+Within `run_journey`, an immediately following `element_visible` assertion may supply that fresh post-dispatch tree for a `light` tap. The tap reports `verification.status: "observed"` when the assertion returns a matched count, even if the assertion fails; it reports `"unavailable"` with a retryable diagnostic if the observation cannot be confirmed.
+
 `capture_debug_snapshot` adds `includeScreenshot?: boolean`, defaulting to `true` for compatibility. New compact callers MUST set it explicitly; `includeScreenshot: false` collects no screenshot. `capture_screenshot` remains the explicit screenshot tool. No interaction tool captures a screenshot unless its request explicitly asks for one through its observation configuration.
 
 ## 9. `run_journey`
@@ -173,7 +175,6 @@ For a `light` action, the server takes exactly one post-dispatch tree. It comput
   defaults?: { verificationMode?: "none" | "light" | "full", actionTimeoutMs?: number, verificationTimeoutMs?: number },
   steps: Array<
     { id: string, type: "start_app", appId: string, verificationMode?: VerificationMode } |
-    { id: string, type: "open_notification", appId: string, notificationTag: string, timeoutMs?: number } |
     { id: string, type: "wait", selector: Selector, condition?: "exists" | "not_exists" | "visible" | "clickable", timeoutMs?: number, pollIntervalMs?: number } |
     { id: string, type: "tap", selector?: Selector, elementId?: string, waitFor?: WaitFor, verificationMode?: VerificationMode } |
     { id: string, type: "assert", assertion: ElementVisibleAssertion | ElementAbsentAssertion | ScreenFingerprintAssertion | StateEqualsAssertion, timeoutMs?: number, pollIntervalMs?: number }
@@ -194,7 +195,7 @@ type StateEqualsAssertion = {
 }
 ```
 
-Step IDs must be unique. Maximum steps: 50. A journey validates its complete schema before device work begins. `tap` requires exactly one target. `state_equals` requires exactly one of `selector` or `elementId`; every other assertion rejects irrelevant fields. `start_app` is the journey equivalent of `start_app`. `open_notification` is Android-only: it opens the active notification whose package and tag exactly match its fields within its supplied timeout (default 5,000 ms; range 100–30,000 ms). No match returns `NOTIFICATION_NOT_FOUND`; a matching notification whose content intent cannot be sent returns `NOTIFICATION_OPEN_FAILED`. iOS returns `PLATFORM_NOT_SUPPORTED`.
+Step IDs must be unique. Maximum steps: 50. A journey validates its complete schema before device work begins. `tap` requires exactly one target. `state_equals` requires exactly one of `selector` or `elementId`; every other assertion rejects irrelevant fields. `start_app` is the journey equivalent of `start_app`.
 
 Journey assertions use a 5,000 ms timeout and 100 ms poll interval unless supplied; their ranges are 100–60,000 ms and 50–1,000 ms. `element_visible` is the existing `expect_element_visible` predicate. `element_absent` is a new journey-only predicate: zero matching nodes must be seen in two fresh trees at least 100 ms apart, within the assertion timeout. `screen_fingerprint` matches the current fingerprint on two consecutive reads 100 ms apart. `state_equals` uses the existing `expect_state` stabilization contract, with the journey's supplied or default timeout and poll interval applied as that contract's budget and observation interval; it does not add a second two-read rule. Assertions return `ASSERTION_TIMEOUT` on budget expiry and include the last observed value or matched count. A `wait` remains synchronization, not proof of a business outcome.
 
@@ -246,15 +247,15 @@ A checked-in benchmark script must emit JSON and Markdown to `docs/benchmarks/in
 
 ## 11. Benchmark protocol and acceptance criteria
 
-The repository owns an Android benchmark fixture at `test/fixtures/latency-journey-app/`, package `dev.mobiledebugmcp.latencyfixture`. Its reset state contains one saved session. It exposes these stable accessibility IDs: `saved-session`, `start-session`, `home`, `open-notification`, `pause`, `resume`, and `stop`. Starting the session publishes exactly one notification tagged `latency-session`; opening it returns to the fixture's playback screen. The fixture has no network dependency and must be built and installed by the benchmark harness.
+The repository owns an Android benchmark fixture at `test/fixtures/latency-journey-app/`. It is self-contained, has no network dependency, and exposes stable accessibility IDs for a repeatable navigation-and-control flow. The benchmark harness builds and installs the fixture.
 
 Before every run, the harness must force-stop the fixture, clear its data, install the known fixture APK, and verify the reset-state `saved-session` selector. The benchmark runs against one named Android emulator image, records its API level and fixture APK SHA-256, and performs no work in parallel. It executes this exact flow:
 
 ```text
-launch app → open saved session → start → Home → open notification → Pause → Resume → Stop
+launch app → open detail → activate control → return Home → reopen detail → change control state → stop
 ```
 
-The harness MUST use the IDs above and assert each resulting state. `open_notification` is a journey `open_notification` step with `appId: "dev.mobiledebugmcp.latencyfixture"` and `notificationTag: "latency-session"`. It performs 3 warm-up runs and 10 measured runs per mode.
+The fixture and benchmark harness MUST define and use their own stable selector map, and assert each resulting state. It performs 3 warm-up runs and 10 measured runs per mode.
 
 The baseline invokes the current public tools over a spawned `dist/server.js` stdio MCP connection: `start_app`, `wait_for_ui`, `tap_element` with a handle returned by `wait_for_ui`, and the existing `expect_*` tools. The candidate invokes the new selector `tap_element` and `run_journey`. Both variants include the same waits/assertions and use `full`/`debug` for the compatibility comparison; the candidate additionally runs `light`/`compact`. End-to-end latency is measured by the benchmark client from immediately before its JSON-RPC request write until the corresponding response is fully read, excluding server process startup. The harness separately times explicit `capture_screenshot` and `capture_debug_snapshot` calls outside the journey.
 

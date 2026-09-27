@@ -1,3 +1,4 @@
+import { markDispatchStarted, runWithBudget } from '../utils/operation-budget.js'
 import { promises as fs } from "fs"
 import { spawn, spawnSync } from "child_process"
 import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, InstallAppResponse } from "../types.js"
@@ -310,17 +311,19 @@ export class iOSManage {
     }
   }
 
-  async startApp(bundleId: string, deviceId: string = "booted"): Promise<StartAppResponse> {
+  async startApp(bundleId: string, deviceId: string = "booted", observe = true): Promise<StartAppResponse> {
+    const started = performance.now()
     validateBundleId(bundleId)
     try {
+      markDispatchStarted()
       const result = await execCommand(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
-      const fingerprint = await new iOSObserve().getScreenFingerprint(deviceId).catch(() => null)
+      const fingerprint = observe ? await new iOSObserve().getScreenFingerprint(deviceId).catch(() => null) : null
       const pidMatch = result.output.match(/:\s*(\d+)\s*$/)
       return {
         device,
         appStarted: !!result.output,
-        launchTimeMs: 1000,
+        launchTimeMs: performance.now() - started,
         output: result.output,
         observedApp: {
           appId: bundleId,
@@ -330,15 +333,15 @@ export class iOSManage {
         }
       }
     } catch (e: unknown) {
-      const diag = execCommandWithDiagnostics(['simctl', 'launch', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
-      return { device, appStarted: false, launchTimeMs: 0, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
+      return { device, appStarted: false, launchTimeMs: performance.now() - started, error: e instanceof Error ? e.message : String(e), diagnostics: { runResult: { exitCode: null, stdout: '', stderr: String(e) } } } as any
     }
   }
 
   async terminateApp(bundleId: string, deviceId: string = "booted"): Promise<TerminateAppResponse> {
     validateBundleId(bundleId)
     try {
+      markDispatchStarted()
       await execCommand(['simctl', 'terminate', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appTerminated: true }
@@ -349,9 +352,9 @@ export class iOSManage {
     }
   }
 
-  async restartApp(bundleId: string, deviceId: string = "booted"): Promise<RestartAppResponse> {
-    const terminateResult = await this.terminateApp(bundleId, deviceId)
-    const startResult = await this.startApp(bundleId, deviceId)
+  async restartApp(bundleId: string, deviceId: string = "booted", observe = true, bounded = false): Promise<RestartAppResponse> {
+    const terminateResult = bounded ? await runWithBudget(5000, () => this.terminateApp(bundleId, deviceId)) : await this.terminateApp(bundleId, deviceId)
+    const startResult = bounded ? await runWithBudget(10000, () => this.startApp(bundleId, deviceId, observe)) : await this.startApp(bundleId, deviceId, observe)
     return {
       device: startResult.device,
       appRestarted: startResult.appStarted,

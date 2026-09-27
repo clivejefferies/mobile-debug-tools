@@ -1,3 +1,6 @@
+import { retainConnectedDeviceSnapshots } from '../observe/snapshot-metadata.js'
+import { measure } from './timing.js'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { DeviceInfo } from "../types.js"
 import { listAndroidDevices } from "./android/utils.js"
 import { listIOSDevices } from "./ios/utils.js"
@@ -44,9 +47,18 @@ export async function listDevices(platform?: "android" | "ios", appId?: string):
   return iosDeviceLister(appId)
 }
 
+const deviceContext = new AsyncLocalStorage<DeviceInfo>()
+
+export function withResolvedDevice<T>(device: DeviceInfo, operation: () => Promise<T>): Promise<T> {
+  return deviceContext.run(device, operation)
+}
+
 export async function resolveTargetDevice(opts: ResolveOptions): Promise<DeviceInfo> {
   const { platform, appId, prefer, deviceId } = opts
-  const devices = await listDevices(platform, appId)
+  const current = deviceContext.getStore()
+  if (current && current.platform === platform && (!deviceId || current.id === deviceId)) return current
+  const devices = await measure('device_resolution_ms', () => listDevices(platform, appId))
+  retainConnectedDeviceSnapshots(platform, devices.map(device => device.id))
 
   // During unit tests (no adb/xcrun available), provide a lightweight mock device so
   // the observe/interact unit tests can run without real devices.
