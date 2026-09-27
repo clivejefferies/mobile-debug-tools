@@ -11,6 +11,7 @@
 - Actionability Resolution
 - Environment Auto-Configuration and Toolchain Discovery
 - Adjustable Control Support
+- UI-Tree Observation Performance (Android implemented; iOS latency unmeasured)
 
 ## Todo
 
@@ -20,6 +21,14 @@
 - Runtime Debugger Introspection
 - Pinch to Zoom
 - Advanced Trace Correlation and Analysis
+
+# UI-Tree Observation Performance
+
+**Status:** Android implemented and benchmarked; iOS latency remains unmeasured — [Specification 019](specs/019-ui-tree-observation-performance/spec.md)
+
+Measure physical hierarchy reads and their cost, then reduce the measured hot path while preserving fresh post-action and asynchronous UI evidence. Validate the change against the existing static journey and a controlled network-backed screen before claiming a speedup.
+
+Exit criteria and performance gates are defined in Specification 019.
 
 # Stronger State Verification
 

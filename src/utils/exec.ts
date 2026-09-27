@@ -14,22 +14,28 @@ export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {
     if (child.stderr) child.stderr.on('data', (d) => { stderr += d.toString() })
 
     let timedOut = false
+    let forceKillTimer: NodeJS.Timeout | null = null
     const timer = timeout && timeout > 0 ? setTimeout(() => {
       timedOut = true
       try { child.kill() } catch { }
-      resolve({ exitCode: null, stdout: stdout.trim(), stderr: 'ACTION_TIMEOUT' })
+      forceKillTimer = setTimeout(() => {
+        try { child.kill('SIGKILL') } catch { }
+      }, 1000)
+      forceKillTimer.unref()
     }, timeout) : null
 
     child.on('close', (code) => {
       if (timer) clearTimeout(timer)
-      if (timedOut) return
-      resolve({ exitCode: code, stdout: stdout.trim(), stderr: stderr.trim() })
+      if (forceKillTimer) clearTimeout(forceKillTimer)
+      resolve(timedOut
+        ? { exitCode: null, stdout: stdout.trim(), stderr: 'ACTION_TIMEOUT' }
+        : { exitCode: code, stdout: stdout.trim(), stderr: stderr.trim() })
     })
 
     child.on('error', (err) => {
       if (timer) clearTimeout(timer)
+      if (forceKillTimer) clearTimeout(forceKillTimer)
       reject(err)
     })
   })
 }
-

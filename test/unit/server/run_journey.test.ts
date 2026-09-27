@@ -78,6 +78,36 @@ async function run() {
     assert.strictEqual(failedAssertion.success, false)
     assert.deepStrictEqual(failedAssertion.steps[0].result.verification, { mode: 'light', status: 'observed' })
     assert.strictEqual(postActionReads, 0)
+
+    ;(ToolsInteract as any).waitForUIHandler = originalWait
+    ;(ToolsInteract as any).expectElementVisibleHandler = originalExpectVisible
+    let dispatchedAt = 0
+    const readTimes: number[] = []
+    ;(ToolsObserve as any).getUITreeHandler = async () => {
+      readTimes.push(performance.now())
+      const target = readTimes.length === 1
+      return {
+        device: { platform: 'android', id: 'fixture' },
+        captured_at_ms: Date.now(),
+        elements: [{ contentDescription: target ? 'target' : 'result', bounds: [0, 0, 20, 20], visible: true, enabled: true, clickable: true }]
+      }
+    }
+    ;(ToolsInteract as any).tapElementHandler = async () => {
+      dispatchedAt = performance.now()
+      return { success: true, action_id: 'tap', action_type: 'tap_element' }
+    }
+    const freshResponse: any = await handleToolCall('run_journey', {
+      platform: 'android', responseMode: 'compact', defaults: { verificationMode: 'light' },
+      steps: [
+        { id: 'tap-target', type: 'tap', selector: { accessibility_id: 'target' } },
+        { id: 'assert-result', type: 'assert', assertion: { kind: 'element_visible', selector: { accessibility_id: 'result' } } }
+      ]
+    })
+    const fresh = JSON.parse(freshResponse.content[0].text)
+    assert.strictEqual(fresh.success, true)
+    assert.strictEqual(readTimes.length, 3, 'target selection and two stability samples require separate reads')
+    assert.ok(readTimes[0] < dispatchedAt)
+    assert.ok(readTimes[1] >= dispatchedAt && readTimes[2] >= dispatchedAt, 'assertion reads must follow dispatch')
   } finally {
     _resetDeviceListersForTests()
     ;(ToolsInteract as any).waitForUIHandler = originalWait
