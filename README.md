@@ -1,4 +1,5 @@
 # Mobile Debug Tools
+[![npm version](https://img.shields.io/npm/v/mobile-debug-mcp.svg)](https://www.npmjs.com/package/mobile-debug-mcp)
 
 A minimal, secure MCP server for AI-assisted mobile development. Build, install, interact and inspect Android/iOS apps from an MCP-compatible client.
 
