@@ -162,6 +162,16 @@ export interface SnapshotDelta {
   total_elements: number;
 }
 
+export interface StateDelta {
+  base_snapshot_revision: number | null;
+  snapshot_revision: number;
+  added: UIElement[];
+  removed: Array<{ stable_id?: string; resourceId?: string; contentDescription?: string; text?: string; index: number }>;
+  changed: UIElement[];
+  truncated: boolean;
+  omitted_changes?: number;
+}
+
 export interface CaptureAndroidScreenResponse {
   device: DeviceInfo;
   screenshot: string; // base64 encoded string
@@ -282,6 +292,8 @@ export type ActionFailureCode =
   | 'ELEMENT_NOT_FOUND'
   | 'ELEMENT_NOT_INTERACTABLE'
   | 'TIMEOUT'
+  | 'ACTION_TIMEOUT'
+  | 'ASSERTION_TIMEOUT'
   | 'NAVIGATION_NO_CHANGE'
   | 'AMBIGUOUS_TARGET'
   | 'STALE_REFERENCE'
@@ -393,11 +405,23 @@ export interface FindElementResponse {
   error?: string;
 }
 
+export interface TimingBreakdown {
+  total_ms: number;
+  device_resolution_ms?: number;
+  pre_observation_ms?: number;
+  target_resolution_ms?: number;
+  dispatch_ms?: number;
+  post_observation_ms?: number;
+  verification_ms?: number;
+  screenshot_ms?: number;
+  serialization_ms?: number;
+}
+
 export interface ActionExecutionResult {
   action_id: string;
   timestamp: string;
   action_type: string;
-  lifecycle_state?: 'pending_verification' | 'failed';
+  lifecycle_state?: 'pending_verification' | 'verified' | 'failed';
   source_module?: 'server' | 'interact';
   device?: DeviceInfo;
   target: {
@@ -407,6 +431,11 @@ export interface ActionExecutionResult {
   success: boolean;
   failure_code?: ActionFailureCode;
   retryable?: boolean;
+  delivery_status?: 'delivered' | 'not_delivered' | 'unknown';
+  dispatch_started?: boolean;
+  verification?: { mode: 'none' | 'light' | 'full'; status: 'not_requested' | 'observed' | 'verified' | 'unavailable' | 'failed' };
+  state_delta?: StateDelta;
+  timing?: TimingBreakdown;
   recovery?: RecoveryState;
   trace: ActionTrace;
   ui_fingerprint_before?: string | null;
@@ -414,7 +443,7 @@ export interface ActionExecutionResult {
   details?: Record<string, unknown>;
 }
 
-export interface TapElementResponse extends ActionExecutionResult {}
+export interface TapElementResponse extends ActionExecutionResult { error?: string }
 
 export interface ExpectScreenResponse {
   success: boolean;

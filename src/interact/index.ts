@@ -1,3 +1,4 @@
+import { remainingBudget } from '../utils/operation-budget.js'
 import { createHash } from 'crypto'
 import { AndroidInteract } from './android.js';
 import { iOSInteract } from './ios.js';
@@ -1226,22 +1227,22 @@ export class ToolsInteract {
     return { interact: interact as any, resolved, platform: effectivePlatform }
   }
 
-  static async tapHandler({ platform, x, y, deviceId }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string }) {
+  static async tapHandler({ platform, x, y, deviceId, timeoutMs }: { platform?: 'android' | 'ios', x: number, y: number, deviceId?: string, timeoutMs?: number }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.tap(x, y, resolved.id)
+    return await interact.tap(x, y, resolved.id, timeoutMs)
   }
 
-  static async tapElementHandler({ elementId }: { elementId: string }): Promise<TapElementResponse> {
+  static async tapElementHandler({ elementId, verificationMode = 'full', timeoutMs, platform, deviceId, freshTree }: { elementId: string, verificationMode?: 'none' | 'light' | 'full', timeoutMs?: number, platform?: 'android' | 'ios', deviceId?: string, freshTree?: any }): Promise<TapElementResponse> {
     const actionType = 'tap_element'
     const selector = { elementId }
     const resolved = ToolsInteract._resolvedUiElements.get(elementId)
-    if (!resolved) {
+    if (!resolved || (platform && resolved.platform !== platform) || (deviceId && resolved.deviceId !== deviceId)) {
       return ToolsInteract._actionFailure(actionType, selector, null, 'STALE_REFERENCE', true, null)
     }
 
-    const fingerprintBefore = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
+    const fingerprintBefore = verificationMode === 'full' ? await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId) : null
 
-    const tree = await ToolsObserve.getUITreeHandler({ platform: resolved.platform, deviceId: resolved.deviceId }) as any
+    const tree = freshTree ?? await ToolsObserve.getUITreeHandler({ platform: resolved.platform, deviceId: resolved.deviceId }) as any
     const treePlatform = tree?.device?.platform === 'ios' ? 'ios' : resolved.platform
     const treeDeviceId = tree?.device?.id || resolved.deviceId
     const elements = Array.isArray(tree?.elements) ? tree.elements as UiElement[] : []
@@ -1272,14 +1273,14 @@ export class ToolsInteract {
 
     const x = Math.floor((bounds[0] + bounds[2]) / 2)
     const y = Math.floor((bounds[1] + bounds[3]) / 2)
-    const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId })
+    const tapResult = await ToolsInteract.tapHandler({ platform: resolved.platform, x, y, deviceId: resolved.deviceId, timeoutMs })
 
     if (!tapResult.success) {
-      const fingerprintAfterFailure = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
-      return ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'UNKNOWN', false, fingerprintBefore, fingerprintAfterFailure)
+      const fingerprintAfterFailure = verificationMode === 'full' ? await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId) : null
+      return { ...ToolsInteract._actionFailure(actionType, selector, resolvedTarget, 'UNKNOWN', false, fingerprintBefore, fingerprintAfterFailure), error: tapResult.error }
     }
 
-    const fingerprintAfter = await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId)
+    const fingerprintAfter = verificationMode === 'full' ? await ToolsInteract._captureFingerprint(resolved.platform, resolved.deviceId) : null
     return buildActionExecutionResult({
       actionType,
       device: tree?.device,
@@ -2204,19 +2205,19 @@ export class ToolsInteract {
     return buildFailure('CONTROL_CONVERGENCE_FAILED', 'control did not converge within the allotted attempts', resolvedTarget, currentDevice, lastObservedState, attemptCount, lastAdjustmentMode, true, uiFingerprintAfter)
   }
 
-  static async swipeHandler({ platform = 'android', x1, y1, x2, y2, duration, deviceId }: { platform?: 'android' | 'ios', x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string }) {
+  static async swipeHandler({ platform = 'android', x1, y1, x2, y2, duration, deviceId, timeoutMs }: { platform?: 'android' | 'ios', x1: number, y1: number, x2: number, y2: number, duration: number, deviceId?: string, timeoutMs?: number }) {
     const { interact, resolved } = await ToolsInteract.getInteractionService(platform, deviceId)
-    return await interact.swipe(x1, y1, x2, y2, duration, resolved.id)
+    return await interact.swipe(x1, y1, x2, y2, duration, resolved.id, timeoutMs)
   }
 
-  static async typeTextHandler({ text, deviceId }: { text: string, deviceId?: string }) {
+  static async typeTextHandler({ text, deviceId, timeoutMs }: { text: string, deviceId?: string, timeoutMs?: number }) {
     const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-    return await new AndroidInteract().typeText(text, resolved.id)
+    return await new AndroidInteract().typeText(text, resolved.id, timeoutMs)
   }
 
-  static async pressBackHandler({ deviceId }: { deviceId?: string }) {
+  static async pressBackHandler({ deviceId, timeoutMs }: { deviceId?: string, timeoutMs?: number }) {
     const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
-    return await new AndroidInteract().pressBack(resolved.id)
+    return await new AndroidInteract().pressBack(resolved.id, timeoutMs)
   }
 
   static async scrollToElementHandler({ platform, selector, direction = 'down', maxScrolls = 10, scrollAmount = 0.7, deviceId }: { platform: 'android' | 'ios', selector: { text?: string, resourceId?: string, contentDesc?: string, className?: string }, direction?: 'down' | 'up', maxScrolls?: number, scrollAmount?: number, deviceId?: string }) {
@@ -2490,7 +2491,7 @@ export class ToolsInteract {
     return { found: true, element: outEl, score: scoreVal, confidence: scoreVal, resolution }
   }
 
-  static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string }) {
+  static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId, singleObservation = false, singleAttempt = false, rejectAmbiguous = false }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string, singleObservation?: boolean, singleAttempt?: boolean, rejectAmbiguous?: boolean }) {
     const overallStart = Date.now()
     const requestedIndex = typeof match?.index === 'number' ? match.index : null
     const requested = {
@@ -2538,7 +2539,7 @@ export class ToolsInteract {
     let lastConditionSatisfied = false
     let matchedAt: number | null = null
     let stableMatchCount = 0
-    const stableObservationCount = 2
+    const stableObservationCount = singleObservation ? 1 : 2
     const snapshotStaleThresholdMs = 500
 
     // Precompute normalized selector values and helpers (constant across polls)
@@ -2554,7 +2555,8 @@ export class ToolsInteract {
         const attemptStart = Date.now()
         const deadline = attemptStart + (timeout_ms || 0)
 
-        while (Date.now() <= deadline) {
+        while (Date.now() <= deadline || (singleAttempt && totalPollCount === 0)) {
+          remainingBudget()
           totalPollCount++
           try {
             const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
@@ -2601,6 +2603,7 @@ export class ToolsInteract {
 
             // Evaluate condition
             const matchedCount = matches.length
+            if (rejectAmbiguous && matchedCount > 1 && match?.index === undefined) return { status: 'timeout', error: { code: 'AMBIGUOUS_TARGET' } }
             const pickIndex = (typeof match?.index === 'number') ? match!.index as number : undefined
             let chosen: { el: any, idx: number } | null = null
             if (matches.length > 0) {
@@ -2659,6 +2662,7 @@ export class ToolsInteract {
 
                 return {
                   status: 'success',
+                  ...(singleObservation ? { _tree: tree } : {}),
                   matched: matchedCount,
                   element: outEl,
                   metrics: { latency_ms, poll_count: totalPollCount, attempts },
@@ -2677,10 +2681,12 @@ export class ToolsInteract {
             }
 
           } catch (e) {
+            if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             // Non-fatal per-poll error; record and continue
             console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
           }
 
+          if (singleAttempt) break
           // Sleep until next poll
           await new Promise(r => setTimeout(r, effectivePoll || 50))
         }
@@ -2712,6 +2718,7 @@ export class ToolsInteract {
       }
 
     } catch (err) {
+      if (err instanceof Error && err.message === 'ACTION_TIMEOUT') throw err
       const elapsed = Date.now() - overallStart
       return {
         status: 'timeout',
@@ -3139,7 +3146,8 @@ export class ToolsInteract {
     stabilization_window_ms = 1000,
     stable_observation_count = 2,
     snapshot_stale_threshold_ms = 500,
-    poll_interval_ms = 150
+    poll_interval_ms = 150,
+    exact_budget = false
   }: {
     selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean },
     element_id?: string,
@@ -3150,16 +3158,17 @@ export class ToolsInteract {
     stabilization_window_ms?: number,
     stable_observation_count?: number,
     snapshot_stale_threshold_ms?: number,
-    poll_interval_ms?: number
+    poll_interval_ms?: number,
+    exact_budget?: boolean
   }): Promise<ExpectStateResponse> {
     const compareBoolean = (value: unknown) => typeof value === 'boolean' ? value : null
     const compareString = (value: unknown) => typeof value === 'string' ? value : null
     const compareNumber = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
     const start = Date.now()
-    const deadline = start + Math.max(500, stabilization_window_ms)
+    const deadline = start + (exact_budget ? stabilization_window_ms : Math.max(500, stabilization_window_ms))
     const stableTarget = Math.max(1, Math.floor(stable_observation_count || 2))
-    const pollDelay = Math.max(100, Math.min(poll_interval_ms || 150, 200))
+    const pollDelay = exact_budget ? Math.max(50, Math.min(poll_interval_ms || 150, 1000)) : Math.max(100, Math.min(poll_interval_ms || 150, 200))
     const staleThreshold = Math.max(300, Math.min(snapshot_stale_threshold_ms || 500, 800))
 
     let attempts = 0

@@ -1,4 +1,5 @@
 import { spawn } from "child_process"
+import { remainingBudget } from '../utils/operation-budget.js'
 import { promises as fs } from "fs"
 import { GetLogsResponse, CaptureIOSScreenshotResponse, GetUITreeResponse, UIElement, DeviceInfo, UIElementSemanticMetadata, UIElementState, UIResolutionSelector, SelectorConfidence } from "../types.js"
 import { execCommand, getIOSDeviceMetadata, validateBundleId, getIdbCmd, getXcrunCmd, isIDBInstalled } from "../utils/ios/utils.js"
@@ -547,9 +548,11 @@ export class iOSObserve {
     const maxAttempts = 3;
 
     while (attempts < maxAttempts) {
+      remainingBudget()
       attempts++;
       try {
-         await delay(300 + (attempts * 100));
+         await delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100)));
+         remainingBudget()
 
          const args = ['ui', 'describe-all', '--json'];
          if (targetUdid) {
@@ -557,7 +560,7 @@ export class iOSObserve {
          }
 
          const output = await new Promise<string>((resolve, reject) => {
-             const child = spawn(getIdbCmd(), args);
+             const child = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
              let stdout = '';
              let stderr = '';
 
@@ -580,6 +583,7 @@ export class iOSObserve {
              break; // Success
          }
       } catch (e) {
+         if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
          console.error(`Attempt ${attempts} failed: ${e}`);
       }
       

@@ -37,7 +37,7 @@ async function run() {
 
     const missingBuildResponse = await handleToolCall('build_app', { projectPath: '/tmp/project' })
     const missingBuildPayload = JSON.parse((missingBuildResponse as any).content[0].text)
-    assert.deepStrictEqual(missingBuildPayload, {
+    assert.deepStrictEqual({ error: missingBuildPayload.error }, {
       error: {
         tool: 'build_app',
         message: 'Missing or invalid string argument: platform'
@@ -236,7 +236,7 @@ async function run() {
     const failingTapResponse = await handleToolCall('tap', { platform: 'android', x: 1, y: 2 })
     assert.strictEqual((failingTapResponse as any).content.length, 1)
     const failingTapPayload = JSON.parse((failingTapResponse as any).content[0].text)
-    assert.deepStrictEqual(failingTapPayload, {
+    assert.deepStrictEqual({ error: failingTapPayload.error }, {
       error: {
         tool: 'tap',
         message: 'boom'
@@ -255,7 +255,7 @@ async function run() {
 
     const missingArgResponse = await handleToolCall('tap', { platform: 'android', x: 1 })
     const missingArgPayload = JSON.parse((missingArgResponse as any).content[0].text)
-    assert.deepStrictEqual(missingArgPayload, {
+    assert.deepStrictEqual({ error: missingArgPayload.error }, {
       error: {
         tool: 'tap',
         message: 'Missing or invalid number argument: y'

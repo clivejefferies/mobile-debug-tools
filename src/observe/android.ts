@@ -8,6 +8,7 @@ import path from "path"
 import { computeScreenFingerprint } from "../utils/ui/index.js"
 import { parsePngSize } from "../utils/image.js"
 import { deriveSnapshotMetadata } from "./snapshot-metadata.js"
+import { remainingBudget } from '../utils/operation-budget.js'
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
@@ -33,10 +34,12 @@ export class AndroidObserve {
       const maxAttempts = 3;
 
       while (attempts < maxAttempts) {
+        remainingBudget()
         attempts++;
         try {
            // Stabilization delay
-           await delay(300 + (attempts * 100)); // 300ms, 400ms, 500ms...
+           await delay(Math.min(remainingBudget(300 + (attempts * 100)), 300 + (attempts * 100))); // 300ms, 400ms, 500ms...
+           remainingBudget()
 
            // Dump UI hierarchy
            await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId);
@@ -49,6 +52,7 @@ export class AndroidObserve {
               break; // Success
            }
         } catch (e) {
+           if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
            console.error(`Attempt ${attempts} failed: ${e}`);
         }
         

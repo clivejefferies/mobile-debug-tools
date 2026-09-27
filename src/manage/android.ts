@@ -1,3 +1,4 @@
+import { hasFiniteBudget, markDispatchStarted, remainingBudget, runWithBudget } from '../utils/operation-budget.js'
 import { promises as fs } from 'fs'
 import { spawn } from 'child_process'
 import path from 'path'
@@ -149,16 +150,18 @@ export class AndroidManage {
     }
   }
 
-  async startApp(appId: string, deviceId?: string): Promise<StartAppResponse> {
+  async startApp(appId: string, deviceId?: string, timeoutMs?: number): Promise<StartAppResponse> {
+    const started = performance.now()
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
-      const output = await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
+      markDispatchStarted()
+      const output = await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId, { timeout: timeoutMs })
       const current = await new AndroidObserve().getCurrentScreen(deviceId).catch(() => null)
       return {
         device: deviceInfo,
         appStarted: true,
-        launchTimeMs: 1000,
+        launchTimeMs: performance.now() - started,
         output,
         observedApp: {
           appId,
@@ -169,8 +172,8 @@ export class AndroidManage {
         }
       }
     } catch (e: unknown) {
-      const diag = execAdbWithDiagnostics(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId)
-      return { device: deviceInfo, appStarted: false, launchTimeMs: 0, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
+      const diagnostics = timeoutMs === undefined ? execAdbWithDiagnostics(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId) : undefined
+      return { device: deviceInfo, appStarted: false, launchTimeMs: performance.now() - started, error: e instanceof Error ? e.message : String(e), ...(diagnostics ? { diagnostics } : {}) }
     }
   }
 
@@ -178,17 +181,22 @@ export class AndroidManage {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
+      markDispatchStarted()
       await execAdb(['shell', 'am', 'force-stop', appId], deviceId)
       return { device: deviceInfo, appTerminated: true }
     } catch (e: unknown) {
-      const diag = execAdbWithDiagnostics(['shell', 'am', 'force-stop', appId], deviceId)
-      return { device: deviceInfo, appTerminated: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
+      const diagnostics = hasFiniteBudget() ? undefined : execAdbWithDiagnostics(['shell', 'am', 'force-stop', appId], deviceId)
+      return { device: deviceInfo, appTerminated: false, error: e instanceof Error ? e.message : String(e), ...(diagnostics ? { diagnostics } : {}) }
     }
   }
 
-  async restartApp(appId: string, deviceId?: string): Promise<RestartAppResponse> {
-    const terminateResult = await this.terminateApp(appId, deviceId)
-    const startResult = await this.startApp(appId, deviceId)
+  async restartApp(appId: string, deviceId?: string, bounded = false, timeoutMs = 15000): Promise<RestartAppResponse> {
+    const started = performance.now()
+    const terminateResult = bounded ? await runWithBudget(Math.min(5000, timeoutMs), () => this.terminateApp(appId, deviceId)) : await this.terminateApp(appId, deviceId)
+    const remaining = timeoutMs - (performance.now() - started)
+    if (bounded && remaining <= 0) throw new Error('ACTION_TIMEOUT')
+    const launchBudget = remainingBudget(remaining)
+    const startResult = bounded ? await runWithBudget(launchBudget, () => this.startApp(appId, deviceId, remainingBudget(launchBudget))) : await this.startApp(appId, deviceId)
     return {
       device: startResult.device,
       appRestarted: startResult.appStarted,
@@ -206,6 +214,7 @@ export class AndroidManage {
     const metadata = await getAndroidDeviceMetadata(appId, deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
+      markDispatchStarted()
       const output = await execAdb(['shell', 'pm', 'clear', appId], deviceId)
       return { device: deviceInfo, dataCleared: output === 'Success' }
     } catch (e: unknown) {

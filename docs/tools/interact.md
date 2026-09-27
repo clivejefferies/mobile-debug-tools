@@ -616,3 +616,33 @@ Guidance:
 - `uiChanged=true` or `expectedElementVisible=true` means the action outcome is already verified
 - local-state actions should prefer refreshed snapshots, `expect_state`, or `expect_element_visible` over default network inspection
 - network activity is auxiliary evidence, not mandatory proof
+
+## Interaction execution controls (RFC 018)
+
+`start_app`, `restart_app`, `tap`, `tap_element`, `swipe`, `scroll_to_element`,
+`type_text`, and `press_back` accept `verificationMode` (`none`, `light`, `full`)
+and `responseMode` (`compact`, `debug`). Omitted controls retain `full`/`debug`.
+`none` reports dispatch without post-action accessibility reads. `light` requests
+one fresh tree; an unavailable observation does not turn successful delivery into
+a failed action. Use an explicit assertion to establish the intended outcome.
+Compact responses retain delivery, retry, lifecycle, and timing fields.
+
+`actionTimeoutMs` and `verificationTimeoutMs` are integer budgets, clamped to
+100–30,000 and 100–60,000 ms respectively. An action timeout after dispatch starts
+has unknown delivery and must be observed before retrying.
+
+`tap_element` accepts exactly one `elementId` or `selector`. A selector supports
+`text`, `resource_id`, `accessibility_id`, and `contains`. Optional `waitFor` waits
+for the target before tapping; without it, resolution uses one observation.
+Ambiguous targets require an explicit `waitFor.match.index`.
+
+`run_journey` accepts 1–50 steps with unique IDs, on one platform/device. Supported
+step types are `start_app`, `tap`, `wait`, and `assert`. Assertions support
+`element_visible`, `element_absent`, `screen_fingerprint`, and `state_equals`.
+The complete request is validated before device work. The first failed step stops
+the journey; remaining steps report `not_run`. Journey responses default to compact.
+`defaults` supplies execution controls; step verification overrides the default.
+`captureOnFailure: true` includes a screenshot-free failure snapshot in debug mode.
+
+See [RFC 018](../specs-deltas/018-interaction-latency-and-batched-journeys.md) for
+contracts and the device acceptance criteria.

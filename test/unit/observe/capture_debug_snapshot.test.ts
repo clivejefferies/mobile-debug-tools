@@ -83,6 +83,12 @@ async function run() {
     assert.ok(pass3, 'captureDebugSnapshot should return an empty logs array when includeLogs is false')
     console.log('Test 3:', pass3 ? 'PASS' : 'FAIL')
 
+    let screenshotCalls = 0
+    ;(ToolsObserve as any).captureScreenshotHandler = async function() { screenshotCalls++; return { screenshot: 'unexpected' } }
+    const res4: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: false, includeScreenshot: false })
+    assert.strictEqual(screenshotCalls, 0, 'includeScreenshot=false must not invoke screenshot capture')
+    assert.strictEqual(res4.raw.screenshot, null)
+
   } finally {
     ;(ToolsObserve as any).captureScreenshotHandler = origCaptureHandler
     ;(ToolsObserve as any).getCurrentScreenHandler = origGetCurrentHandler

@@ -1,3 +1,4 @@
+import { recordTiming } from '../utils/timing.js'
 import type {
   ActionTrace,
   ActionExecutionResult,
@@ -14,13 +15,17 @@ import { ToolsObserve } from '../observe/index.js'
 export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 3
 export const DEFAULT_MAX_RETRY_DEPTH = 3
 
-export function wrapResponse<T>(data: T) {
-  return {
-    content: [{
-      type: 'text' as const,
-      text: JSON.stringify(data, null, 2)
-    }]
+export function wrapResponse<T>(data: T, includeSerializationTiming = true) {
+  const start = performance.now()
+  let text = JSON.stringify(data, null, 2)
+  const elapsed = performance.now() - start
+  const value = data as any
+  if (includeSerializationTiming && value && typeof value === 'object' && value.timing && typeof value.timing === 'object') {
+    value.timing.serialization_ms = (value.timing.serialization_ms ?? 0) + elapsed
+    recordTiming('serialization_ms', elapsed)
+    text = JSON.stringify(value, null, 2)
   }
+  return { content: [{ type: 'text' as const, text }] }
 }
 
 export type ToolCallArgs = Record<string, unknown>
@@ -312,6 +317,7 @@ function mapFailureCodeToFailureClass(code: ActionFailureCode): FailureClass {
     case 'STALE_REFERENCE':
       return 'TargetResolutionFailure'
     case 'ELEMENT_NOT_INTERACTABLE':
+    case 'ACTION_TIMEOUT':
       return 'ExecutionFailure'
     case 'TIMEOUT':
     case 'ACTION_REJECTED':
@@ -320,6 +326,7 @@ function mapFailureCodeToFailureClass(code: ActionFailureCode): FailureClass {
       return 'ExecutionFailure'
     case 'VERIFICATION_FAILED':
     case 'EXPECT_STATE_MISMATCH':
+    case 'ASSERTION_TIMEOUT':
       return 'VerificationFailure'
     case 'CONTROL_CONVERGENCE_FAILED':
       return 'ControlConvergenceFailure'

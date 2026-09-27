@@ -1,3 +1,4 @@
+import { remainingBudget } from '../operation-budget.js'
 import crypto from 'crypto'
 import { GetUITreeResponse, GetCurrentScreenResponse, UIElement, SwipeResponse } from '../../types.js'
 
@@ -152,6 +153,7 @@ export async function scrollToElementShared(opts: {
   let scrollsPerformed = 0
 
   for (let i = 0; i < maxScrolls; i++) {
+    remainingBudget()
     const { x1, y1, x2, y2 } = computeCoords()
     try {
       await swipe(x1, y1, x2, y2, duration, deviceId)

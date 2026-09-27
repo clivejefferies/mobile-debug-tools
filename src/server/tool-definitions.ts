@@ -1,4 +1,6 @@
-export const toolDefinitions = [
+import { journeyStepsJson } from './journey-schema.js'
+
+export const toolDefinitions: any[] = [
   {
     name: 'start_app',
     description: `Purpose:
@@ -47,7 +49,11 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device UDID (iOS) or Serial (Android). Defaults to booted/connected.'
-        }
+        },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        actionTimeoutMs: { type: 'number', minimum: 100, maximum: 30000 },
+        verificationTimeoutMs: { type: 'number', minimum: 100, maximum: 60000 }
       },
       required: ['platform', 'appId']
     }
@@ -250,6 +256,7 @@ Failure Handling:
       properties: {
         reason: { type: 'string', description: 'Optional reason for snapshot' },
         includeLogs: { type: 'boolean', description: 'Whether to include logs', default: true },
+        includeScreenshot: { type: 'boolean', description: 'Whether to collect screenshot bytes', default: true },
         logLines: { type: 'number', description: 'Maximum number of log lines to include', default: 200 },
         platform: { type: 'string', enum: ['android', 'ios'], description: 'Optional platform override' },
         appId: { type: 'string', description: 'Optional appId to scope logs (package/bundle id)' },
@@ -307,7 +314,9 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device Serial (Android) or UDID (iOS). Defaults to connected/booted device.'
-        }
+        },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        sinceSnapshotRevision: { type: 'number', minimum: 1 }
       },
       required: ['platform']
     }
@@ -729,7 +738,11 @@ Failure Handling:
         deviceId: {
           type: 'string',
           description: 'Device Serial/UDID. Defaults to connected/booted device.'
-        }
+        },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        actionTimeoutMs: { type: 'number', minimum: 100, maximum: 30000 },
+        verificationTimeoutMs: { type: 'number', minimum: 100, maximum: 60000 }
       },
       required: ['x', 'y']
     }
@@ -783,9 +796,14 @@ This tool reports execution success only. Verification must be done with a separ
         elementId: {
           type: 'string',
           description: 'A unique element identifier returned by wait_for_ui'
-        }
-      },
-      required: ['elementId']
+        },
+        selector: { type: 'object', properties: { text: { type: 'string' }, resource_id: { type: 'string' }, accessibility_id: { type: 'string' }, contains: { type: 'boolean' } } },
+        waitFor: { type: 'object', properties: { condition: { type: 'string', enum: ['exists', 'visible', 'clickable'] }, timeoutMs: { type: 'number', minimum: 100, maximum: 10000 }, pollIntervalMs: { type: 'number', minimum: 50, maximum: 1000 }, match: { type: 'object', properties: { index: { type: 'number' } } } } },
+        platform: { type: 'string', enum: ['android', 'ios'] },
+        deviceId: { type: 'string' },
+        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' }
+      }
     }
   },
   {
@@ -1063,6 +1081,20 @@ BEHAVIOUR after outcome:
     }
   },
   {
+    name: 'run_journey',
+    description: 'Run an ordered, bounded sequence of start_app, tap, wait, and deterministic assertion steps against one device. Stops after the first failed step.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        platform: { type: 'string', enum: ['android', 'ios'] },
+        deviceId: { type: 'string' },
+        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'compact' },
+        steps: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'object', properties: { id: { type: 'string' }, type: { type: 'string', enum: ['start_app', 'tap', 'wait', 'assert'] } }, required: ['id', 'type'] } }
+      },
+      required: ['platform', 'steps']
+    }
+  },
+  {
     name: 'get_network_activity',
     description: `Returns structured network events captured from platform logs since the last action.
 
@@ -1095,3 +1127,24 @@ Returns { requests: [], count: 0 } when no credible network signals are found.`,
     }
   }
 ]
+
+// Keep the additive execution controls consistent across all action tools.
+for (const tool of toolDefinitions) {
+  if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
+    Object.assign(tool.inputSchema.properties, {
+      verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
+      responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+      actionTimeoutMs: { type: 'integer', description: 'Dispatch budget in milliseconds, clamped to 100–30000.' },
+      verificationTimeoutMs: { type: 'integer', description: 'Light observation budget in milliseconds, clamped to 100–60000.' }
+    })
+  }
+  if (tool.name === 'tap_element') Object.assign(tool.inputSchema, { oneOf: [{ required: ['elementId'], not: { required: ['selector'] } }, { required: ['selector'], not: { required: ['elementId'] } }] })
+  if (tool.name === 'run_journey') Object.assign(tool.inputSchema.properties, {
+    steps: journeyStepsJson,
+    captureOnFailure: { type: 'boolean', default: false },
+    defaults: { type: 'object', additionalProperties: false, properties: {
+      verificationMode: { type: 'string', enum: ['none', 'light', 'full'] },
+      actionTimeoutMs: { type: 'integer' }, verificationTimeoutMs: { type: 'integer' }
+    } }
+  })
+}

@@ -1,0 +1,1810 @@
+{
+  "commit": "d3e6ae720db1ad1da294795790689df5a80b56b0",
+  "working_tree": "candidate",
+  "server_version": "0.32.0",
+  "platform": "android",
+  "model": "sdk_gphone64_arm64",
+  "os": "16",
+  "api": "36",
+  "emulator_image": "Pixel_9_Pro",
+  "display_size": "Physical size: 1280x2856\nOverride size: 720x1600",
+  "display_density": "Physical density: 480\nOverride density: 240",
+  "adb_timeout_ms": 30000,
+  "fixture_version": "1.0",
+  "fixture_sha256": "98244deeeba0a21da7d99a3e4b43c97806d6f8a8787ad7fe38249e5d311a6fb6",
+  "warmup_runs": 3,
+  "measured_runs": 10,
+  "modes": {
+    "baseline": {
+      "failures": 0,
+      "first_failure": null,
+      "total_ms": {
+        "count": 10,
+        "p50": 124094.50754200004,
+        "p95": 124597.88916599983,
+        "min": 122953.64324700006,
+        "max": 124597.88916599983
+      },
+      "screenshot_ms": {
+        "count": 10,
+        "p50": 304.6418330001179,
+        "p95": 390.5520830000751,
+        "min": 263.08050000015646,
+        "max": 390.5520830000751
+      },
+      "snapshot_ms": {
+        "count": 10,
+        "p50": 4397.419916999992,
+        "p95": 4539.459791999892,
+        "min": 4341.738583000028,
+        "max": 4539.459791999892
+      },
+      "components": {
+        "device_resolution_ms": {
+          "count": 130,
+          "p50": 203.0130829999689,
+          "p95": 398.29354200023226,
+          "min": 146.2960829997901,
+          "max": 591.2209999996703
+        },
+        "pre_observation_ms": {
+          "count": 10,
+          "p50": 2821.534750000108,
+          "p95": 2938.4980839999625,
+          "min": 2755.0909589999355,
+          "max": 2938.4980839999625
+        },
+        "dispatch_ms": {
+          "count": 70,
+          "p50": 8542.690041000023,
+          "p95": 8787.437791999895,
+          "min": 336.88641700008884,
+          "max": 9019.955749999965
+        },
+        "post_observation_ms": {
+          "count": 10,
+          "p50": 2756.2594999999274,
+          "p95": 2801.203582999995,
+          "min": 2730.1595830000006,
+          "max": 2801.203582999995
+        },
+        "serialization_ms": {
+          "count": 70,
+          "p50": 0.0070420000702142715,
+          "p95": 0.016874999972060323,
+          "min": 0.005874999915249646,
+          "max": 0.08329199999570847
+        }
+      }
+    },
+    "full": {
+      "failures": 0,
+      "first_failure": null,
+      "total_ms": {
+        "count": 10,
+        "p50": 87262.29954100028,
+        "p95": 88067.6383750001,
+        "min": 87110.95208400022,
+        "max": 88067.6383750001
+      },
+      "screenshot_ms": {
+        "count": 10,
+        "p50": 289.3561669997871,
+        "p95": 340.20200000004843,
+        "min": 235.04666700027883,
+        "max": 340.20200000004843
+      },
+      "snapshot_ms": {
+        "count": 10,
+        "p50": 4383.988166000228,
+        "p95": 4512.603458999656,
+        "min": 4208.646832999773,
+        "max": 4512.603458999656
+      },
+      "components": {
+        "pre_observation_ms": {
+          "count": 10,
+          "p50": 2721.2251250003465,
+          "p95": 2750.798290999839,
+          "min": 2648.1976659996435,
+          "max": 2750.798290999839
+        },
+        "dispatch_ms": {
+          "count": 10,
+          "p50": 33813.343375999946,
+          "p95": 34306.386916000396,
+          "min": 33645.024540999904,
+          "max": 34306.386916000396
+        },
+        "post_observation_ms": {
+          "count": 10,
+          "p50": 2680.378792000003,
+          "p95": 2817.8662499999627,
+          "min": 2655.047332999762,
+          "max": 2817.8662499999627
+        },
+        "serialization_ms": {
+          "count": 10,
+          "p50": 0.31770800007507205,
+          "p95": 0.8089169994927943,
+          "min": 0.23075099987909198,
+          "max": 0.8089169994927943
+        },
+        "target_resolution_ms": {
+          "count": 10,
+          "p50": 15764.895750999916,
+          "p95": 15823.813832999673,
+          "min": 15696.016875999514,
+          "max": 15823.813832999673
+        }
+      }
+    },
+    "light": {
+      "failures": 0,
+      "first_failure": null,
+      "total_ms": {
+        "count": 10,
+        "p50": 51817.59008300025,
+        "p95": 53873.19891700009,
+        "min": 51462.841250000056,
+        "max": 53873.19891700009
+      },
+      "screenshot_ms": {
+        "count": 10,
+        "p50": 298.09058399964124,
+        "p95": 579.2504579997621,
+        "min": 281.5155420000665,
+        "max": 579.2504579997621
+      },
+      "snapshot_ms": {
+        "count": 10,
+        "p50": 4325.393459000159,
+        "p95": 4439.145916000009,
+        "min": 4214.047791999765,
+        "max": 4439.145916000009
+      },
+      "components": {
+        "serialization_ms": {
+          "count": 10,
+          "p50": 0.12124999985098839,
+          "p95": 0.1757490006275475,
+          "min": 0.08766599977388978,
+          "max": 0.1757490006275475
+        }
+      }
+    }
+  },
+  "requests": {
+    "baseline": [
+      {
+        "tool": "start_app",
+        "appId": "[fixture]",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "saved-session"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_284ea011b3ff950d95d11a6f",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "idle-detail"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "activate"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_da2dcd3da0dca3c16a5c4dcc",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "active-detail"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "home"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_09c39927153768ca1f6a78ee",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "home-screen"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "saved-session"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_284ea011b3ff950d95d11a6f",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "active-detail"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "deactivate"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_bb2ec1389d9ac8dea2e5e1ec",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "idle-detail"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "wait_for_ui",
+        "selector": {
+          "accessibility_id": "stop"
+        },
+        "condition": "clickable",
+        "timeout_ms": 10000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "tap_element",
+        "elementId": "el_8c89484e6d80066a9a410323",
+        "actionTimeoutMs": 30000,
+        "verificationTimeoutMs": 60000
+      },
+      {
+        "tool": "expect_element_visible",
+        "selector": {
+          "accessibility_id": "stopped"
+        },
+        "timeout_ms": 30000,
+        "poll_interval_ms": 100
+      },
+      {
+        "tool": "capture_screenshot"
+      },
+      {
+        "tool": "capture_debug_snapshot",
+        "includeScreenshot": false,
+        "includeLogs": false
+      }
+    ],
+    "full": [
+      {
+        "tool": "run_journey",
+        "defaults": {
+          "verificationMode": "full",
+          "actionTimeoutMs": 30000,
+          "verificationTimeoutMs": 60000
+        },
+        "responseMode": "debug",
+        "steps": [
+          {
+            "id": "launch",
+            "type": "start_app",
+            "appId": "[fixture]"
+          },
+          {
+            "id": "tap-0",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "saved-session"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-0",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "idle-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-1",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "activate"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-1",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "active-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-2",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "home"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-2",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "home-screen"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-3",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "saved-session"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-3",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "active-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-4",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "deactivate"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-4",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "idle-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-5",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "stop"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-5",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "stopped"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          }
+        ]
+      },
+      {
+        "tool": "capture_screenshot"
+      },
+      {
+        "tool": "capture_debug_snapshot",
+        "includeScreenshot": false,
+        "includeLogs": false
+      }
+    ],
+    "light": [
+      {
+        "tool": "run_journey",
+        "defaults": {
+          "verificationMode": "light",
+          "actionTimeoutMs": 30000,
+          "verificationTimeoutMs": 60000
+        },
+        "responseMode": "compact",
+        "steps": [
+          {
+            "id": "launch",
+            "type": "start_app",
+            "appId": "[fixture]"
+          },
+          {
+            "id": "tap-0",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "saved-session"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-0",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "idle-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-1",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "activate"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-1",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "active-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-2",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "home"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-2",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "home-screen"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-3",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "saved-session"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-3",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "active-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-4",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "deactivate"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-4",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "idle-detail"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          },
+          {
+            "id": "tap-5",
+            "type": "tap",
+            "selector": {
+              "accessibility_id": "stop"
+            },
+            "waitFor": {
+              "condition": "clickable",
+              "timeoutMs": 10000,
+              "pollIntervalMs": 100
+            }
+          },
+          {
+            "id": "assert-5",
+            "type": "assert",
+            "assertion": {
+              "kind": "element_visible",
+              "selector": {
+                "accessibility_id": "stopped"
+              }
+            },
+            "timeoutMs": 30000,
+            "pollIntervalMs": 100
+          }
+        ]
+      },
+      {
+        "tool": "capture_screenshot"
+      },
+      {
+        "tool": "capture_debug_snapshot",
+        "includeScreenshot": false,
+        "includeLogs": false
+      }
+    ]
+  },
+  "raw": [
+    {
+      "mode": "baseline",
+      "warmup": true,
+      "success": true,
+      "total_ms": 123826.73966499999,
+      "componentTimes": {
+        "device_resolution_ms": [
+          171.21650000000045,
+          115.28654199999983,
+          302.6116669999974,
+          173.05270799999926,
+          305.0470409999907,
+          182.88650000000052,
+          316.4152069999982,
+          186.2842079999973,
+          306.70204200000444,
+          180.84450000000652,
+          412.59712500000023,
+          164.27637500000128,
+          358.5372930000012
+        ],
+        "pre_observation_ms": [
+          2938.6722500000005
+        ],
+        "dispatch_ms": [
+          337.1137920000001,
+          8683.674459000002,
+          8421.700082999996,
+          8531.268292,
+          8479.533750000002,
+          8705.759542,
+          8457.861292000001
+        ],
+        "post_observation_ms": [
+          2679.621333
+        ],
+        "serialization_ms": [
+          0.007250000000567525,
+          0.009916999999404652,
+          0.0587500000037835,
+          0.0057090000045718625,
+          0.005750000011175871,
+          0.00712500000372529,
+          0.006041000000550412
+        ]
+      },
+      "screenshot_ms": 371.4649589999899,
+      "snapshot_ms": 4332.176666999992
+    },
+    {
+      "mode": "baseline",
+      "warmup": true,
+      "success": true,
+      "total_ms": 123973.75087400002,
+      "componentTimes": {
+        "device_resolution_ms": [
+          185.779916999978,
+          176.12833300000057,
+          399.8787500000035,
+          224.1976250000007,
+          349.7896249999758,
+          171.92749900001218,
+          368.8325420000183,
+          187.79137600003742,
+          379.0231240000285,
+          183.99804199996288,
+          343.9966660000209,
+          167.73629200001596,
+          378.0309990000096
+        ],
+        "pre_observation_ms": [
+          2860.1256669999857
+        ],
+        "dispatch_ms": [
+          445.5057910000032,
+          8554.93308300001,
+          8485.86508399999,
+          8577.761167000019,
+          8603.864375000005,
+          8536.866791000008,
+          8582.450291999994
+        ],
+        "post_observation_ms": [
+          2789.603959
+        ],
+        "serialization_ms": [
+          0.006333999976050109,
+          0.006708000000799075,
+          0.015000000013969839,
+          0.005874999973457307,
+          0.006750000000465661,
+          0.0068749999918509275,
+          0.006083000014768913
+        ]
+      },
+      "screenshot_ms": 303.74183399998583,
+      "snapshot_ms": 4380.372166999994
+    },
+    {
+      "mode": "baseline",
+      "warmup": true,
+      "success": true,
+      "total_ms": 123202.29545699997,
+      "componentTimes": {
+        "device_resolution_ms": [
+          144.50654099998064,
+          168.98875000001863,
+          314.66254000004847,
+          194.13208300003316,
+          348.0900430000038,
+          168.5018750000163,
+          359.5508330000448,
+          177.0687490000273,
+          352.9417089999188,
+          165.98829200002365,
+          380.3683740000124,
+          176.09895800001686,
+          315.54470799997216
+        ],
+        "pre_observation_ms": [
+          2993.4434170000022
+        ],
+        "dispatch_ms": [
+          426.65333300002385,
+          8415.716541000002,
+          8538.700249999994,
+          8557.76787500002,
+          8482.160959,
+          8505.737749999971,
+          8405.482458000013
+        ],
+        "post_observation_ms": [
+          2723.290624999965
+        ],
+        "serialization_ms": [
+          0.00933400000212714,
+          0.006791999971028417,
+          0.006083999993279576,
+          0.007000000041443855,
+          0.006209000013768673,
+          0.009291999973356724,
+          0.010790999978780746
+        ]
+      },
+      "screenshot_ms": 284.6438329999801,
+      "snapshot_ms": 4399.775874999992
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 122953.64324700006,
+      "componentTimes": {
+        "device_resolution_ms": [
+          239.37337499996647,
+          161.79033399996115,
+          336.24641500005964,
+          169.98733300005551,
+          307.31633400003193,
+          185.35116600000765,
+          328.08374799997546,
+          176.40787499997532,
+          316.82379100000253,
+          178.67420899990248,
+          391.53445699997246,
+          158.4187919999822,
+          342.19070699991425
+        ],
+        "pre_observation_ms": [
+          2865.6876250000205
+        ],
+        "dispatch_ms": [
+          353.86558400001377,
+          8529.383124999993,
+          8442.972750000015,
+          8421.538541999995,
+          8552.33712500002,
+          8531.97441700002,
+          8590.979708000028
+        ],
+        "post_observation_ms": [
+          2730.1595830000006
+        ],
+        "serialization_ms": [
+          0.008125000051222742,
+          0.00841700000455603,
+          0.008542000025045127,
+          0.007083000033162534,
+          0.006333000026643276,
+          0.006124999956227839,
+          0.008040999993681908
+        ]
+      },
+      "screenshot_ms": 274.4475000000093,
+      "snapshot_ms": 4412.734833999944
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 123692.589959,
+      "componentTimes": {
+        "device_resolution_ms": [
+          167.49629200005438,
+          149.58525000012014,
+          357.97187399992254,
+          184.69341700011864,
+          343.0557919999119,
+          182.10875000001397,
+          371.6943330001086,
+          193.40341699996497,
+          403.05004300002474,
+          182.02283400006127,
+          330.69412399991415,
+          162.88658299995586,
+          370.4292079999577
+        ],
+        "pre_observation_ms": [
+          2755.0909589999355
+        ],
+        "dispatch_ms": [
+          364.29241700004786,
+          8624.585792000056,
+          8510.666666000034,
+          8543.704750000034,
+          8592.807333000004,
+          8546.671875,
+          8581.173583000083
+        ],
+        "post_observation_ms": [
+          2778.10929199995
+        ],
+        "serialization_ms": [
+          0.006209000013768673,
+          0.006500000017695129,
+          0.009958999929949641,
+          0.08329199999570847,
+          0.007166999974288046,
+          0.0062500000931322575,
+          0.006958000012673438
+        ]
+      },
+      "screenshot_ms": 300.6519580000313,
+      "snapshot_ms": 4341.738583000028
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124490.98908200022,
+      "componentTimes": {
+        "device_resolution_ms": [
+          170.13349899998866,
+          175.29374999995343,
+          352.9650000000838,
+          204.754374000011,
+          392.732624999946,
+          180.93337499990594,
+          382.5814169999212,
+          184.18833400006406,
+          313.8656660000561,
+          193.98787500010803,
+          383.2401250001276,
+          158.74941699998453,
+          374.01016700000037
+        ],
+        "pre_observation_ms": [
+          2938.4980839999625
+        ],
+        "dispatch_ms": [
+          469.5687920000637,
+          8571.213583000004,
+          8659.646667000023,
+          8561.192583000055,
+          8628.210499999928,
+          8527.500665999949,
+          8466.073041999945
+        ],
+        "post_observation_ms": [
+          2801.203582999995
+        ],
+        "serialization_ms": [
+          0.00712500000372529,
+          0.0069160000421106815,
+          0.007209000061266124,
+          0.007249999907799065,
+          0.00820799998473376,
+          0.006958000012673438,
+          0.006999999983236194
+        ]
+      },
+      "screenshot_ms": 318.3640000000596,
+      "snapshot_ms": 4539.459791999892
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 123713.80770799983,
+      "componentTimes": {
+        "device_resolution_ms": [
+          175.1538329999894,
+          172.17587599996477,
+          385.251290999935,
+          186.40475000010338,
+          378.40916600008495,
+          160.5970419999212,
+          327.8242490000557,
+          154.06874999997672,
+          355.22762500017416,
+          173.7398749999702,
+          346.136668000021,
+          152.49695899989456,
+          349.0805819998495
+        ],
+        "pre_observation_ms": [
+          2868.2257090000203
+        ],
+        "dispatch_ms": [
+          358.783250000095,
+          8609.747165999957,
+          8801.543999999994,
+          8463.131374999997,
+          8534.057083999971,
+          8485.16391699994,
+          8526.580709000002
+        ],
+        "post_observation_ms": [
+          2748.3601250000065
+        ],
+        "serialization_ms": [
+          0.008999999961815774,
+          0.00620800000615418,
+          0.012792000081390142,
+          0.007291999994777143,
+          0.006416999967768788,
+          0.006165999919176102,
+          0.016874999972060323
+        ]
+      },
+      "screenshot_ms": 318.3522090000333,
+      "snapshot_ms": 4506.826291000005
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124094.50754200004,
+      "componentTimes": {
+        "device_resolution_ms": [
+          180.7551659999881,
+          184.58399999991525,
+          383.8293340000091,
+          181.66004200000316,
+          374.659081999911,
+          193.57595899992157,
+          340.22695800021756,
+          172.6799170000013,
+          362.21112500014715,
+          185.23741700011306,
+          335.89829100016505,
+          183.82495899987407,
+          363.4634180001449
+        ],
+        "pre_observation_ms": [
+          2792.0044589999598
+        ],
+        "dispatch_ms": [
+          356.9751249999972,
+          8529.956208999967,
+          8615.884625000064,
+          8611.457707999973,
+          8525.80008299998,
+          8458.964167000027,
+          8565.862333000056
+        ],
+        "post_observation_ms": [
+          2767.235500000068
+        ],
+        "serialization_ms": [
+          0.007499999948777258,
+          0.006541999988257885,
+          0.006583999958820641,
+          0.008291000034660101,
+          0.007208000053651631,
+          0.009749999968335032,
+          0.005874999915249646
+        ]
+      },
+      "screenshot_ms": 311.408875000081,
+      "snapshot_ms": 4390.488833000069
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124123.25400000019,
+      "componentTimes": {
+        "device_resolution_ms": [
+          171.04195799981244,
+          181.70516699994914,
+          364.6913339998573,
+          184.56258400017396,
+          357.1149999999907,
+          171.31475099991076,
+          343.34920900012366,
+          182.4652500001248,
+          456.65966599970125,
+          176.5919990001712,
+          327.0537090001162,
+          167.88495799992234,
+          437.0760419999715
+        ],
+        "pre_observation_ms": [
+          2821.534750000108
+        ],
+        "dispatch_ms": [
+          370.3332909999881,
+          8630.76604100014,
+          8550.510041000089,
+          8605.831042000093,
+          8733.013250000076,
+          8488.284417000134,
+          8536.852000000188
+        ],
+        "post_observation_ms": [
+          2746.708875000011
+        ],
+        "serialization_ms": [
+          0.006417000200599432,
+          0.006624999921768904,
+          0.007041999837383628,
+          0.026374999899417162,
+          0.007250000024214387,
+          0.010499999858438969,
+          0.006666000001132488
+        ]
+      },
+      "screenshot_ms": 390.5520830000751,
+      "snapshot_ms": 4418.580582999857
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 123734.0562489999,
+      "componentTimes": {
+        "device_resolution_ms": [
+          186.76829199981876,
+          171.00424999999814,
+          326.96375000011176,
+          153.16483299992979,
+          347.0757089997642,
+          183.1972920000553,
+          347.80225000018254,
+          146.2960829997901,
+          331.4191680001095,
+          227.8434170000255,
+          367.5076250000857,
+          161.32695800019428,
+          366.84195800009184
+        ],
+        "pre_observation_ms": [
+          2811.209291000152
+        ],
+        "dispatch_ms": [
+          374.07033399981447,
+          8524.054749999894,
+          8574.979458000045,
+          8581.703834000044,
+          8595.027541999938,
+          8554.398833999876,
+          8532.161249999888
+        ],
+        "post_observation_ms": [
+          2756.2594999999274
+        ],
+        "serialization_ms": [
+          0.006500000134110451,
+          0.008416000055149198,
+          0.006333000026643276,
+          0.006499999901279807,
+          0.007290999870747328,
+          0.006792000029236078,
+          0.0069160000421106815
+        ]
+      },
+      "screenshot_ms": 304.6418330001179,
+      "snapshot_ms": 4384.511167000048
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124327.70570900012,
+      "componentTimes": {
+        "device_resolution_ms": [
+          215.02224899991415,
+          168.91137500014156,
+          356.5234590002801,
+          173.44645799999125,
+          316.55841700034216,
+          197.09908299986273,
+          395.1251260000281,
+          192.0033749998547,
+          336.81233200011775,
+          180.58616599999368,
+          379.8878740002401,
+          156.98529199976474,
+          358.8729570002761
+        ],
+        "pre_observation_ms": [
+          2891.513082999969
+        ],
+        "dispatch_ms": [
+          336.88641700008884,
+          8473.02445799997,
+          8670.417916999897,
+          8573.524750000099,
+          8463.809124999912,
+          8678.780833000084,
+          8542.690041000023
+        ],
+        "post_observation_ms": [
+          2785.467292000074
+        ],
+        "serialization_ms": [
+          0.0070420000702142715,
+          0.009833000134676695,
+          0.006540999980643392,
+          0.007082999916747212,
+          0.006166999926790595,
+          0.006125000072643161,
+          0.015374999959021807
+        ]
+      },
+      "screenshot_ms": 319.52524999994785,
+      "snapshot_ms": 4430.693250000011
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124565.58691399964,
+      "componentTimes": {
+        "device_resolution_ms": [
+          202.74291600007564,
+          187.76904199970886,
+          374.44387500034645,
+          178.90908300015144,
+          418.08529099985026,
+          193.64337399997748,
+          403.73916799994186,
+          212.07504199980758,
+          387.7577909999527,
+          184.8792090001516,
+          388.49579300009646,
+          181.07579199993052,
+          345.5867910000961
+        ],
+        "pre_observation_ms": [
+          2878.775334000122
+        ],
+        "dispatch_ms": [
+          346.7744169998914,
+          8542.280708999839,
+          8787.437791999895,
+          8614.887125000125,
+          8525.714542000089,
+          8693.800332999788,
+          8532.851416000165
+        ],
+        "post_observation_ms": [
+          2784.859082999872
+        ],
+        "serialization_ms": [
+          0.007250000024214387,
+          0.00620800000615418,
+          0.007207999937236309,
+          0.006917000049725175,
+          0.009415999986231327,
+          0.006958000129088759,
+          0.006209000013768673
+        ]
+      },
+      "screenshot_ms": 263.08050000015646,
+      "snapshot_ms": 4397.419916999992
+    },
+    {
+      "mode": "baseline",
+      "warmup": false,
+      "success": true,
+      "total_ms": 124597.88916599983,
+      "componentTimes": {
+        "device_resolution_ms": [
+          170.39066699985415,
+          175.40079100010917,
+          398.29354200023226,
+          181.69650000007823,
+          344.4989579995163,
+          188.88166700000875,
+          365.18470999994315,
+          192.5568750000093,
+          339.5327499997802,
+          203.0130829999689,
+          591.2209999996703,
+          176.433291999856,
+          356.9982519999612
+        ],
+        "pre_observation_ms": [
+          2809.816542000044
+        ],
+        "dispatch_ms": [
+          389.5019170001615,
+          8612.158624999924,
+          8791.592625000048,
+          8630.93341700011,
+          8533.082915999927,
+          9019.955749999965,
+          8568.644749999978
+        ],
+        "post_observation_ms": [
+          2755.691250000149
+        ],
+        "serialization_ms": [
+          0.006582999834790826,
+          0.011332999914884567,
+          0.006583999842405319,
+          0.008040999993681908,
+          0.006917000049725175,
+          0.021124999970197678,
+          0.00750000006519258
+        ]
+      },
+      "screenshot_ms": 273.40291699999943,
+      "snapshot_ms": 4388.93137500016
+    },
+    {
+      "mode": "full",
+      "warmup": true,
+      "success": true,
+      "total_ms": 89031.10066700005,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2718.6970840001013
+        ],
+        "dispatch_ms": [
+          34966.002501000185
+        ],
+        "post_observation_ms": [
+          2666.4855000001844
+        ],
+        "serialization_ms": [
+          0.30891500040888786
+        ],
+        "target_resolution_ms": [
+          15844.323873999761
+        ]
+      },
+      "screenshot_ms": 272.8050829998683,
+      "snapshot_ms": 4411.02570899995
+    },
+    {
+      "mode": "full",
+      "warmup": true,
+      "success": true,
+      "total_ms": 88436.78425000003,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2893.7569170000497
+        ],
+        "dispatch_ms": [
+          34140.422583000036
+        ],
+        "post_observation_ms": [
+          2731.4842920000665
+        ],
+        "serialization_ms": [
+          0.24554099957458675
+        ],
+        "target_resolution_ms": [
+          15916.868207999738
+        ]
+      },
+      "screenshot_ms": 312.53062499989755,
+      "snapshot_ms": 4428.5440839999355
+    },
+    {
+      "mode": "full",
+      "warmup": true,
+      "success": true,
+      "total_ms": 87118.6919170001,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2785.8237499999814
+        ],
+        "dispatch_ms": [
+          33647.73762399983
+        ],
+        "post_observation_ms": [
+          2771.8590839998797
+        ],
+        "serialization_ms": [
+          0.2858330002054572
+        ],
+        "target_resolution_ms": [
+          15719.418125999626
+        ]
+      },
+      "screenshot_ms": 280.28033400001004,
+      "snapshot_ms": 4347.3091249999125
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87247.31983299996,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2693.438749999972
+        ],
+        "dispatch_ms": [
+          33750.00374900014
+        ],
+        "post_observation_ms": [
+          2680.378792000003
+        ],
+        "serialization_ms": [
+          0.3359169999603182
+        ],
+        "target_resolution_ms": [
+          15785.434500000207
+        ]
+      },
+      "screenshot_ms": 299.35754100000486,
+      "snapshot_ms": 4508.338875000132
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87238.66704200022,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2750.798290999839
+        ],
+        "dispatch_ms": [
+          33813.343375999946
+        ],
+        "post_observation_ms": [
+          2692.197459000163
+        ],
+        "serialization_ms": [
+          0.8089169994927943
+        ],
+        "target_resolution_ms": [
+          15745.848167000804
+        ]
+      },
+      "screenshot_ms": 289.3561669997871,
+      "snapshot_ms": 4383.988166000228
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87262.29954100028,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2655.941250000149
+        ],
+        "dispatch_ms": [
+          33887.63058399921
+        ],
+        "post_observation_ms": [
+          2660.743333000224
+        ],
+        "serialization_ms": [
+          0.34608300030231476
+        ],
+        "target_resolution_ms": [
+          15696.016875999514
+        ]
+      },
+      "screenshot_ms": 292.56079200003296,
+      "snapshot_ms": 4367.085624999832
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 88048.8507079999,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2665.878250000067
+        ],
+        "dispatch_ms": [
+          34181.61758200126
+        ],
+        "post_observation_ms": [
+          2694.4919169996865
+        ],
+        "serialization_ms": [
+          0.31770800007507205
+        ],
+        "target_resolution_ms": [
+          15806.786958000157
+        ]
+      },
+      "screenshot_ms": 235.04666700027883,
+      "snapshot_ms": 4208.646832999773
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 88067.6383750001,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2721.2251250003465
+        ],
+        "dispatch_ms": [
+          34306.386916000396
+        ],
+        "post_observation_ms": [
+          2704.292958999984
+        ],
+        "serialization_ms": [
+          0.23075099987909198
+        ],
+        "target_resolution_ms": [
+          15798.530416999944
+        ]
+      },
+      "screenshot_ms": 246.44658300001174,
+      "snapshot_ms": 4435.1603330001235
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87126.42908299994,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2648.1976659996435
+        ],
+        "dispatch_ms": [
+          33684.17470700061
+        ],
+        "post_observation_ms": [
+          2817.8662499999627
+        ],
+        "serialization_ms": [
+          0.3867069995030761
+        ],
+        "target_resolution_ms": [
+          15823.813832999673
+        ]
+      },
+      "screenshot_ms": 280.87308300007135,
+      "snapshot_ms": 4355.592999999877
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87110.95208400022,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2737.831125000026
+        ],
+        "dispatch_ms": [
+          33645.024540999904
+        ],
+        "post_observation_ms": [
+          2658.4575420003384
+        ],
+        "serialization_ms": [
+          0.28754099924117327
+        ],
+        "target_resolution_ms": [
+          15806.64741700003
+        ]
+      },
+      "screenshot_ms": 340.20200000004843,
+      "snapshot_ms": 4354.555999999866
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87371.77554100007,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2733.97116599977
+        ],
+        "dispatch_ms": [
+          33805.089500999544
+        ],
+        "post_observation_ms": [
+          2655.047332999762
+        ],
+        "serialization_ms": [
+          0.33091700077056885
+        ],
+        "target_resolution_ms": [
+          15733.29325099988
+        ]
+      },
+      "screenshot_ms": 286.4720410001464,
+      "snapshot_ms": 4512.603458999656
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87811.74937500013,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2731.88512500003
+        ],
+        "dispatch_ms": [
+          34060.283792000264
+        ],
+        "post_observation_ms": [
+          2691.9071249999106
+        ],
+        "serialization_ms": [
+          0.27804100001230836
+        ],
+        "target_resolution_ms": [
+          15764.895750999916
+        ]
+      },
+      "screenshot_ms": 301.2273329999298,
+      "snapshot_ms": 4406.654000000097
+    },
+    {
+      "mode": "full",
+      "warmup": false,
+      "success": true,
+      "total_ms": 87701.92279199976,
+      "componentTimes": {
+        "pre_observation_ms": [
+          2748.5287080002017
+        ],
+        "dispatch_ms": [
+          34087.290708000306
+        ],
+        "post_observation_ms": [
+          2677.3289580000564
+        ],
+        "serialization_ms": [
+          0.2615840001963079
+        ],
+        "target_resolution_ms": [
+          15724.408334000036
+        ]
+      },
+      "screenshot_ms": 291.3560830000788,
+      "snapshot_ms": 4408.143625000026
+    },
+    {
+      "mode": "light",
+      "warmup": true,
+      "success": true,
+      "total_ms": 52267.51758300001,
+      "componentTimes": {
+        "serialization_ms": [
+          0.1290000006556511
+        ]
+      },
+      "screenshot_ms": 307.82062500016764,
+      "snapshot_ms": 4316.51870799996
+    },
+    {
+      "mode": "light",
+      "warmup": true,
+      "success": true,
+      "total_ms": 52048.048084000126,
+      "componentTimes": {
+        "serialization_ms": [
+          0.1533360006287694
+        ]
+      },
+      "screenshot_ms": 303.6981249996461,
+      "snapshot_ms": 4389.271042000037
+    },
+    {
+      "mode": "light",
+      "warmup": true,
+      "success": true,
+      "total_ms": 52569.3066250002,
+      "componentTimes": {
+        "serialization_ms": [
+          0.17329199984669685
+        ]
+      },
+      "screenshot_ms": 302.577959000133,
+      "snapshot_ms": 4530.902916999999
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 52435.72379199974,
+      "componentTimes": {
+        "serialization_ms": [
+          0.12412499962374568
+        ]
+      },
+      "screenshot_ms": 307.91683299979195,
+      "snapshot_ms": 4439.145916000009
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 53873.19891700009,
+      "componentTimes": {
+        "serialization_ms": [
+          0.1757490006275475
+        ]
+      },
+      "screenshot_ms": 297.63908400014043,
+      "snapshot_ms": 4243.79075000016
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 51723.30162499985,
+      "componentTimes": {
+        "serialization_ms": [
+          0.10204299865290523
+        ]
+      },
+      "screenshot_ms": 298.09058399964124,
+      "snapshot_ms": 4325.393459000159
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 51662.56112499954,
+      "componentTimes": {
+        "serialization_ms": [
+          0.16320900013670325
+        ]
+      },
+      "screenshot_ms": 579.2504579997621,
+      "snapshot_ms": 4214.047791999765
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 52640.393999999855,
+      "componentTimes": {
+        "serialization_ms": [
+          0.12470899941399693
+        ]
+      },
+      "screenshot_ms": 304.90883299987763,
+      "snapshot_ms": 4287.541500000283
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 51462.841250000056,
+      "componentTimes": {
+        "serialization_ms": [
+          0.10958299972116947
+        ]
+      },
+      "screenshot_ms": 304.85591599997133,
+      "snapshot_ms": 4366.505957999732
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 51817.59008300025,
+      "componentTimes": {
+        "serialization_ms": [
+          0.08766599977388978
+        ]
+      },
+      "screenshot_ms": 307.4632500000298,
+      "snapshot_ms": 4347.651207999792
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 51769.21824999992,
+      "componentTimes": {
+        "serialization_ms": [
+          0.10712499916553497
+        ]
+      },
+      "screenshot_ms": 294.2176660001278,
+      "snapshot_ms": 4328.679874999914
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 52186.81079200003,
+      "componentTimes": {
+        "serialization_ms": [
+          0.12124999985098839
+        ]
+      },
+      "screenshot_ms": 287.56820799969137,
+      "snapshot_ms": 4360.812875000294
+    },
+    {
+      "mode": "light",
+      "warmup": false,
+      "success": true,
+      "total_ms": 52354.621999999974,
+      "componentTimes": {
+        "serialization_ms": [
+          0.12383299972862005
+        ]
+      },
+      "screenshot_ms": 281.5155420000665,
+      "snapshot_ms": 4256.134750000201
+    }
+  ],
+  "gates": {
+    "full_p95": true,
+    "light_p50": true
+  }
+}
