@@ -3,6 +3,7 @@ import { handleToolCall } from '../../../src/server-core.js'
 import { ToolsInteract } from '../../../src/interact/index.js'
 import { ToolsObserve } from '../../../src/observe/index.js'
 import { AndroidManage } from '../../../src/manage/android.js'
+import { markDispatchStarted } from '../../../src/utils/operation-budget.js'
 
 async function run() {
   const treeOriginal = ToolsObserve.getUITreeHandler
@@ -32,6 +33,7 @@ async function run() {
         assert.equal(result.device, undefined)
         assert.equal(result.trace, undefined)
         assert.equal(result.dispatch_started, true)
+        assert.deepEqual(Object.keys(result.timing), ['total_ms'])
         if (mode !== 'full') assert.equal(result.lifecycle_state, 'pending_verification')
       }
     }
@@ -40,6 +42,14 @@ async function run() {
     assert.equal(result.success, true)
     assert.equal(result.verification.status, 'unavailable')
     assert.equal(result.verification_diagnostic.retryable, true)
+    ToolsInteract.tapHandler = async () => { markDispatchStarted(); dispatched = true; return { success: false, error: 'ACTION_TIMEOUT', device } as any }
+    const timedOut = JSON.parse((await handleToolCall('tap', { platform: 'android', deviceId: 'fixture', x: 1, y: 1, verificationMode: 'none', responseMode: 'compact' })).content[0].text!)
+    assert.equal(timedOut.failure_code, 'ACTION_TIMEOUT')
+    assert.equal(timedOut.delivery_status, 'unknown')
+    assert.equal(timedOut.retryable, false)
+    AndroidManage.prototype.startApp = async () => ({ appStarted: false, device, error: 'launch failed', diagnostics: { runResult: { exitCode: 1, stdout: '', stderr: 'launch failed' } } } as any)
+    const failedLaunch = JSON.parse((await handleToolCall('start_app', { platform: 'android', appId: 'fixture' })).content[0].text!)
+    assert.equal(failedLaunch.details.diagnostics.runResult.exitCode, 1)
   } finally {
     ToolsObserve.getUITreeHandler = treeOriginal
     ToolsObserve.getScreenFingerprintHandler = fingerprintOriginal

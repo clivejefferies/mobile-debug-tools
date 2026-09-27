@@ -9,17 +9,18 @@ export function buildFixture() {
   const sdk = process.env.ANDROID_HOME ?? path.join(process.env.HOME!, 'Library/Android/sdk')
   const buildTools = path.join(sdk, 'build-tools', '36.0.0')
   const androidJar = path.join(sdk, 'platforms', 'android-36', 'android.jar')
-  const java = process.env.JAVA_HOME ?? '/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home'
-  const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: out, stdio: 'pipe', env: { ...process.env, JAVA_HOME: java } })
+  const java = process.env.JAVA_HOME
+  const tool = (name: string) => java ? path.join(java, 'bin', name) : name
+  const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: out, stdio: 'pipe' })
   mkdirSync(path.join(out, 'classes'), { recursive: true })
-  run(path.join(java, 'bin/javac'), ['--release', '8', '-classpath', androidJar, '-d', 'classes', path.join(root, 'src/MainActivity.java')])
-  run(path.join(java, 'bin/jar'), ['cf', 'classes.jar', '-C', 'classes', '.'])
+  run(tool('javac'), ['--release', '8', '-classpath', androidJar, '-d', 'classes', path.join(root, 'src/MainActivity.java')])
+  run(tool('jar'), ['cf', 'classes.jar', '-C', 'classes', '.'])
   run(path.join(buildTools, 'd8'), ['--lib', androidJar, '--output', out, 'classes.jar'])
   run(path.join(buildTools, 'aapt2'), ['link', '-I', androidJar, '--manifest', path.join(root, 'AndroidManifest.xml'), '-o', 'unsigned.apk'])
-  run('/usr/bin/zip', ['-q', 'unsigned.apk', 'classes.dex'])
+  run('zip', ['-q', 'unsigned.apk', 'classes.dex'])
   run(path.join(buildTools, 'zipalign'), ['-f', '4', 'unsigned.apk', 'aligned.apk'])
   // Ephemeral signing material is generated outside version control.
-  try { run(path.join(java, 'bin/keytool'), ['-genkeypair', '-keystore', 'fixture.jks', '-storepass', 'android', '-keypass', 'android', '-alias', 'fixture', '-dname', 'CN=Latency Fixture', '-keyalg', 'RSA', '-validity', '3650']) } catch { /* Existing local fixture key. */ }
+  try { run(tool('keytool'), ['-genkeypair', '-keystore', 'fixture.jks', '-storepass', 'android', '-keypass', 'android', '-alias', 'fixture', '-dname', 'CN=Latency Fixture', '-keyalg', 'RSA', '-validity', '3650']) } catch { /* Existing local fixture key. */ }
   run(path.join(buildTools, 'apksigner'), ['sign', '--ks', 'fixture.jks', '--ks-pass', 'pass:android', '--out', 'fixture.apk', 'aligned.apk'])
   return path.join(out, 'fixture.apk')
 }

@@ -15,12 +15,12 @@ import { ToolsObserve } from '../observe/index.js'
 export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 3
 export const DEFAULT_MAX_RETRY_DEPTH = 3
 
-export function wrapResponse<T>(data: T) {
+export function wrapResponse<T>(data: T, includeSerializationTiming = true) {
   const start = performance.now()
   let text = JSON.stringify(data, null, 2)
   const elapsed = performance.now() - start
   const value = data as any
-  if (value && typeof value === 'object' && value.timing && typeof value.timing === 'object') {
+  if (includeSerializationTiming && value && typeof value === 'object' && value.timing && typeof value.timing === 'object') {
     value.timing.serialization_ms = (value.timing.serialization_ms ?? 0) + elapsed
     recordTiming('serialization_ms', elapsed)
     text = JSON.stringify(value, null, 2)

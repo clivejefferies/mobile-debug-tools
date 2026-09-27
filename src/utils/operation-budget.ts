@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 export interface OperationBudget { deadline: number; dispatchStarted: boolean; parent?: OperationBudget }
 const budgets = new AsyncLocalStorage<OperationBudget>()
+export function hasFiniteBudget() { return Number.isFinite(budgets.getStore()?.deadline) }
 export function runWithBudget<T>(timeoutMs: number, operation: (budget: OperationBudget) => Promise<T>) {
   const parent = budgets.getStore()
   const budget = { deadline: Math.min(parent?.deadline ?? Infinity, performance.now() + timeoutMs), dispatchStarted: false, parent }

@@ -66,6 +66,16 @@ async function run() {
   assert.strictEqual(delta!.truncated, false)
   assert.strictEqual(getStateDelta(deviceKey, 99, 2), null)
 
+  for (let index = 3; index <= 10; index++) {
+    deriveSnapshotMetadata(deviceKey, {
+      screen: 'Home',
+      resolution: { width: 100, height: 200 },
+      elements: [{ text: `Revision ${index}`, stable_id: 'stable-row', visible: true }]
+    }, 'ui_tree')
+  }
+  assert.ok(getStateDelta(deviceKey, 3, 10), 'recent revisions remain available after pruning')
+  assert.strictEqual(getStateDelta(deviceKey, 2, 10), null, 'only the oldest revision is pruned')
+
   resetSnapshotMetadataForTests()
   console.log('snapshot_metadata unit tests passed')
 }

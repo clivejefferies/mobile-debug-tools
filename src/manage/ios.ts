@@ -1,4 +1,4 @@
-import { markDispatchStarted, runWithBudget } from '../utils/operation-budget.js'
+import { hasFiniteBudget, markDispatchStarted, remainingBudget, runWithBudget } from '../utils/operation-budget.js'
 import { promises as fs } from "fs"
 import { spawn, spawnSync } from "child_process"
 import { StartAppResponse, TerminateAppResponse, RestartAppResponse, ResetAppDataResponse, InstallAppResponse } from "../types.js"
@@ -334,7 +334,8 @@ export class iOSManage {
       }
     } catch (e: unknown) {
       const device = await getIOSDeviceMetadata(deviceId)
-      return { device, appStarted: false, launchTimeMs: performance.now() - started, error: e instanceof Error ? e.message : String(e), diagnostics: { runResult: { exitCode: null, stdout: '', stderr: String(e) } } } as any
+      const diagnostics = hasFiniteBudget() ? undefined : execCommandWithDiagnostics(['simctl', 'launch', deviceId, bundleId], deviceId)
+      return { device, appStarted: false, launchTimeMs: performance.now() - started, error: e instanceof Error ? e.message : String(e), ...(diagnostics ? { diagnostics } : {}) } as any
     }
   }
 
@@ -346,15 +347,19 @@ export class iOSManage {
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appTerminated: true }
     } catch (e: unknown) {
-      const diag = execCommandWithDiagnostics(['simctl', 'terminate', deviceId, bundleId], deviceId)
+      const diag = hasFiniteBudget() ? undefined : execCommandWithDiagnostics(['simctl', 'terminate', deviceId, bundleId], deviceId)
       const device = await getIOSDeviceMetadata(deviceId)
-      return { device, appTerminated: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag } as any
+      return { device, appTerminated: false, error: e instanceof Error ? e.message : String(e), ...(diag ? { diagnostics: diag } : {}) } as any
     }
   }
 
-  async restartApp(bundleId: string, deviceId: string = "booted", observe = true, bounded = false): Promise<RestartAppResponse> {
-    const terminateResult = bounded ? await runWithBudget(5000, () => this.terminateApp(bundleId, deviceId)) : await this.terminateApp(bundleId, deviceId)
-    const startResult = bounded ? await runWithBudget(10000, () => this.startApp(bundleId, deviceId, observe)) : await this.startApp(bundleId, deviceId, observe)
+  async restartApp(bundleId: string, deviceId: string = "booted", observe = true, bounded = false, timeoutMs = 15000): Promise<RestartAppResponse> {
+    const started = performance.now()
+    const terminateResult = bounded ? await runWithBudget(Math.min(5000, timeoutMs), () => this.terminateApp(bundleId, deviceId)) : await this.terminateApp(bundleId, deviceId)
+    const remaining = timeoutMs - (performance.now() - started)
+    if (bounded && remaining <= 0) throw new Error('ACTION_TIMEOUT')
+    const launchBudget = remainingBudget(remaining)
+    const startResult = bounded ? await runWithBudget(launchBudget, () => this.startApp(bundleId, deviceId, observe)) : await this.startApp(bundleId, deviceId, observe)
     return {
       device: startResult.device,
       appRestarted: startResult.appStarted,

@@ -167,11 +167,18 @@ export function deriveSnapshotMetadata(
     if ((tree.elements?.length ?? 0) > 500) oversized.set(revision, (tree.elements?.length ?? 0) - 500)
   }
   for (const [id, timestamp] of historyTimes) {
-    if (Date.now() - timestamp > 10 * 60 * 1000 || history.size > 8) {
+    if (Date.now() - timestamp > 10 * 60 * 1000) {
       history.delete(id)
       historyTimes.delete(id)
       oversized.delete(id)
     }
+  }
+  while (history.size > 8) {
+    const oldest = history.keys().next().value
+    if (oldest === undefined) break
+    history.delete(oldest)
+    historyTimes.delete(oldest)
+    oversized.delete(oldest)
   }
 
   snapshotStateByDevice.set(deviceKey, {

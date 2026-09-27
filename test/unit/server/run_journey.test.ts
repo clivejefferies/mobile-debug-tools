@@ -62,6 +62,7 @@ async function run() {
     })
     const light = JSON.parse(lightResponse.content[0].text)
     assert.strictEqual(light.success, true)
+    assert.deepStrictEqual(Object.keys(light.timing), ['total_ms'])
     assert.deepStrictEqual(light.steps[0].result.verification, { mode: 'light', status: 'observed' })
     assert.strictEqual(light.steps[0].result.verification_diagnostic, undefined)
     assert.strictEqual(postActionReads, 0, 'The following assertion supplies the fresh observation')

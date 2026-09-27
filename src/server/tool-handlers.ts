@@ -75,19 +75,6 @@ function compactAction(result: any, verificationMode: VerificationMode, started 
   }
 }
 
-async function within<T>(operation: Promise<T>, timeoutMs: number): Promise<T | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    return await Promise.race([
-      operation,
-      new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs) })
-    ])
-  } finally {
-    if (timer) clearTimeout(timer)
-  }
-}
-
-
 function actionHandler(type: string, execute: ToolHandler): ToolHandler {
   return async (args) => {
     const timing: Record<string, number> = {}
@@ -110,7 +97,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
       if (controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined && !/TIMEOUT|timed out/i.test(String(error))) return wrapToolError(type, error)
       result = { success: false, failure_code: /TIMEOUT|timed out/i.test(String(error)) ? 'ACTION_TIMEOUT' : 'UNKNOWN', error: String(error) }
     }
-    if (/ACTION_TIMEOUT|timeout/i.test(result.error ?? result.reason ?? '')) result.failure_code = 'ACTION_TIMEOUT'
+    if (result.failure_code === 'TIMEOUT' || /ACTION_TIMEOUT|timeout/i.test(result.error ?? result.reason ?? result.details?.error ?? '')) result.failure_code = 'ACTION_TIMEOUT'
     if (result.failure_code === 'ACTION_TIMEOUT') result.retryable = !dispatchStarted
     if (!result.success && typeof result.retryable !== 'boolean') result.retryable = !dispatchStarted
     result.action_id ??= randomUUID()
@@ -118,9 +105,8 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
     let delta: unknown
     let observationAvailable = false
     if (result.success && controls.verificationMode === 'light') {
-      const tree = await measure('post_observation_ms', () => runWithBudget(controls.verificationTimeoutMs, () => within(
-        ToolsObserve.getUITreeHandler({ platform: (args.platform as PlatformArg | undefined) ?? result.device?.platform, deviceId: (args.deviceId as string | undefined) ?? result.device?.id }),
-        controls.verificationTimeoutMs))).catch(() => null) as any
+      const tree = await measure('post_observation_ms', () => runWithBudget(controls.verificationTimeoutMs, () =>
+        ToolsObserve.getUITreeHandler({ platform: (args.platform as PlatformArg | undefined) ?? result.device?.platform, deviceId: (args.deviceId as string | undefined) ?? result.device?.id }))).catch(() => null) as any
       observationAvailable = !!tree && !tree.error
       if (observationAvailable && tree.device) delta = ToolsObserve.getLatestStateDelta(tree.device.platform, tree.device.id) ?? undefined
     }
@@ -134,7 +120,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
     return wrapResponse(controls.responseMode === 'compact' ? evidence : {
       ...result, ...evidence, timing: { ...timing, total_ms: performance.now() - started },
       effective_controls: { ...controls, actionTimeoutMs: args._journey !== true && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined ? null : budgetMs, timeout_bound: !(args._journey !== true && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined) }
-    })
+    }, controls.responseMode === 'debug')
     })
   }
 }
@@ -170,6 +156,7 @@ async function executeStartApp(args: ToolCallArgs) {
       ...(typeof res.output === 'string' ? { output: res.output } : {}),
       ...(res.device ? { device_id: res.device.id } : {}),
       ...(typeof res.error === 'string' ? { error: res.error } : {}),
+      ...(res.diagnostics ? { diagnostics: res.diagnostics } : {}),
       ...(res.observedApp ? { observed_app: res.observedApp } : {})
     }
   })
@@ -189,10 +176,11 @@ async function executeRestartApp(args: ToolCallArgs) {
   const platform = requireStringArg(args, 'platform') as PlatformArg
   const appId = requireStringArg(args, 'appId')
   const deviceId = getStringArg(args, 'deviceId')
-  const { verificationMode } = interactionControls(args)
+  const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   ToolsNetwork.notifyActionStart()
-  const res = await measure('dispatch_ms', () => (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId, args._journey === true || verificationMode !== 'full' || args.responseMode !== undefined || args.actionTimeoutMs !== undefined) : new iOSManage().restartApp(appId, deviceId, verificationMode === 'full', args._journey === true || verificationMode !== 'full' || args.responseMode !== undefined || args.actionTimeoutMs !== undefined)))
+  const bounded = args._journey === true || verificationMode !== 'full' || args.responseMode !== undefined || actionTimeoutMs !== undefined
+  const res = await measure('dispatch_ms', () => (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId, bounded, actionTimeoutMs ?? 15000) : new iOSManage().restartApp(appId, deviceId, verificationMode === 'full', bounded, actionTimeoutMs ?? 15000)))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
     actionType: 'restart_app',
@@ -209,6 +197,7 @@ async function executeRestartApp(args: ToolCallArgs) {
       ...(typeof res.terminatedBeforeRestart === 'boolean' ? { terminated_before_restart: res.terminatedBeforeRestart } : {}),
       ...(typeof res.terminateError === 'string' ? { terminate_error: res.terminateError } : {}),
       ...(typeof res.error === 'string' ? { error: res.error } : {}),
+      ...(res.diagnostics ? { diagnostics: res.diagnostics } : {}),
       ...(res.observedApp ? { observed_app: res.observedApp } : {})
     }
   })
@@ -617,7 +606,7 @@ async function handleRunJourney(args: ToolCallArgs) {
   for (const step of results) for (const [key, value] of Object.entries(step.result?.timing ?? {})) {
     if (key !== 'total_ms' && typeof value === 'number') componentTiming[key] = (componentTiming[key] ?? 0) + value
   }
-  return wrapResponse({ success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, ...(failureSnapshot ? { failure_snapshot: failureSnapshot } : {}), timing: { ...componentTiming, total_ms: performance.now() - started } })
+  return wrapResponse({ success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, ...(failureSnapshot ? { failure_snapshot: failureSnapshot } : {}), timing: responseMode === 'compact' ? { total_ms: performance.now() - started } : { ...componentTiming, total_ms: performance.now() - started } }, responseMode === 'debug')
   })
 }
 

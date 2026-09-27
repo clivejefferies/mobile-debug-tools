@@ -2681,6 +2681,7 @@ export class ToolsInteract {
             }
 
           } catch (e) {
+            if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             // Non-fatal per-poll error; record and continue
             console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
           }
@@ -2717,6 +2718,7 @@ export class ToolsInteract {
       }
 
     } catch (err) {
+      if (err instanceof Error && err.message === 'ACTION_TIMEOUT') throw err
       const elapsed = Date.now() - overallStart
       return {
         status: 'timeout',
