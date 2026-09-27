@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented; Android validation passed. iOS device validation pending.
+Implemented; Android and iOS device validation passed.
 
 ## 1. Summary
 

@@ -645,4 +645,4 @@ the journey; remaining steps report `not_run`. Journey responses default to comp
 `captureOnFailure: true` includes a screenshot-free failure snapshot in debug mode.
 
 See [RFC 018](../specs-deltas/018-interaction-latency-and-batched-journeys.md) for
-contracts and the outstanding device acceptance gates.
+contracts and the device acceptance criteria.

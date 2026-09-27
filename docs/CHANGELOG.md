@@ -3,7 +3,7 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## [0.32.0]
-- Performance improvements
+- Added bounded interaction verification modes, compact responses, selector-based taps, and batched journeys to reduce MCP interaction latency.
 
 ## [0.31.0]
 - Added tool discovery/automation
