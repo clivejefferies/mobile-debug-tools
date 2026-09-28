@@ -20,6 +20,7 @@ interface Bridge {
 const active = new Map<string, Bridge>()
 const starting = new Map<string, Promise<Bridge>>()
 const stopping = new Map<string, Promise<void>>()
+const bridgeSupport = new Map<string, boolean>()
 
 export function androidTreeBridgeEnabled(): boolean {
   return Boolean(process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK)
@@ -150,6 +151,13 @@ export async function readAndroidTreeFromBridge(deviceId: string): Promise<strin
   if (!apk) return null
   let bridge: Bridge | undefined
   try {
+    let supported = bridgeSupport.get(deviceId)
+    if (supported === undefined) {
+      const sdkLevel = Number(await execAdb(['shell', 'getprop', 'ro.build.version.sdk'], deviceId))
+      supported = Number.isInteger(sdkLevel) && sdkLevel >= 34
+      if (supported) bridgeSupport.set(deviceId, true)
+    }
+    if (!supported) return null
     bridge = await ensure(deviceId, apk)
     const output = await request(bridge, 'TREE', remainingBudget(10000))
     if (!output.startsWith('OK\n') || !output.includes('<hierarchy')) throw new Error('Android UI tree bridge returned invalid hierarchy output')
