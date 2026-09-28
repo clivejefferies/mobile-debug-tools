@@ -2,7 +2,12 @@ package dev.mobiledebugmcp.latencyfixture;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -30,8 +35,34 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         String networkBaseUrl = getIntent().getStringExtra("networkBaseUrl");
         String networkRunId = getIntent().getStringExtra("networkRunId");
-        if (networkBaseUrl != null && networkRunId != null) networkScreen(networkBaseUrl, networkRunId);
+        if (getIntent().getBooleanExtra("silentTimer", false)) silentTimerScreen();
+        else if (networkBaseUrl != null && networkRunId != null) networkScreen(networkBaseUrl, networkRunId);
         else home();
+    }
+    private void silentTimerScreen() {
+        layout = new LinearLayout(this);
+        layout.setPadding(32, 100, 32, 32);
+        setContentView(layout);
+        SilentTimerView timer = new SilentTimerView();
+        layout.addView(timer, new LinearLayout.LayoutParams(-1, 200));
+        timer.postDelayed(() -> timer.setValue("0:01"), 2000);
+    }
+    private final class SilentTimerView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private String value = "0:00";
+        SilentTimerView() {
+            super(MainActivity.this);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+            paint.setColor(Color.BLACK);
+            paint.setTextSize(72);
+        }
+        // Deliberately redraw without an accessibility event to expose stale node caches.
+        void setValue(String next) { value = next; invalidate(); }
+        @Override protected void onDraw(Canvas canvas) { canvas.drawText(value, 20, 110, paint); }
+        @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            info.setContentDescription("silent timer " + value);
+        }
     }
     private void networkScreen(String baseUrl, String runId) {
         layout = new LinearLayout(this);

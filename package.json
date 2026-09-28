@@ -29,7 +29,7 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "fast-xml-parser": "^5.5.1",
     "zod": "^3.22.4",
-    "sharp": "^0.32.1"
+    "sharp": "^0.32.2"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",

@@ -4,6 +4,7 @@ import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Build;
 import android.util.Xml;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -47,13 +48,19 @@ public final class TreeInstrumentation extends Instrumentation {
           if (!"TREE".equals(command)) {
             output.write("ERROR invalid_command\n");
           } else {
-            AccessibilityNodeInfo root = automation.getRootInActiveWindow();
-            if (root == null) {
-              output.write("ERROR null_root\n");
+            if (Build.VERSION.SDK_INT < 34) {
+              output.write("ERROR cache_clear_unavailable\n");
+            } else if (!automation.clearCache()) {
+              output.write("ERROR cache_clear_failed\n");
             } else {
-              output.write("OK\n");
-              output.write(serialize(root));
-              root.recycle();
+              AccessibilityNodeInfo root = automation.getRootInActiveWindow();
+              if (root == null) {
+                output.write("ERROR null_root\n");
+              } else {
+                output.write("OK\n");
+                output.write(serialize(root));
+                root.recycle();
+              }
             }
           }
           output.flush();

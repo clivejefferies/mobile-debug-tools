@@ -3,13 +3,14 @@
   "device_id": "[redacted]",
   "fixture": "latency-journey-app",
   "network_freshness_passed": true,
+  "silent_timer_freshness_passed": true,
   "bridge": {
     "samples": {
       "count": 10,
-      "p50": 6.830375,
-      "p95": 14.933042,
-      "min": 5.825959,
-      "max": 14.933042
+      "p50": 3.122458,
+      "p95": 4.390417,
+      "min": 2.858792,
+      "max": 4.390417
     },
     "node_count": 7,
     "identified_nodes": 4
@@ -17,10 +18,10 @@
   "legacy": {
     "samples": {
       "count": 10,
-      "p50": 2115.17675,
-      "p95": 2611.298541,
-      "min": 2042.091,
-      "max": 2611.298541
+      "p50": 2101.953208,
+      "p95": 2257.736083,
+      "min": 2021.97375,
+      "max": 2257.736083
     },
     "node_count": 7,
     "identified_nodes": 4

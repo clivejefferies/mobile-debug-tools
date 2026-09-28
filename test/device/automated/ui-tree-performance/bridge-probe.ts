@@ -111,6 +111,19 @@ async function main() {
     await readyBridge()
     bridgeStarted = true
     adb('shell', 'am', 'force-stop', fixturePackage)
+    adb('shell', 'am', 'start', '-n', `${fixturePackage}/.MainActivity`, '--ez', 'silentTimer', 'true')
+    const initialDeadline = Date.now() + 5000
+    let initialTimer = false
+    while (Date.now() < initialDeadline) {
+      initialTimer = nodes((await bridgeRead()).xml).some((node) => node['@_content-desc'] === 'silent timer 0:00')
+      if (initialTimer) break
+      await sleep(50)
+    }
+    if (!initialTimer) throw new Error('Bridge did not observe the initial silent timer')
+    await sleep(2300)
+    const updatedTimer = nodes((await bridgeRead()).xml).some((node) => node['@_content-desc'] === 'silent timer 0:01')
+    if (!updatedTimer) throw new Error('Bridge reused a cached timer node after a visible update without an accessibility event')
+    adb('shell', 'am', 'force-stop', fixturePackage)
     adb('shell', 'pm', 'clear', fixturePackage)
     adb('shell', 'am', 'start', '-n', `${fixturePackage}/.MainActivity`, '--es', 'networkBaseUrl', `http://10.0.2.2:${address.port}`, '--es', 'networkRunId', runId)
     await Promise.race([requestPromise, sleep(10000).then(() => { throw new Error('Fixture request timed out') })])
@@ -164,6 +177,7 @@ async function main() {
     const report = {
       platform: 'android', device_id: '[redacted]', fixture: 'latency-journey-app',
       network_freshness_passed: true,
+      silent_timer_freshness_passed: true,
       bridge: { samples: summarize(bridgeSamples.map((sample) => sample.elapsed_ms)), node_count: bridgeNodes.length, identified_nodes: countIdentifiers(bridgeNodes) },
       legacy: { samples: summarize(legacySamples.map((sample) => sample.elapsed_ms)), node_count: legacyNodes.length, identified_nodes: countIdentifiers(legacyNodes) }
     }

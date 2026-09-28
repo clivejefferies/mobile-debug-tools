@@ -11,7 +11,8 @@ async function run() {
   const adbPath = path.join(directory, 'adb')
   const apkPath = path.join(directory, 'bridge.apk')
   const launchesPath = path.join(directory, 'launches')
-  const previous = new Map(['ADB_PATH', 'MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK', 'MCP_FAKE_BRIDGE_PORT', 'MCP_FAKE_BRIDGE_LAUNCHES', 'MCP_FAKE_FORCE_STOP_FAIL'].map((key) => [key, process.env[key]]))
+  const getpropsPath = path.join(directory, 'getprops')
+  const previous = new Map(['ADB_PATH', 'MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK', 'MCP_FAKE_BRIDGE_PORT', 'MCP_FAKE_BRIDGE_LAUNCHES', 'MCP_FAKE_BRIDGE_GETPROPS', 'MCP_FAKE_FORCE_STOP_FAIL', 'MCP_FAKE_SDK'].map((key) => [key, process.env[key]]))
   let invalidTree = false
   const sockets = new Set<Socket>()
   const server = createServer((socket) => {
@@ -26,6 +27,7 @@ async function run() {
   })
   writeFileSync(apkPath, '')
   writeFileSync(launchesPath, '')
+  writeFileSync(getpropsPath, '')
   writeFileSync(adbPath, `#!/usr/bin/env node
 const fs = require('node:fs')
 const args = process.argv.slice(2).join(' ')
@@ -36,6 +38,9 @@ if (args.includes('am instrument')) {
   process.exit(1)
 } else if (args.includes('forward tcp:0')) {
   console.log(process.env.MCP_FAKE_BRIDGE_PORT)
+} else if (args.includes('getprop ro.build.version.sdk')) {
+  fs.appendFileSync(process.env.MCP_FAKE_BRIDGE_GETPROPS, 'getprop\\n')
+  console.log(process.env.MCP_FAKE_SDK || '36')
 }
 `)
   chmodSync(adbPath, 0o755)
@@ -46,6 +51,7 @@ if (args.includes('am instrument')) {
   process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK = apkPath
   process.env.MCP_FAKE_BRIDGE_PORT = String(address.port)
   process.env.MCP_FAKE_BRIDGE_LAUNCHES = launchesPath
+  process.env.MCP_FAKE_BRIDGE_GETPROPS = getpropsPath
   try {
     assert.match(await readAndroidTreeFromBridge('test-device') ?? '', /<hierarchy>/)
     invalidTree = true
@@ -62,6 +68,11 @@ if (args.includes('am instrument')) {
     assert.equal(readFileSync(launchesPath, 'utf8').trim().split('\n').length, 2)
     invalidTree = true
     assert.equal(await readAndroidTreeFromBridge('test-device'), null, 'clean shutdown permits legacy fallback')
+    process.env.MCP_FAKE_SDK = '33'
+    assert.equal(await readAndroidTreeFromBridge('old-device'), null, 'older Android versions use the legacy reader')
+    assert.equal(await readAndroidTreeFromBridge('old-device'), null)
+    assert.equal(readFileSync(getpropsPath, 'utf8').trim().split('\n').length, 2, 'supported and unsupported devices each probe SDK once')
+    assert.equal(readFileSync(launchesPath, 'utf8').trim().split('\n').length, 2)
   } finally {
     for (const [key, value] of previous) {
       if (value === undefined) delete process.env[key]
