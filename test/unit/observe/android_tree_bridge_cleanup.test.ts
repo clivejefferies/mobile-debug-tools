@@ -71,8 +71,16 @@ if (args.includes('am instrument')) {
     process.env.MCP_FAKE_SDK = '33'
     assert.equal(await readAndroidTreeFromBridge('old-device'), null, 'older Android versions use the legacy reader')
     assert.equal(await readAndroidTreeFromBridge('old-device'), null)
-    assert.equal(readFileSync(getpropsPath, 'utf8').trim().split('\n').length, 2, 'supported and unsupported devices each probe SDK once')
-    assert.equal(readFileSync(launchesPath, 'utf8').trim().split('\n').length, 2)
+    assert.equal(readFileSync(getpropsPath, 'utf8').trim().split('\n').length, 3, 'unsupported devices recheck SDK support')
+    process.env.MCP_FAKE_SDK = '36'
+    invalidTree = false
+    assert.match(await readAndroidTreeFromBridge('old-device') ?? '', /<hierarchy>/, 'a newly supported device can start the bridge')
+    for (let attempt = 0; attempt < 20 && readFileSync(launchesPath, 'utf8').trim().split('\n').length < 3; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    assert.equal(readFileSync(launchesPath, 'utf8').trim().split('\n').length, 3)
+    invalidTree = true
+    assert.equal(await readAndroidTreeFromBridge('old-device'), null, 'the new bridge shuts down before fallback')
   } finally {
     for (const [key, value] of previous) {
       if (value === undefined) delete process.env[key]

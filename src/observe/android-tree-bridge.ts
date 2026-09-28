@@ -155,7 +155,7 @@ export async function readAndroidTreeFromBridge(deviceId: string): Promise<strin
     if (supported === undefined) {
       const sdkLevel = Number(await execAdb(['shell', 'getprop', 'ro.build.version.sdk'], deviceId))
       supported = Number.isInteger(sdkLevel) && sdkLevel >= 34
-      if (Number.isInteger(sdkLevel) && sdkLevel > 0) bridgeSupport.set(deviceId, supported)
+      if (supported) bridgeSupport.set(deviceId, true)
     }
     if (!supported) return null
     bridge = await ensure(deviceId, apk)
