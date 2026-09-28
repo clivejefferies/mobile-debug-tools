@@ -26,7 +26,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 ## [0.30.0]
 - Folded RFC 013 synchronization semantics into the main spec and aligned the interact docs with the shipped `wait_for_ui_change` behavior.
 - Updated `wait_for_ui_change` to use a 300ms stabilization default and to reset stabilization on new in-place mutations.
-- Validated the in-place UI mutation flow on the Modul8 emulator app, including a delayed state-change case.
+- Validated the in-place UI mutation flow on an Android emulator, including a delayed state-change case.
 
 ## [0.29.0]
 - Added empty resource handlers and declared the `resources` capability so Codex MCP discovery can complete the handshake against the published npm package.
@@ -57,7 +57,7 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 - RFC-003 wait/synchronization contract with `snapshot_revision`, `captured_at_ms`, and `loading_state`
 - Added `wait_for_ui_change` for stable in-place UI mutations
 - Updated `get_ui_tree` and `capture_debug_snapshot` to surface snapshot metadata
-- Emulator-validated the new UI-change flow against the Modul8 app
+- Validated the new UI-change flow on an Android emulator
 
 ## [0.25.1]
 - Platform-native element identity metadata for UI targeting

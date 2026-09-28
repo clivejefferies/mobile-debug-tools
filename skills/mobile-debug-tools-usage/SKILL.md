@@ -1,35 +1,36 @@
 ---
 name: mobile-debug-mcp
-description: Verify Android app behaviour efficiently with mobile-debug MCP, especially session playback, background work, and notifications. Use for emulator/device QA; do not use for implementation-only checks.
+description: Use mobile-debug MCP to inspect, interact with, and verify any Android or iOS app on a device or emulator.
 metadata:
-  author: modul8-team
+  author: mobile-debug-mcp contributors
   version: "1.0"
 ---
 
-# Mobile-debug MCP verification
+# Mobile-debug MCP usage
 
-Use mobile-debug MCP to make a product claim observable on a real device or emulator. A successful tap proves only that the input was delivered; verify the resulting UI, notification, or persisted state before reporting success.
+Use mobile-debug MCP when a task needs evidence from a running Android or iOS app. Identify the device and the state or behaviour to check, then choose the smallest observation or action that can establish it. A successful tool call confirms only what that tool reports; check the resulting app state before claiming an outcome.
 
 ## Choose the lightest evidence that proves the claim
 
 - Use an accessibility assertion such as `expect_element_visible` or
   `wait_for_ui` for an accessible label, enabled state, or changed control.
-- Use a screenshot when visual layout, system UI, or notification content matters.
-- Use a debug snapshot only when the screen does not explain a failed action or an accessibility-tree assertion is needed.
-- Use Android shell commands only for device navigation or system surfaces that MCP cannot expose. Do not treat shell output as proof of user-visible behaviour.
+- Use a screenshot when layout, visual content, or a system surface matters.
+- Use a debug snapshot when an ordinary observation does not explain a failure or multiple kinds of evidence are needed together.
+- Use logs or network activity for claims about errors or requests. Correlate them with the relevant action and time window; they do not establish what the user saw.
+- Use platform shell commands only for device or system operations that the MCP tools cannot expose. Treat shell output as evidence of that operation, not of the app's visible state.
 
 Avoid repeated screenshots and snapshots when a targeted accessibility assertion is enough.
 
 ## Keep interaction fast
 
 Treat each MCP call as a round trip and use the fastest path that still proves
-the behaviour. Prefer the following sequence:
+the behaviour. For an interaction, prefer this sequence:
 
-1. Wait for one stable, uniquely identifiable control.
-2. Tap its returned element id.
-3. Wait for the specific resulting state.
+1. Observe the current screen or wait for a uniquely identifiable target if its presence is uncertain.
+2. Perform the requested action using a stable selector or element id when available.
+3. Check the specific resulting state once it has had time to occur.
 
-Do not wait before every tap when the current screen and element id are already known. Do not poll unchanged screens. Use short timeouts for ordinary controls; reserve longer waits for known asynchronous work such as model initialisation or network calls.
+Do not wait before every action when its target and current state are already known. Do not poll unchanged screens. Use short timeouts for ordinary controls; reserve longer waits for known asynchronous work such as loading or network calls.
 
 Use compact responses for routine actions. If action dispatch is reliable but
 verification is slow or unavailable, dispatch with verification disabled and
@@ -38,10 +39,9 @@ screenshot. Do not assume `light` verification is faster: use it only when it
 has returned useful results reliably on the current MCP version and device.
 
 Prefer a stable element selector when the accessibility tree exposes one. Use
-coordinates only when needed, and take a fresh screenshot immediately before a
-coordinate tap on system UI, notifications, or any screen where layout may have
-changed. Never reuse coordinates after expanding/collapsing a notification,
-changing orientation, or switching screens.
+coordinates only when needed, and take a fresh screenshot before a coordinate
+action if the layout may have changed. Reacquire coordinates after scrolling,
+changing orientation, switching screens, or opening a system surface.
 
 Element discovery can be the slowest part of a journey. Avoid repeated
 `find_element` calls for the same screen: resolve a control once, use the
@@ -55,20 +55,21 @@ express the needed observable checks and it returns enough evidence to report
 the outcome. Measure the whole journey and compare equivalent steps on the same
 device; do not infer a performance improvement from a single fast action.
 
-## Session playback checks
+## Match the evidence to the claim
 
-For a claimed playback start, observe a running timer or Pause state after Play. For a claimed pause, observe Resume and unchanged elapsed time. For a claimed stop, observe that playback ends and the notification disappears.
+For a state change, check the state after the action rather than inferring it
+from successful dispatch. For an asynchronous update, start a fresh observation
+after the relevant event and wait for the expected condition within a bounded
+timeout. If an accessibility tree appears stale or incomplete, use another
+appropriate observation such as a screenshot and report the discrepancy.
 
-For background playback, press Home, open the notification shade, and verify
-the notification title, progress/status, and available actions. Expand the
-session notification if necessary, then capture its current layout before
-tapping an action. Exercise each action needed for the change and observe its
-result: Pause becomes Resume; Resume returns to active playback; Stop ends
-playback and clears the notification. After each action, reacquire the current
-screen state before using another coordinate.
-
-Do not claim spoken guidance was verified unless audio output was actually inspected. A running timer or active notification verifies playback state, not audible wording.
+For behaviour outside the app's foreground screen, inspect the relevant system
+surface or device state. For content that cannot be established visually, such
+as audio output, use a suitable direct check or state that it was not verified.
 
 ## Report evidence precisely
 
-State the device journey, observed result, and any untested scope. Mention whether evidence came from an accessibility assertion, screenshot, or system notification. Do not say a feature works solely because the build compiled or an MCP action returned success.
+State the device, actions taken, observed result, evidence source, and any
+untested scope. Distinguish an observed outcome from an inference. Do not say
+a feature works solely because the build compiled or an MCP action returned
+success.
