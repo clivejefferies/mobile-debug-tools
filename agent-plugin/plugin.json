@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "mobile-debug-mcp",
+  "version": "0.32.3",
+  "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
+  "repository": "https://github.com/clivejefferies/mobile-debug-mcp",
+  "license": "MIT",
+  "keywords": ["mobile", "android", "ios", "debugging", "mcp"],
+  "author": {
+    "name": "mobile-debug-mcp contributors"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Mobile Debug MCP",
+        "shortDescription": "Inspect and debug Android and iOS apps",
+        "longDescription": "Inspect mobile apps, interact with their screens, collect debugging evidence, and verify observed behaviour on Android and iOS devices and emulators. Requires local Node.js and the relevant platform toolchains.",
+        "developerName": "mobile-debug-mcp contributors",
+        "category": "Developer Tools",
+        "capabilities": ["Interactive"],
+        "defaultPrompt": [
+          "Check my mobile debugging environment and connected devices.",
+          "Inspect the current screen of my mobile app.",
+          "Help me reproduce and diagnose a bug in my mobile app."
+        ]
+      }
+    }
+  }
+}

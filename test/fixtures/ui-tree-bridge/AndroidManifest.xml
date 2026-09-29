@@ -1,6 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.mobiledebugmcp.treebridge">
-  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
-  <uses-permission android:name="android.permission.INTERNET" />
-  <application android:label="UI Tree Bridge" />
-  <instrumentation android:name=".TreeInstrumentation" android:targetPackage="dev.mobiledebugmcp.treebridge" android:exported="true" />
-</manifest>

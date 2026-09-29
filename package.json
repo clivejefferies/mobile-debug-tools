@@ -19,7 +19,9 @@
     "test": "npm run test:unit",
     "lint": "eslint src test --quiet",
     "lint:fix": "eslint src test --fix",
-    "verify": "npm run lint && npm run build && npm run test:unit"
+    "sync:agent-plugin": "node scripts/agent-plugin.mjs --sync",
+    "check:agent-plugin": "node scripts/agent-plugin.mjs --check",
+    "verify": "npm run lint && npm run build && npm run test:unit && npm run check:agent-plugin"
   },
 
   "engines": {

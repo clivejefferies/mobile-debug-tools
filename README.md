@@ -121,6 +121,10 @@ If you are unsure whether the environment is configured correctly, run `get_syst
 
 ## Usage
 
+For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.md)
+package installs the MCP server configuration together with the existing usage
+skill. Direct npm/MCP configuration above remains supported.
+
 Examples: 
 
 Crash fixing:
