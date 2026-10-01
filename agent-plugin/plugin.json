@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mobile-debug-tools",
-  "version": "0.32.4",
+  "version": "0.0.1",
   "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
   "repository": "https://github.com/clivejefferies/mobile-debug-mcp",
   "license": "MIT",
