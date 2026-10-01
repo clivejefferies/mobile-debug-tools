@@ -11,6 +11,7 @@ async function run() {
   const adbPath = path.join(directory, 'adb')
   const previousAdb = process.env.ADB_PATH
   const previousMetrics = process.env.MOBILE_DEBUG_MCP_UI_TREE_METRICS
+  const previousBridgeApk = process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK
   const previousFailure = process.env.MCP_FAKE_ADB_FAIL
   const previousWrite = process.stderr.write
   const lines: string[] = []
@@ -27,6 +28,7 @@ else process.exit(1)
   chmodSync(adbPath, 0o755)
   process.env.ADB_PATH = adbPath
   process.env.MOBILE_DEBUG_MCP_UI_TREE_METRICS = '1'
+  process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK = path.join(directory, 'missing-bridge.apk')
   ;(process.stderr as any).write = (chunk: string) => { lines.push(chunk); return true }
   resetSnapshotMetadataForTests()
   try {
@@ -60,6 +62,8 @@ else process.exit(1)
     else process.env.ADB_PATH = previousAdb
     if (previousMetrics === undefined) delete process.env.MOBILE_DEBUG_MCP_UI_TREE_METRICS
     else process.env.MOBILE_DEBUG_MCP_UI_TREE_METRICS = previousMetrics
+    if (previousBridgeApk === undefined) delete process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK
+    else process.env.MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK = previousBridgeApk
     if (previousFailure === undefined) delete process.env.MCP_FAKE_ADB_FAIL
     else process.env.MCP_FAKE_ADB_FAIL = previousFailure
     rmSync(directory, { recursive: true, force: true })

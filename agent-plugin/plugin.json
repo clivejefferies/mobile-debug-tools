@@ -3,8 +3,8 @@
   "name": "mobile-debug-tools",
   "version": "0.0.1",
   "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
-  "repository": "https://github.com/clivejefferies/mobile-debug-mcp",
-  "license": "MIT",
+  "repository": "https://github.com/clivejefferies/mobile-debug-tools",
+  "license": "Apache-2.0",
   "keywords": ["mobile", "android", "ios", "debugging", "mcp"],
   "author": {
     "name": "mobile-debug-tools contributors"

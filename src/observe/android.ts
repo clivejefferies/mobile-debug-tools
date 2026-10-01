@@ -10,7 +10,6 @@ import { parsePngSize } from "../utils/image.js"
 import { deriveSnapshotMetadata } from "./snapshot-metadata.js"
 import { remainingBudget } from '../utils/operation-budget.js'
 import { createObservationMeasurement } from './performance-metrics.js'
-import { androidTreeBridgeEnabled, readAndroidTreeFromBridge } from './android-tree-bridge.js'
 
 const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
 
@@ -54,19 +53,7 @@ export class AndroidObserve {
            }
            remainingBudget()
 
-           let bridgeContent: string | null = null
-           if (androidTreeBridgeEnabled()) {
-             try {
-               bridgeContent = await measurement.physicalRead(async () => {
-                 const content = await readAndroidTreeFromBridge(deviceInfo.id)
-                 if (!content) throw new Error('Android UI tree bridge unavailable')
-                 return content
-               })
-             } catch (error) {
-               if (error instanceof Error && (error.message === 'ACTION_TIMEOUT' || error.message.startsWith('BRIDGE_CLEANUP_UNCONFIRMED'))) throw error
-             }
-           }
-           xmlContent = bridgeContent ?? await measurement.physicalRead(async () => {
+           xmlContent = await measurement.physicalRead(async () => {
              await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId)
              const content = await execAdb(['shell', 'cat', '/sdcard/ui.xml'], deviceId)
              if (!content || !content.trim() || content.includes('ERROR:')) throw new Error('Empty or invalid UI dump')
@@ -74,7 +61,7 @@ export class AndroidObserve {
            })
            break
         } catch (e) {
-           if (e instanceof Error && (e.message === 'ACTION_TIMEOUT' || e.message.startsWith('BRIDGE_CLEANUP_UNCONFIRMED'))) throw e
+           if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
            console.error(`Attempt ${attempts} failed: ${e}`);
         }
         

@@ -64,5 +64,4 @@ Activate when an agent needs to:
 4. if install fails -> call collect-diagnostics({reason:'install failure', platform:'android'})
 
 # License
-Same as repository (MIT).
-
+Same as repository (Apache-2.0).

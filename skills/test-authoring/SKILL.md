@@ -54,4 +54,4 @@ Activate when an agent needs to:
 - `references/test-quality-checklist.md` — what a good test in this repo should prove before it is considered done
 
 # License
-Same as repository (MIT).
+Same as repository (Apache-2.0).

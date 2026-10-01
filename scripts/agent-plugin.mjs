@@ -19,7 +19,7 @@ if (process.argv[2] === '--sync') {
 else if (process.argv[2] !== '--check') throw new Error('Use --sync or --check')
 
 assert.equal(plugin.$schema, 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json')
-assert.equal(plugin.name, packageInfo.name)
+assert.equal(plugin.name, 'mobile-debug-tools')
 assert.match(plugin.version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'plugin releases use an independent semantic version')
 assert.equal(mcp.$schema, 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json')
 const servers = Object.entries(mcp.mcpServers)

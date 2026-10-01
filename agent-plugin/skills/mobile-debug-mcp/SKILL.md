@@ -28,9 +28,8 @@ structured assertion.
 
 ## Keep Android inspection APK-free
 
-Use the standard ADB path for Android inspection. Do not install or enable a
-helper APK, experimental UI-tree bridge, or Appium server to improve latency
-unless the user explicitly requests that approach. The normal hierarchy dump
+Use the standard ADB path for Android inspection. It requires no helper APK.
+The normal hierarchy dump
 can take several seconds; account for this rather than treating it as a fast
 poll. Compressed dumps can omit nodes and should not be assumed faster.
 

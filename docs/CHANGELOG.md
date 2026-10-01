@@ -3,7 +3,7 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## [0.32.4]
-- Removed apk bridge
+- Removed the optional Android UI-tree bridge runtime and its APK build tooling. Android UI-tree reads use `uiautomator dump` through ADB.
 
 ## [0.32.2]
 - bug fix
