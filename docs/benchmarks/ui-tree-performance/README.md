@@ -50,9 +50,10 @@ The report commit SHAs are available locally as `codex/spec-019-baseline` and
 `codex/spec-019-candidate`; create clean, built checkouts of those refs to
 reproduce the paired measurement.
 
-For the opt-in Android bridge, run
-`LATENCY_DEVICE_ID=emulator-5554 node --import tsx test/device/automated/ui-tree-performance/bridge-probe.ts`.
-Its `bridge-probe.json` compares ten bridge and legacy reads, checks a network
+The historical `bridge-probe.json` compares ten bridge and legacy reads, checks a network
 update, and checks a timer that changes visually without emitting an
 accessibility event. The timer check catches a stale accessibility cache even
 when every bridge request calls `getRootInActiveWindow()`.
+The bridge APK source, generator, and build/install probe have been removed;
+this report is retained as historical evidence, not a runnable benchmark in
+the current checkout.

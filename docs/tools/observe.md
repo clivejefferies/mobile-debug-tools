@@ -92,8 +92,7 @@ Notes:
 - Elements may also include platform-native identity hints such as `stable_id`, `role`, `test_tag`, `selector`, and `semantic`.
 - The tree response may include `snapshot_revision`, `captured_at_ms`, and `loading_state` when a reliable signal is available.
 - Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
-- Android 14+ can use the experimental persistent hierarchy reader. Build its APK with `npx tsx test/fixtures/ui-tree-bridge/build.ts`, then set `MOBILE_DEBUG_MCP_ANDROID_TREE_BRIDGE_APK` to its absolute path before starting the server. The reader clears Android's accessibility cache before every tree read, including when a screen changes without an accessibility event. Older Android versions use `uiautomator dump`.
-- If the bridge fails, the server stops it before falling back to `uiautomator dump`. While running, the bridge holds Android's UiAutomation connection, so other `uiautomator dump` clients may fail. Leave the variable unset for the default reader. To reproduce the device probe, set `LATENCY_DEVICE_ID` and run `npx tsx test/device/automated/ui-tree-performance/bridge-probe.ts`.
+- Android reads the accessibility hierarchy with `uiautomator dump` through ADB. No helper APK is installed or required.
 
 ---
 

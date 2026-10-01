@@ -49,4 +49,4 @@ Activate when an agent needs to:
 - `references/spec-review-checklist.md` — questions to apply while reviewing a spec
 
 # License
-Same as repository (MIT).
+Same as repository (Apache-2.0).

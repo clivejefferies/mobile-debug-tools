@@ -9,9 +9,9 @@ function stubExecCommand(expectedArgsChecker: (args: string[]) => boolean, outpu
 }
 
 async function run() {
-  const bundle = 'com.ideamechanics.modul8'
+  const bundle = 'com.example.sampleapp'
   const pgrepOutput = '12345\n'
-  const logOutput = '2026-03-31 09:21:20.085 Module[12345:678] <Info> Modul8: Test message'
+  const logOutput = '2026-03-31 09:21:20.085 SampleApp[12345:678] <Info> SampleApp: Test message'
 
   try {
     const obs = new iOSObserve()
@@ -28,7 +28,7 @@ async function run() {
     })
 
     const pidResult = await obs.getLogs({ appId: bundle, deviceId: 'booted' })
-    assert(pidResult.meta.processNameUsed === 'modul8' || pidResult.meta.processNameUsed === 'Modul8' || !!pidResult.meta.processNameUsed)
+    assert(pidResult.meta.processNameUsed === 'sampleapp')
     assert(pidResult.meta.detectedPid === 12345)
     assert(pidResult.source === 'pid')
     assert(pidResult.logCount === 1)
