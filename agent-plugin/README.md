@@ -13,6 +13,8 @@ The server is pinned to the published npm version in `mcp.json`. The plugin's
 change the server pin to an unpublished npm version. The repository's
 `skills/mobile-debug-tools-usage/SKILL.md` is the
 source of the packaged skill; run `npm run sync:agent-plugin` after editing it.
+That command also updates the Codex, Claude Code, and Cursor marketplace copies
+under `plugins/mobile-debug-tools/`, `claude-plugin/`, and `cursor-plugin/`.
 The packaged directory uses the skill's declared name, `mobile-debug-mcp`, as
 required by Agent Skills. `npm run check:agent-plugin` checks the packaged
 copies and configuration.

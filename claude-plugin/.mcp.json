@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mobile-debug-mcp": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "mobile-debug-mcp@0.32.4",
+        "server"
+      ]
+    }
+  }
+}

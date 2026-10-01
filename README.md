@@ -125,6 +125,33 @@ For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.m
 package installs the MCP server configuration together with the existing usage
 skill. Direct npm/MCP configuration above remains supported.
 
+To install the plugin in Codex from this repository's marketplace:
+
+```bash
+codex plugin marketplace add clivejefferies/mobile-debug-tools
+codex plugin add mobile-debug-tools@mobile-debug-tools
+```
+
+To install it in Claude Code from the same repository:
+
+```bash
+claude plugin marketplace add clivejefferies/mobile-debug-tools
+claude plugin install mobile-debug-tools@mobile-debug-tools
+```
+
+For Cursor, the repository includes a
+[Cursor marketplace](.cursor-plugin/marketplace.json). Teams and Enterprise
+admins can import the repository in Dashboard → Plugins & MCPs → Team
+Marketplaces. To test it locally, copy [cursor-plugin](cursor-plugin/) into
+`~/.cursor/plugins/local/mobile-debug-tools`, then reload Cursor. Public Cursor
+Marketplace listing requires [submitting the repository for review](https://cursor.com/marketplace/publish).
+
+Start a new chat or session after installation so the client loads the skill
+and MCP tools. Each plugin launches the published npm package locally and needs
+Node.js 18 or newer and the platform toolchains for your device. If you also
+registered the MCP server directly, disable that registration to avoid
+duplicate tools.
+
 Examples: 
 
 Crash fixing:
