@@ -152,7 +152,7 @@ Node.js 18 or newer and the platform toolchains for your device. If you also
 registered the MCP server directly, disable that registration to avoid
 duplicate tools.
 
-Examples: 
+## Usage 
 
 Crash fixing:
 > I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
