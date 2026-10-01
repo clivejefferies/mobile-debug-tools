@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## [0.32.4]
+- Removed apk bridge
+
 ## [0.32.2]
 - bug fix
 

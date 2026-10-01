@@ -17,7 +17,6 @@ The packaged directory uses the skill's declared name, `mobile-debug-mcp`, as
 required by Agent Skills. `npm run check:agent-plugin` checks the packaged
 copies and configuration.
 
-Android inspection uses the standard ADB path without an additional helper APK.
 The usage skill prefers screenshots for routine visual checks and reserves
 hierarchy reads for semantic selection and structured assertions. Assertion
 timeouts must cover a fresh tree read as well as the expected app transition.
