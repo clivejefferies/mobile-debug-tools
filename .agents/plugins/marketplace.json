@@ -8,7 +8,7 @@
       "name": "mobile-debug-tools",
       "source": {
         "source": "local",
-        "path": "./plugins/mobile-debug-tools"
+        "path": "./agent-plugin"
       },
       "policy": {
         "installation": "AVAILABLE",

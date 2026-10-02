@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "mobile-debug-tools",
-      "source": "./claude-plugin",
+      "source": "./agent-plugin",
       "description": "Inspect and debug Android and iOS apps with the mobile-debug-mcp server."
     }
   ]
