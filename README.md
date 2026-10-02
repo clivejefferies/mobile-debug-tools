@@ -40,7 +40,7 @@ Common environment variables:
 
 For normal use, call `get_system_status` first. It reports the detected host, Android, and iOS toolchain state so the client can decide whether automatic discovery is sufficient or whether explicit overrides are needed.
 
-## Configuration
+## MCP Configuration
 
 <details>
 
@@ -119,7 +119,7 @@ If you are unsure whether the environment is configured correctly, run `get_syst
 
 </details>
 
-## Usage
+## Agent Plugin
 
 For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.md)
 package installs the MCP server configuration together with the existing usage
@@ -168,7 +168,7 @@ Node.js 18 or newer and the platform toolchains for your device. If you also
 registered the MCP server directly, disable that registration to avoid
 duplicate tools.
 
-Examples: 
+## Usage 
 
 Crash fixing:
 > I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
