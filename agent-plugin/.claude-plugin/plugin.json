@@ -1,0 +1,20 @@
+{
+  "name": "mobile-debug-tools",
+  "version": "0.0.1",
+  "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
+  "author": {
+    "name": "mobile-debug-tools contributors"
+  },
+  "repository": "https://github.com/clivejefferies/mobile-debug-tools",
+  "license": "Apache-2.0",
+  "mcpServers": {
+    "mobile-debug-mcp": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "mobile-debug-mcp@0.32.4",
+        "server"
+      ]
+    }
+  }
+}

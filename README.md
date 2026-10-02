@@ -40,7 +40,7 @@ Common environment variables:
 
 For normal use, call `get_system_status` first. It reports the detected host, Android, and iOS toolchain state so the client can decide whether automatic discovery is sufficient or whether explicit overrides are needed.
 
-## Configuration
+## MCP Configuration
 
 <details>
 
@@ -119,13 +119,56 @@ If you are unsure whether the environment is configured correctly, run `get_syst
 
 </details>
 
-## Usage
+## Agent Plugin
 
 For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.md)
 package installs the MCP server configuration together with the existing usage
 skill. Direct npm/MCP configuration above remains supported.
 
-Examples: 
+<details>
+
+<summary>Codex plugin</summary>
+
+Install the plugin from this repository's marketplace:
+
+```bash
+codex plugin marketplace add clivejefferies/mobile-debug-tools
+codex plugin add mobile-debug-tools@mobile-debug-tools
+```
+
+</details>
+
+<details>
+
+<summary>Claude Code plugin</summary>
+
+Install the plugin from this repository's marketplace:
+
+```bash
+claude plugin marketplace add clivejefferies/mobile-debug-tools
+claude plugin install mobile-debug-tools@mobile-debug-tools
+```
+
+</details>
+
+<details>
+
+<summary>Cursor plugin</summary>
+
+The repository includes a [Cursor marketplace](.cursor-plugin/marketplace.json).
+Teams and Enterprise admins can import the repository in Dashboard → Plugins & MCPs → Team
+Marketplaces. To test it locally, copy [agent-plugin](agent-plugin/) into
+`~/.cursor/plugins/local/mobile-debug-tools`, then reload Cursor.
+
+</details>
+
+Start a new chat or session after installation so the client loads the skill
+and MCP tools. Each plugin launches the published npm package locally and needs
+Node.js 18 or newer and the platform toolchains for your device. If you also
+registered the MCP server directly, disable that registration to avoid
+duplicate tools.
+
+## Usage 
 
 Crash fixing:
 > I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available

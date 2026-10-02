@@ -1,0 +1,14 @@
+{
+  "name": "mobile-debug-tools",
+  "description": "Mobile debugging tools for Android and iOS agents.",
+  "owner": {
+    "name": "mobile-debug-tools contributors"
+  },
+  "plugins": [
+    {
+      "name": "mobile-debug-tools",
+      "source": "./agent-plugin",
+      "description": "Inspect and debug Android and iOS apps with the mobile-debug-mcp server."
+    }
+  ]
+}

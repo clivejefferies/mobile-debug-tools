@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mobile-debug-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "--yes",
+        "mobile-debug-mcp@0.32.4",
+        "server"
+      ],
+      "cwd": "${PLUGIN_DATA}"
+    }
+  }
+}

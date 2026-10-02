@@ -10,9 +10,11 @@ not resolve the source checkout as a local package when installed from this repo
 
 The server is pinned to the published npm version in `mcp.json`. The plugin's
 `plugin.json` version advances independently for guidance-only releases; do not
-change the server pin to an unpublished npm version. The repository's
-`skills/mobile-debug-tools-usage/SKILL.md` is the
-source of the packaged skill; run `npm run sync:agent-plugin` after editing it.
+change the server pin to an unpublished npm version. The skill in
+`skills/mobile-debug-mcp/SKILL.md` is shared by all three clients. Run
+`npm run sync:agent-plugin` after updating the plugin metadata or server pin to
+refresh the thin Codex, Claude Code, and Cursor manifests in this directory.
+The three marketplaces all point here and share one skill.
 The packaged directory uses the skill's declared name, `mobile-debug-mcp`, as
 required by Agent Skills. `npm run check:agent-plugin` checks the packaged
 copies and configuration.
