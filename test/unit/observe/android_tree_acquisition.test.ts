@@ -21,8 +21,7 @@ if (args.includes('ro.build.version.release')) console.log('16')
 else if (args.includes('ro.product.model')) console.log('Fake Android')
 else if (args.includes('ro.kernel.qemu')) console.log('1')
 else if (args.includes('wm size')) console.log('Physical size: 100x200')
-else if (args.includes('uiautomator dump')) { if (process.env.MCP_FAKE_ADB_FAIL === '1') process.exit(1); console.log('UI hierarchy dumped') }
-else if (args.includes('cat /sdcard/ui.xml')) console.log('<hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>')
+else if (args.includes('uiautomator dump')) { if (process.env.MCP_FAKE_ADB_FAIL === '1') process.exit(1); if (process.env.MCP_FAKE_ADB_FAIL === 'idle') console.log('ERROR: could not get idle state.'); else { process.stdout.write('<?xml version="1.0"?><hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>'); if (process.env.MCP_FAKE_ADB_FAIL !== 'truncated') console.log('UI hierchary dumped to: /dev/stdout') } }
 else process.exit(1)
 `)
   chmodSync(adbPath, 0o755)
@@ -44,6 +43,12 @@ else process.exit(1)
     process.env.MCP_FAKE_ADB_FAIL = '1'
     const failed = await runWithBudget(1000, () => observe.getUITree('fake-a'))
     assert.ok(failed.error)
+    process.env.MCP_FAKE_ADB_FAIL = 'idle'
+    const idleFailed = await runWithBudget(1000, () => observe.getUITree('fake-a'))
+    assert.ok(idleFailed.error, 'an idle-state error must not return stale XML from an earlier dump')
+    process.env.MCP_FAKE_ADB_FAIL = 'truncated'
+    const truncated = await runWithBudget(1000, () => observe.getUITree('fake-a'))
+    assert.ok(truncated.error, 'a partial dump must not be treated as a complete hierarchy')
     delete process.env.MCP_FAKE_ADB_FAIL
     const recovered = await observe.getUITree('fake-a')
     assert.equal(recovered.error, undefined, 'the next request takes a fresh physical read')

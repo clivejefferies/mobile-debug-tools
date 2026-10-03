@@ -54,10 +54,12 @@ export class AndroidObserve {
            remainingBudget()
 
            xmlContent = await measurement.physicalRead(async () => {
-             await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId)
-             const content = await execAdb(['shell', 'cat', '/sdcard/ui.xml'], deviceId)
-             if (!content || !content.trim() || content.includes('ERROR:')) throw new Error('Empty or invalid UI dump')
-             return content
+             const output = await execAdb(['exec-out', 'uiautomator', 'dump', '/dev/stdout'], deviceId)
+             const xmlEnd = output.lastIndexOf('</hierarchy>')
+             if (!output.startsWith('<?xml') || xmlEnd < 0 || !output.slice(xmlEnd + '</hierarchy>'.length).includes('dumped to:')) {
+               throw new Error(`UI dump failed: ${output.includes('ERROR:') ? output.trim() : 'incomplete hierarchy output'}`)
+             }
+             return output.slice(0, xmlEnd + '</hierarchy>'.length)
            })
            break
         } catch (e) {

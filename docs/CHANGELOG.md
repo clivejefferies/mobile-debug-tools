@@ -2,6 +2,9 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## Unreleased
+- Stream Android UI-tree XML through one ADB call, avoiding the separate file read. Reject idle-state errors and incomplete dumps instead of returning an older hierarchy.
+
 ## [0.32.4]
 - Removed the optional Android UI-tree bridge runtime and its APK build tooling. Android UI-tree reads use `uiautomator dump` through ADB.
 
