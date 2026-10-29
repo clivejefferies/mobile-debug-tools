@@ -176,12 +176,24 @@ Crash fixing:
 Feature building:
 > Add a button, hook into the repository and confirm API request successful
 
+For actions that depend on a previously observed UI, use an optional
+`expectedState` from `get_ui_tree` on the same explicit device. The server checks
+a fresh snapshot immediately before input and returns `PRECONDITION_FAILED`
+with current UI evidence if the state changed. See
+[conditional actions](docs/tools/interact.md#conditional-actions) for supported
+tools, examples, and the limits of the check.
+
 ## Docs
+
+Use `get_app_readiness` to observe loading, transitioning, settled, or unknown UI
+state, and `wait_for_app_ready` for a bounded wait. Existing UI waits can opt into
+`requireReady: true`. Results include evidence and uncertainty; see
+[app readiness](docs/tools/observe.md#app-readiness) for limits and examples.
 
 - Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
 - Changelog: [Changelog](docs/CHANGELOG.md)
 - Agents: [AGENTS.md](AGENTS.md) — cold-start guidance for autonomous agents entering the public repo
-- Skills: [skills/README.md](skills/README.md) — portable Markdown skill packages for agents such as Copilot, Codex, Claude, or custom systems
+- Skills: [.agents/skills/README.md](.agents/skills/README.md) — portable Markdown skill packages for agents such as Copilot, Codex, Claude, or custom systems
 
 ## License
 

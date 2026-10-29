@@ -1,3 +1,4 @@
+import { beforeInputDispatch } from './conditional-action.js'
 import { remainingBudget, markDispatchStarted } from '../utils/operation-budget.js'
 import { spawn } from "child_process"
 import { TapResponse, SwipeResponse } from "../types.js"
@@ -31,6 +32,7 @@ export class iOSInteract {
         args.push('--udid', targetUdid);
       }
 
+      await beforeInputDispatch('ios', device.id)
       await new Promise<void>((resolve, reject) => {
         markDispatchStarted()
         const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
@@ -73,6 +75,7 @@ export class iOSInteract {
         args.push('--udid', targetUdid);
       }
 
+      await beforeInputDispatch('ios', device.id)
       await new Promise<void>((resolve, reject) => {
         markDispatchStarted()
         const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });

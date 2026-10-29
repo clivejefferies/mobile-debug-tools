@@ -91,6 +91,11 @@ Notes:
 - Elements may include a normalized `state` object when the platform exposes readable state such as checked, selected, focused, expanded, text input, or slider values.
 - Elements may also include platform-native identity hints such as `stable_id`, `role`, `test_tag`, `selector`, and `semantic`.
 - The tree response may include `snapshot_revision`, `captured_at_ms`, and `loading_state` when a reliable signal is available.
+- Successful tree observations include `snapshot_session_id`, a random identifier
+  for this server process. Use it with `snapshot_revision` for
+  [conditional actions](interact.md#conditional-actions) on the same device.
+  Compact tree responses preserve the session ID and revision. Never derive an
+  expectation from an error tree, even when it carries an older revision.
 - Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
 - Android reads the accessibility hierarchy with `uiautomator dump` through ADB. No helper APK is installed or required.
 
@@ -210,3 +215,57 @@ read_log_stream response example:
 ```json
 { "entries": [ { "timestamp": "2026-03-20T...Z", "level": "ERROR", "tag": "AppTag", "pid": 1234, "message": "FATAL EXCEPTION" } ], "crash_summary": { "crash_detected": true } }
 ```
+
+## App readiness
+
+`get_app_readiness` observes at most two fresh hierarchies; `wait_for_app_ready`
+waits for settled evidence within one budget. Require `platform`; optionally
+select `deviceId`. Each call pins its device and keeps its sampling history local.
+
+| Control | Default | Accepted integer range |
+| --- | --- | --- |
+| `timeoutMs` | get: 15000; wait: 30000 | 100–60000 |
+| `stabilityMs` | 500 | 100–10000 |
+| `pollIntervalMs` (wait only) | 500 | 100–1000 |
+
+```json
+{ "platform": "android", "deviceId": "emulator-5554", "timeoutMs": 30000 }
+```
+
+Both return `success`, resolved `device`, `readiness`, `elapsed_ms`, and a
+`failure_code` on failure. Get succeeds when it establishes loading, transitioning,
+or settled; wait succeeds only for settled. Codes are `READINESS_UNAVAILABLE`,
+`READINESS_TIMEOUT`, and `DEVICE_UNAVAILABLE`. Invalid/unknown inputs are rejected.
+
+`readiness.state` is loading, transitioning, settled, or unknown. Visible native
+progress indicators establish loading; exact Loading / Please wait labels
+(ignoring case, whitespace and trailing dots/ellipsis) are heuristic loading.
+Loading takes priority over unchanged trees. Two different valid signatures show
+transitioning; consecutive identical signatures spanning the stability window
+show settled. Failed, empty, stale-session, wrong-device, or invalid observations
+cannot establish stability and break sample continuity. Broad legacy loading
+keywords such as a button named Progress are not sufficient loading evidence.
+
+The summary includes `basis` (observed/heuristic/insufficient), `scope: device_ui`,
+latest successful capture time and snapshot session/revision, attempted sample
+count, `stable_for_ms`, up to eight signal-code evidence records, limitations,
+and capability flags. Evidence excludes UI text and full trees. Unresponsive and
+debugger-paused detection are explicitly unsupported on both platforms; neither
+slow hierarchy retrieval nor a deadline expiry proves either state.
+
+Tree responses (including compact and nested trees) add a single-sample readiness
+summary without extra reads. Such a summary reports loading or unknown; it does
+not inherit stability from an earlier request. Existing loading/delta fields and
+compact error evidence are preserved.
+
+Readiness describes normalized foreground UI during the capture window. It does
+not verify foreground app identity, process health, business outcome, or backend
+completion, and does not guarantee the UI will stay unchanged. A screenshot alone
+never establishes readiness. Network observation windows and device input are
+untouched. Timeouts include `DEADLINE_EXCEEDED`; the latest read failing makes
+current state unknown. Sampling and subprocess cleanup respect outer budgets.
+Transport cancellation does not currently abort platform reads immediately;
+reads remain bounded by their operation deadlines.
+
+See [readiness-aware waits](interact.md#readiness-aware-waits) to combine this
+signal with a specific UI predicate.

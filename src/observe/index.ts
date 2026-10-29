@@ -1,4 +1,5 @@
 import { measure } from '../utils/timing.js'
+import { ReadinessTracker } from './readiness.js'
 import { resolveTargetDevice } from '../utils/resolve-device.js'
 import { AndroidObserve } from './android.js'
 import { iOSObserve } from './ios.js'
@@ -176,15 +177,20 @@ export class ToolsObserve {
 
   static async getUITreeHandler({ platform, deviceId, responseMode = 'debug', sinceSnapshotRevision }: { platform?: 'android' | 'ios', deviceId?: string, responseMode?: 'compact' | 'debug', sinceSnapshotRevision?: number }) {
     const { observe, resolved } = await ToolsObserve.resolveObserve(platform, deviceId)
+    const acquisitionStarted = Date.now()
     const tree = await observe.getUITree(resolved.id) as any
+    tree.readiness = new ReadinessTracker(resolved.platform, resolved.id).observe(tree, acquisitionStarted)
     if (responseMode !== 'compact') return tree
     const revision = tree?.snapshot_revision ?? null
+    const session = { snapshot_session_id: tree?.snapshot_session_id, readiness: tree.readiness }
+    if (tree?.error) return { ...session, delta_available: false, snapshot_revision: revision, error: tree.error }
     const baseRevision = sinceSnapshotRevision
     if (!Number.isInteger(baseRevision) || revision === null) {
-      return { delta_available: false, snapshot_revision: revision }
+      return { ...session, delta_available: false, snapshot_revision: revision }
     }
     const delta = getStateDelta(`${resolved.platform}:${resolved.id}`, baseRevision as number, revision)
-    return delta ? { delta_available: true, state_delta: delta, snapshot_revision: revision } : {
+    return delta ? { ...session, delta_available: true, state_delta: delta, snapshot_revision: revision } : {
+      ...session,
       delta_available: false,
       snapshot_revision: revision,
       reason: 'BASE_REVISION_UNAVAILABLE'

@@ -1,0 +1,37 @@
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+export const readinessAppId = 'tools.mobiledebug.readinessfixture'
+export function buildReadinessFixture(platform: 'android' | 'ios') {
+  const source = path.dirname(fileURLToPath(import.meta.url))
+  const directory = mkdtempSync(path.join(tmpdir(), `mcp-readiness-${platform}-`))
+  const java = process.env.JAVA_HOME ?? (existsSync('/Applications/Android Studio.app/Contents/jbr/Contents/Home') ? '/Applications/Android Studio.app/Contents/jbr/Contents/Home' : undefined)
+  const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: directory, encoding: 'utf8', env: { ...process.env, ...(java ? { JAVA_HOME: java } : {}) }, stdio: 'pipe' })
+  if (platform === 'ios') {
+    const sdk = run('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim()
+    const artifact = path.join(directory, 'Readiness.app'); mkdirSync(artifact)
+    writeFileSync(path.join(artifact, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>Readiness</string><key>CFBundleIdentifier</key><string>${readinessAppId}</string><key>CFBundleName</key><string>Readiness fixture</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>1.0</string><key>LSRequiresIPhoneOS</key><true/><key>MinimumOSVersion</key><string>18.0</string><key>UILaunchScreen</key><dict/></dict></plist>`)
+    run('xcrun', ['--sdk', 'iphonesimulator', 'clang', '-target', `${process.arch === 'arm64' ? 'arm64' : 'x86_64'}-apple-ios18.0-simulator`, '-isysroot', sdk, '-fobjc-arc', '-framework', 'UIKit', '-framework', 'Foundation', path.join(source, 'main.m'), '-o', path.join(artifact, 'Readiness')])
+    run('codesign', ['--force', '--sign', '-', artifact])
+    return { artifact, directory }
+  }
+  const sdk = process.env.ANDROID_HOME ?? path.join(process.env.HOME!, 'Library/Android/sdk')
+  const tools = path.join(sdk, 'build-tools/36.0.0')
+  const androidJar = path.join(sdk, 'platforms/android-36/android.jar')
+  const jdk = (name: string) => java ? path.join(java, 'bin', name) : name
+  mkdirSync(path.join(directory, 'classes'))
+  writeFileSync(path.join(directory, 'AndroidManifest.xml'), `<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="${readinessAppId}" android:versionCode="1" android:versionName="1.0"><uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36"/><application android:label="Readiness fixture" android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>`)
+  run(jdk('javac'), ['--release', '8', '-classpath', androidJar, '-d', 'classes', path.join(source, 'MainActivity.java')])
+  run(jdk('jar'), ['cf', 'classes.jar', '-C', 'classes', '.'])
+  run(path.join(tools, 'd8'), ['--lib', androidJar, '--output', directory, 'classes.jar'])
+  run(path.join(tools, 'aapt2'), ['link', '-I', androidJar, '--manifest', 'AndroidManifest.xml', '-o', 'unsigned.apk'])
+  run('zip', ['-q', 'unsigned.apk', 'classes.dex'])
+  run(path.join(tools, 'zipalign'), ['-f', '4', 'unsigned.apk', 'aligned.apk'])
+  run(jdk('keytool'), ['-genkeypair', '-keystore', 'fixture.jks', '-storepass', 'android', '-keypass', 'android', '-alias', 'fixture', '-dname', 'CN=Readiness Fixture', '-keyalg', 'RSA', '-validity', '365'])
+  const artifact = path.join(directory, 'Readiness.apk')
+  run(path.join(tools, 'apksigner'), ['sign', '--ks', 'fixture.jks', '--ks-pass', 'pass:android', '--out', artifact, 'aligned.apk'])
+  return { artifact, directory }
+}

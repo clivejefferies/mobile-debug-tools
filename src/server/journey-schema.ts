@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { expectedStateSchema, expectedStateJson } from './condition-schema.js'
 
 const selector = z.object({
   text: z.string().min(1).optional(), resource_id: z.string().min(1).optional(),
@@ -23,7 +24,7 @@ const assertion = z.union([
 const id = z.string().min(1)
 const step = z.union([
   z.object({ id, type: z.literal('start_app'), appId: z.string().min(1), verificationMode: verificationMode.optional() }).strict(),
-  z.object({ id, type: z.literal('tap'), ...target, waitFor: waitFor.optional(), verificationMode: verificationMode.optional() }).strict().refine(exactlyOneTarget),
+  z.object({ id, type: z.literal('tap'), ...target, waitFor: waitFor.optional(), verificationMode: verificationMode.optional(), expectedState: expectedStateSchema.optional() }).strict().refine(exactlyOneTarget),
   z.object({ id, type: z.literal('wait'), selector, condition: z.enum(['exists', 'not_exists', 'visible', 'clickable']).optional(), timeoutMs, pollIntervalMs }).strict(),
   z.object({ id, type: z.literal('assert'), assertion, timeoutMs, pollIntervalMs }).strict()
 ])
@@ -49,7 +50,7 @@ const objectJson = (properties: Record<string, unknown>, required: string[], ext
 export const journeyStepsJson = {
   type: 'array', minItems: 1, maxItems: 50, items: { oneOf: [
     objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'start_app' }, appId: { type: 'string', minLength: 1 }, verificationMode: modeJson }, ['id', 'type', 'appId']),
-    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'tap' }, ...targetJson, verificationMode: modeJson,
+    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'tap' }, ...targetJson, verificationMode: modeJson, expectedState: expectedStateJson,
       waitFor: objectJson({ ...intervalJson, timeoutMs: { type: 'integer', minimum: 100, maximum: 10000 }, condition: { enum: ['exists', 'visible', 'clickable'] }, match: objectJson({ index: { type: 'integer', minimum: 0 } }, []) }, [])
     }, ['id', 'type'], { oneOf: oneTargetJson }),
     objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'wait' }, selector: selectorJson, condition: { enum: ['exists', 'not_exists', 'visible', 'clickable'] }, ...intervalJson }, ['id', 'type', 'selector']),

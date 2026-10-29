@@ -218,6 +218,7 @@ export interface UIElement {
 }
 
 export interface GetUITreeResponse {
+  readiness?: ReadinessSummary;
   device: DeviceInfo;
   screen: string;
   resolution: {
@@ -226,10 +227,25 @@ export interface GetUITreeResponse {
   };
   elements: UIElement[];
   snapshot_revision: number;
+  snapshot_session_id?: string;
   captured_at_ms: number;
   snapshot_delta?: SnapshotDelta | null;
   loading_state?: LoadingState | null;
   error?: string;
+}
+
+export interface ReadinessSummary {
+  state: 'loading' | 'transitioning' | 'settled' | 'unknown' | 'unresponsive' | 'debugger_paused';
+  scope: 'device_ui';
+  basis: 'observed' | 'heuristic' | 'insufficient';
+  captured_at_ms: number | null;
+  sample_count: number;
+  stable_for_ms: number;
+  snapshot_session_id: string | null;
+  snapshot_revision: number | null;
+  evidence: Array<{ code: string; source: string; captured_at_ms: number | null; snapshot_revision: number | null }>;
+  limitations: string[];
+  capabilities: { loading: boolean; transitioning: boolean; settled: boolean; unresponsive: boolean; debugger_paused: boolean };
 }
 
 export interface GetCurrentScreenResponse {
@@ -289,6 +305,8 @@ export interface TapResponse {
 }
 
 export type ActionFailureCode =
+  | 'PRECONDITION_FAILED'
+  | 'PRECONDITION_UNAVAILABLE'
   | 'ELEMENT_NOT_FOUND'
   | 'ELEMENT_NOT_INTERACTABLE'
   | 'TIMEOUT'
@@ -417,6 +435,15 @@ export interface TimingBreakdown {
   serialization_ms?: number;
 }
 
+export interface ActionConditionResult {
+  status: 'matched' | 'mismatch' | 'unavailable' | 'not_checked';
+  expected: { snapshot_session_id: string; snapshot_revision: number };
+  observed: GetUITreeResponse | null;
+  elapsed_ms: number;
+  reason?: 'BASELINE_UNAVAILABLE' | 'SESSION_MISMATCH' | 'DEVICE_MISMATCH' |
+    'OBSERVATION_FAILED' | 'OBSERVATION_INVALID' | 'CONDITION_TIMEOUT' | 'ACTION_NOT_REACHED';
+}
+
 export interface ActionExecutionResult {
   action_id: string;
   timestamp: string;
@@ -435,6 +462,7 @@ export interface ActionExecutionResult {
   dispatch_started?: boolean;
   verification?: { mode: 'none' | 'light' | 'full'; status: 'not_requested' | 'observed' | 'verified' | 'unavailable' | 'failed' };
   state_delta?: StateDelta;
+  condition?: ActionConditionResult;
   timing?: TimingBreakdown;
   recovery?: RecoveryState;
   trace: ActionTrace;
@@ -535,6 +563,7 @@ export interface AdjustControlResponse extends ActionExecutionResult {
 }
 
 export interface WaitForUIChangeResponse {
+  readiness?: ReadinessSummary;
   success: boolean;
   observed_change: 'hierarchy_diff' | 'text_change' | 'state_change' | null;
   snapshot_revision?: number;
@@ -554,7 +583,7 @@ export interface WaitForUIChangeResponse {
   reason?: string;
   loading_state?: LoadingState | null;
   error?: {
-    code: 'INVALID_SCOPE' | 'ELEMENT_NOT_FOUND';
+    code: 'INVALID_SCOPE' | 'ELEMENT_NOT_FOUND' | 'TIMEOUT' | 'DEVICE_UNAVAILABLE';
     message: string;
   };
 }

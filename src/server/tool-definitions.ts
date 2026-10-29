@@ -1,6 +1,17 @@
 import { journeyStepsJson } from './journey-schema.js'
+import { conditionalTools, expectedStateJson } from './condition-schema.js'
+import { readinessPropertiesJson } from './readiness-schema.js'
 
 export const toolDefinitions: any[] = [
+  ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
+    name,
+    description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Unresponsive/debugger-paused detection is unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
+    inputSchema: { type: 'object', additionalProperties: false, required: ['platform'], properties: {
+      ...readinessPropertiesJson,
+      timeoutMs: { ...readinessPropertiesJson.timeoutMs, default: name === 'get_app_readiness' ? 15000 : 30000 },
+      ...(name === 'wait_for_app_ready' ? { pollIntervalMs: { type: 'integer', minimum: 100, maximum: 1000, default: 500 } } : {})
+    } }
+  })),
   {
     name: 'start_app',
     description: `Purpose:
@@ -1130,6 +1141,26 @@ Returns { requests: [], count: 0 } when no credible network signals are found.`,
 
 // Keep the additive execution controls consistent across all action tools.
 for (const tool of toolDefinitions) {
+  if (['wait_for_ui', 'wait_for_ui_change'].includes(tool.name)) {
+    tool.inputSchema.properties.requireReady = { type: 'boolean', default: false }
+    tool.description += '\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.'
+  }
+  if (tool.name === 'get_ui_tree') tool.description += '\nSuccessful observations include snapshot_session_id and snapshot_revision for same-device conditional input. Compact errors preserve the error and cannot authorize an expectation.'
+  if (tool.name === 'run_journey') tool.description += '\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence even in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.'
+  if (conditionalTools.has(tool.name)) {
+    tool.inputSchema.properties.expectedState = expectedStateJson
+    tool.inputSchema.properties.platform ??= { type: 'string', enum: ['android'] }
+    tool.inputSchema.allOf = [...(tool.inputSchema.allOf ?? []), {
+      if: { required: ['expectedState'] },
+      then: { required: ['platform', 'deviceId'], properties: {
+        platform: { enum: ['type_text', 'press_back'].includes(tool.name) ? ['android'] : ['android', 'ios'] },
+        deviceId: { type: 'string', minLength: 1, pattern: '\\S', not: { enum: ['booted', 'default'] } }
+      } }
+    }]
+    tool.description += '\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.'
+  } else {
+    tool.inputSchema.allOf = [...(tool.inputSchema.allOf ?? []), { not: { required: ['expectedState'] } }]
+  }
   if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
     Object.assign(tool.inputSchema.properties, {
       verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },

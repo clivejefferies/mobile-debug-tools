@@ -84,6 +84,28 @@ device; do not infer a performance improvement from a single fast action.
 
 ## Match the evidence to the claim
 
+When a visible target may still be loading or transitioning, use
+`wait_for_app_ready` or `requireReady: true` on `wait_for_ui` /
+`wait_for_ui_change` with a budget covering multiple hierarchy reads.
+`get_app_readiness` reports loading, transitioning, settled, or unknown with
+supporting evidence. A single tree cannot establish settled state. Settled means
+normalized foreground UI stability, not proven responsiveness, app identity, or
+backend completion. Unresponsive/debugger-paused detection is unsupported;
+timeouts and screenshots must not be interpreted as proof of those states.
+
+When input must depend on a previously observed UI, and the server supports
+conditional actions, take `snapshot_session_id` and `snapshot_revision` from a
+successful `get_ui_tree` and pass `expectedState: { snapshotSessionId,
+snapshotRevision }` with an explicit platform and concrete device ID. Supported
+actions are tap, element tap, swipe, Android typing/back, and journey tap steps.
+The server takes a fresh normalized hierarchy immediately before input.
+`PRECONDITION_FAILED` or `PRECONDITION_UNAVAILABLE` means input was blocked:
+inspect `condition` evidence and decide again; do not blindly retry or replace
+the expectation. Compact failures may contain the full UI tree and private text.
+Expectations expire with retained history or server restart. The extra hierarchy
+read can take seconds; it is not atomic with input delivery and does not prove
+the action's outcome.
+
 For a state change, check the state after the action rather than inferring it
 from successful dispatch. For an asynchronous update, start a fresh observation
 after the relevant event and wait for the expected condition within a bounded

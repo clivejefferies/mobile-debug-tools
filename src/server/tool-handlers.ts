@@ -2,6 +2,10 @@ import { measure, withTiming } from '../utils/timing.js'
 import { randomUUID } from 'node:crypto'
 import { runWithBudget } from '../utils/operation-budget.js'
 import { journeySchema, tapElementControlsSchema } from './journey-schema.js'
+import { readinessSchema, readinessWaitSchema } from './readiness-schema.js'
+import { getAppReadiness, withReadyWait } from '../observe/readiness-service.js'
+import { validateExpectedState } from './condition-schema.js'
+import { conditionFailureCode, createConditionalAction, notifyActionStart, withConditionalAction } from '../interact/conditional-action.js'
 import { resolveTargetDevice, withResolvedDevice } from '../utils/resolve-device.js'
 import type {
   InstallAppResponse,
@@ -82,11 +86,19 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
     return withTiming(timing, async () => {
     const started = performance.now()
     const controls = interactionControls(args)
+    const expected = validateExpectedState(type, args)
+    const condition = expected ? createConditionalAction(args.platform as PlatformArg, args.deviceId as string, expected) : undefined
     const budgetMs = controls.actionTimeoutMs ?? ({ start_app: 10000, restart_app: 15000, scroll_to_element: 10000 }[type] ?? 5000)
     let dispatchStarted = false
     let result: any
     const dispatchWithBudget = (timeoutMs: number) => runWithBudget(timeoutMs, async (budget) => {
-      try { return payloadOf(await execute(args)) }
+      try {
+        if (!condition) return payloadOf(await execute(args))
+        return await withConditionalAction(condition, async () => {
+          const device = await resolveTargetDevice({ platform: condition.platform, deviceId: condition.deviceId })
+          return withResolvedDevice(device, async () => payloadOf(await execute(args)))
+        })
+      }
       finally { dispatchStarted = budget.dispatchStarted }
     })
     try {
@@ -95,8 +107,19 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
         ? await dispatchWithBudget(Infinity) : await dispatchWithBudget(budgetMs)
       if (result.success) dispatchStarted = true
     } catch (error) {
-      if (controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined && !/TIMEOUT|timed out/i.test(String(error))) return wrapToolError(type, error)
+      if (!condition && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined && !/TIMEOUT|timed out/i.test(String(error))) return wrapToolError(type, error)
       result = { success: false, failure_code: /TIMEOUT|timed out/i.test(String(error)) ? 'ACTION_TIMEOUT' : 'UNKNOWN', error: String(error) }
+    }
+    const blocked = condition && ['mismatch', 'unavailable'].includes(condition.result.status)
+    if (blocked) {
+      dispatchStarted = false
+      result = buildActionExecutionResult({
+        actionType: type, sourceModule: 'server', device: condition.result.observed?.device,
+        selector: result?.target?.selector ?? null, resolved: result?.target?.resolved,
+        success: false, uiFingerprintBefore: result?.ui_fingerprint_before ?? null, uiFingerprintAfter: null,
+        failure: { failureCode: conditionFailureCode(condition), retryable: false },
+        traceSteps: [{ stage: 'verify', timestamp: Date.now(), result: 'failure', attempt_index: 0, metadata: { phase: 'precondition', dispatch_started: false } }]
+      })
     }
     if (result.failure_code === 'TIMEOUT' || /ACTION_TIMEOUT|timeout/i.test(result.error ?? result.reason ?? result.details?.error ?? '')) result.failure_code = 'ACTION_TIMEOUT'
     if (result.failure_code === 'ACTION_TIMEOUT') result.retryable = !dispatchStarted
@@ -127,9 +150,16 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
       if (observationAvailable && tree.device) delta = ToolsObserve.getLatestStateDelta(tree.device.platform, tree.device.id) ?? undefined
     }
     const compact = compactAction(result, controls.verificationMode, dispatchStarted, delta, performance.now() - started)
+    if (blocked) compact.verification.status = 'not_requested'
     if (result.success && controls.verificationMode === 'light' && !observationAvailable) compact.verification.status = 'unavailable'
     const evidence = {
       ...compact,
+      ...(condition ? { condition: controls.responseMode === 'compact' && condition.result.status === 'matched'
+        ? { ...condition.result, observed: condition.result.observed ? {
+          snapshot_session_id: condition.result.observed.snapshot_session_id,
+          snapshot_revision: condition.result.observed.snapshot_revision,
+          captured_at_ms: condition.result.observed.captured_at_ms
+        } : null } : condition.result } : {}),
       ...(controls.verificationMode === 'light' ? { state_delta_available: !!delta } : {}),
       ...(result.success && controls.verificationMode === 'light' && !observationAvailable ? { verification_diagnostic: { code: 'VERIFICATION_UNAVAILABLE', retryable: true } } : {})
     }
@@ -155,7 +185,7 @@ async function executeStartApp(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => (platform === 'android' ? new AndroidManage().startApp(appId, deviceId, actionTimeoutMs ?? (verificationMode === 'full' && getStringArg(args, 'responseMode') === undefined && args._journey !== true ? undefined : 10000)) : new iOSManage().startApp(appId, deviceId, verificationMode === 'full')))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
@@ -194,7 +224,7 @@ async function executeRestartApp(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const bounded = args._journey === true || verificationMode !== 'full' || args.responseMode !== undefined || actionTimeoutMs !== undefined
   const res = await measure('dispatch_ms', () => (platform === 'android' ? new AndroidManage().restartApp(appId, deviceId, bounded, actionTimeoutMs ?? 15000) : new iOSManage().restartApp(appId, deviceId, verificationMode === 'full', bounded, actionTimeoutMs ?? 15000)))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
@@ -429,6 +459,7 @@ async function handleAdjustControl(args: ToolCallArgs) {
 }
 
 async function handleWaitForUI(args: ToolCallArgs) {
+  if (args.requireReady !== undefined && typeof args.requireReady !== 'boolean') throw new Error('INVALID_ARGUMENT: requireReady must be boolean')
   const selector = getObjectArg<ExpectElementSelectorArg>(args, 'selector')
   const condition = (getStringArg(args, 'condition') as 'exists' | 'not_exists' | 'visible' | 'clickable' | undefined) ?? 'exists'
   const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
@@ -437,11 +468,14 @@ async function handleWaitForUI(args: ToolCallArgs) {
   const retry = getObjectArg<WaitForUiRetryArg>(args, 'retry')
   const platform = getStringArg(args, 'platform') as PlatformArg | undefined
   const deviceId = getStringArg(args, 'deviceId')
-  const res = await ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform, deviceId })
+  const execute = (targetPlatform = platform, targetId = deviceId) => ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform: targetPlatform, deviceId: targetId })
+  const res = args.requireReady === true ? await withReadyWait({ platform, deviceId }, timeout_ms,
+    device => execute(device.platform as PlatformArg, device.id), (code, elapsed, samples) => ({ status: 'timeout', error: { code, message: 'Readiness wait could not complete' }, metrics: { latency_ms: elapsed, poll_count: samples, attempts: samples ? 1 : 0 }, requested: { selector, condition, match }, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } })) : await execute()
   return wrapResponse(res)
 }
 
 async function handleWaitForUIChange(args: ToolCallArgs) {
+  if (args.requireReady !== undefined && typeof args.requireReady !== 'boolean') throw new Error('INVALID_ARGUMENT: requireReady must be boolean')
   const platform = getStringArg(args, 'platform') as PlatformArg | undefined
   const deviceId = getStringArg(args, 'deviceId')
   const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
@@ -449,7 +483,9 @@ async function handleWaitForUIChange(args: ToolCallArgs) {
   const expected_change = getStringArg(args, 'expected_change') as 'hierarchy_diff' | 'text_change' | 'state_change' | undefined
   const scope = getStringArg(args, 'scope') as 'screen' | 'subtree' | undefined
   const target = getStringArg(args, 'target')
-  const res = await ToolsInteract.waitForUIChangeHandler({ platform, deviceId, timeout_ms, stability_window_ms, expected_change, scope, target })
+  const execute = (targetPlatform = platform, targetId = deviceId) => ToolsInteract.waitForUIChangeHandler({ platform: targetPlatform, deviceId: targetId, timeout_ms, stability_window_ms, expected_change, scope, target })
+  const res = args.requireReady === true ? await withReadyWait({ platform, deviceId }, timeout_ms,
+    device => execute(device.platform as PlatformArg, device.id), (code, elapsed) => ({ success: false, timeout: true, observed_change: null, elapsed_ms: elapsed, reason: code, error: { code, message: 'Readiness wait could not complete' } })) : await execute()
   return wrapResponse(res)
 }
 
@@ -472,7 +508,7 @@ async function executeTap(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => ToolsInteract.tapHandler({ platform, x, y, deviceId, timeoutMs: actionTimeoutMs }))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
@@ -505,7 +541,7 @@ async function executeTapElement(args: ToolCallArgs) {
     resolvedId = resolution.element.elementId
     freshTree = resolution._tree
   }
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   if (freshTree) recordObservationConsumer(freshTree, 'target', args._stepId as string | undefined)
   const res = await measure('dispatch_ms', () => ToolsInteract.tapElementHandler({ elementId: resolvedId!, freshTree, verificationMode, timeoutMs: actionTimeoutMs, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') })) as any
   return wrapResponse(res)
@@ -598,7 +634,8 @@ async function handleRunJourney(args: ToolCallArgs) {
     if (step.type === 'assert' && !result?.success && /TIMEOUT/.test(result?.failure_code ?? '')) result.failure_code = 'ASSERTION_TIMEOUT'
     const success = !!result?.success
     if (lightCoveredByAssertion) {
-      result.verification = { mode: 'light', status: success ? 'unavailable' : 'failed' }
+      result.verification = { mode: 'light', status: success ? 'unavailable' :
+        (['mismatch', 'unavailable'].includes(result.condition?.status) ? 'not_requested' : 'failed') }
       if (success) {
         result.verification_diagnostic = { code: 'VERIFICATION_UNAVAILABLE', retryable: true }
         pendingLightStep = results.length
@@ -644,7 +681,7 @@ async function executeSwipe(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => ToolsInteract.swipeHandler({ platform, x1, y1, x2, y2, duration, deviceId, timeoutMs: actionTimeoutMs }))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
@@ -668,7 +705,7 @@ async function executeScrollToElement(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => ToolsInteract.scrollToElementHandler({ platform, selector, direction, maxScrolls, scrollAmount, deviceId }))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
@@ -697,7 +734,7 @@ async function executeTypeText(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint('android', deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => ToolsInteract.typeTextHandler({ text, deviceId, timeoutMs: actionTimeoutMs }))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint('android', deviceId)) : null
   const result = buildActionExecutionResult({
@@ -716,7 +753,7 @@ async function executePressBack(args: ToolCallArgs) {
   const deviceId = getStringArg(args, 'deviceId')
   const { verificationMode, actionTimeoutMs } = interactionControls(args)
   const uiFingerprintBefore = verificationMode === 'full' ? await measure('pre_observation_ms', () => captureActionFingerprint('android', deviceId)) : null
-  ToolsNetwork.notifyActionStart()
+  notifyActionStart()
   const res = await measure('dispatch_ms', () => ToolsInteract.pressBackHandler({ deviceId, timeoutMs: actionTimeoutMs }))
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint('android', deviceId)) : null
   const result = buildActionExecutionResult({
@@ -781,6 +818,16 @@ async function handleGetNetworkActivity(args: ToolCallArgs) {
 }
 
 export const toolHandlers: Record<string, ToolHandler> = {
+  get_app_readiness: async args => {
+    const parsed = readinessSchema.safeParse(args)
+    if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
+    return wrapResponse(await getAppReadiness(parsed.data))
+  },
+  wait_for_app_ready: async args => {
+    const parsed = readinessWaitSchema.safeParse(args)
+    if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
+    return wrapResponse(await getAppReadiness(parsed.data, true))
+  },
   start_app: handleStartApp,
   terminate_app: handleTerminateApp,
   restart_app: handleRestartApp,
@@ -838,6 +885,7 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}) {
   }
   return withTiming(measured, async () => {
     try {
+      validateExpectedState(name, args)
       return addTiming(await handler(args))
     } catch (error) {
       console.error(`Error executing tool ${name}:`, error)

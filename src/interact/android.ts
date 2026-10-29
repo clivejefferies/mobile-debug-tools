@@ -1,3 +1,4 @@
+import { beforeInputDispatch } from './conditional-action.js'
 import { markDispatchStarted } from '../utils/operation-budget.js'
 import { TapResponse, SwipeResponse, TypeTextResponse, PressBackResponse } from "../types.js"
 import { execAdb, getAndroidDeviceMetadata, getDeviceInfo } from "../utils/android/utils.js"
@@ -13,6 +14,7 @@ export class AndroidInteract {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
+      await beforeInputDispatch('android', deviceInfo.id)
       markDispatchStarted()
       await execAdb(['shell', 'input', 'tap', x.toString(), y.toString()], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, x, y }
@@ -26,6 +28,7 @@ export class AndroidInteract {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
+      await beforeInputDispatch('android', deviceInfo.id)
       markDispatchStarted()
       await execAdb(['shell', 'input', 'swipe', x1.toString(), y1.toString(), x2.toString(), y2.toString(), duration.toString()], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, start: [x1, y1], end: [x2, y2], duration }
@@ -42,6 +45,7 @@ export class AndroidInteract {
       // Encode spaces as %s to ensure proper input handling by adb shell input text
       const encodedText = text.replace(/\s/g, '%s')
       // Note: 'input text' might fail with some characters or if keyboard isn't ready, but it's the standard ADB way.
+      await beforeInputDispatch('android', deviceInfo.id)
       markDispatchStarted()
       await execAdb(['shell', 'input', 'text', encodedText], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true, text }
@@ -55,6 +59,7 @@ export class AndroidInteract {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
     try {
+      await beforeInputDispatch('android', deviceInfo.id)
       markDispatchStarted()
       await execAdb(['shell', 'input', 'keyevent', '4'], deviceId, { timeout: timeoutMs })
       return { device: deviceInfo, success: true }
