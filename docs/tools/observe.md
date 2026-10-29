@@ -91,6 +91,11 @@ Notes:
 - Elements may include a normalized `state` object when the platform exposes readable state such as checked, selected, focused, expanded, text input, or slider values.
 - Elements may also include platform-native identity hints such as `stable_id`, `role`, `test_tag`, `selector`, and `semantic`.
 - The tree response may include `snapshot_revision`, `captured_at_ms`, and `loading_state` when a reliable signal is available.
+- Successful tree observations include `snapshot_session_id`, a random identifier
+  for this server process. Use it with `snapshot_revision` for
+  [conditional actions](interact.md#conditional-actions) on the same device.
+  Compact tree responses preserve the session ID and revision. Never derive an
+  expectation from an error tree, even when it carries an older revision.
 - Prefer `wait_for_ui` for deterministic element resolution in interactive flows.
 - Android reads the accessibility hierarchy with `uiautomator dump` through ADB. No helper APK is installed or required.
 

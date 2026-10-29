@@ -4,6 +4,16 @@ This file is the **cold-start entrypoint for autonomous agents** that arrive in 
 
 It is intentionally vendor-neutral and should be useful to Copilot, Codex, Claude, or custom agent systems.
 
+## Required development process
+
+Before planning, editing, or reviewing repository changes, every agent must read
+and follow [docs/specs/process.md](docs/specs/process.md). It defines the full and
+lightweight workflows, approval gates, verification, and reporting requirements.
+Apply it to delegated work too: pass this entrypoint and the relevant task scope
+to any delegated agent, and check its results against the same process.
+Tool-specific instructions must defer to this shared process. Explicit user
+instructions take precedence.
+
 ## What this repository is
 
 `mobile-debug-mcp` is an MCP server for mobile app debugging on Android and iOS. The codebase is TypeScript and the built server entrypoint is `dist/server.js`.
@@ -36,22 +46,23 @@ Primary areas:
 
 ### Skills
 
-Portable agent skills live under `skills/`.
+Portable agent skills live under `.agents/skills/`.
 
-- `skills/README.md` — repo-wide skill convention
-- `skills/mcp-builder/` — build/install/toolchain guidance
-- `skills/test-authoring/` — test creation and placement guidance
-- `skills/rfc-review/` — RFC review rubric and response template
+- `.agents/skills/README.md` — repo-wide skill convention
+- `.agents/skills/mcp-builder/` — build/install/toolchain guidance
+- `.agents/skills/test-authoring/` — test creation and placement guidance
+- `.agents/skills/spec-review/` — RFC review rubric and response template
 
-If the task is about **creating or updating tests**, load `skills/test-authoring/SKILL.md` first.
+If the task is about **creating or updating tests**, load `.agents/skills/test-authoring/SKILL.md` first.
 
-If the task is about **building, installing, or diagnosing native tooling**, load `skills/mcp-builder/SKILL.md` first.
+If the task is about **building, installing, or diagnosing native tooling**, load `.agents/skills/mcp-builder/SKILL.md` first.
 
-If the task is about **reviewing an RFC or spec draft**, load `skills/rfc-review/SKILL.md` first.
+If the task is about **reviewing an RFC or spec draft**, load `.agents/skills/spec-review/SKILL.md` first.
 
 ### Repository docs
 
 - `README.md` — high-level repo overview and commands
+- `docs/specs/process.md` — required development workflow for all agents
 - `docs/tools/TOOLS.md` — tool documentation and contracts
 - `docs/CHANGELOG.md` — recent behavioral changes
 
@@ -74,13 +85,13 @@ For test authoring details, rely on the `test-authoring` skill package rather th
 
 ## Notes for maintainers
 
-This file is intentionally short. Keep task-specific guidance in `skills/...` so multiple agent systems can reuse the same instructions.
+This file is intentionally short. Keep task-specific guidance in `.agents/skills/...` so multiple agent systems can reuse the same instructions.
 
 ## Testing
 
 - `npm run test:unit` runs every automated unit test under `test/unit/...`
 - `npm run test:device` runs the automated device smoke checks under `test/device/automated/...`
-- `npm run verify` runs the default maintainer verification sequence: lint, build, and unit tests
+- `npm run verify` runs the default maintainer verification sequence: lint, build, unit tests, and agent-plugin consistency checks
 - Manual and debug-oriented device scripts live under `test/device/manual/...` and are not part of the default test commands
 
 ## Utility Scripts

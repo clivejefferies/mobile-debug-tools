@@ -11,6 +11,7 @@ import type {
   TraceStep
 } from '../types.js'
 import { ToolsObserve } from '../observe/index.js'
+import { isConditionBlocked } from '../interact/conditional-action.js'
 
 export const DEFAULT_MAX_RECOVERY_ATTEMPTS = 3
 export const DEFAULT_MAX_RETRY_DEPTH = 3
@@ -92,6 +93,7 @@ export function nextActionId(actionType: string, timestamp: number) {
 }
 
 export async function captureActionFingerprint(platform?: 'android' | 'ios', deviceId?: string): Promise<string | null> {
+  if (isConditionBlocked()) return null
   if (!platform) return null
   try {
     const result = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as any
@@ -317,6 +319,8 @@ function mapFailureCodeToFailureClass(code: ActionFailureCode): FailureClass {
     case 'STALE_REFERENCE':
       return 'TargetResolutionFailure'
     case 'ELEMENT_NOT_INTERACTABLE':
+    case 'PRECONDITION_FAILED':
+    case 'PRECONDITION_UNAVAILABLE':
     case 'ACTION_TIMEOUT':
       return 'ExecutionFailure'
     case 'TIMEOUT':

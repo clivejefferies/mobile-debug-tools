@@ -2,6 +2,10 @@
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## Unreleased
+- Added optional conditional input to `tap`, `tap_element`, `swipe`, Android `type_text`/`press_back`, and journey tap steps. A fresh snapshot check at native dispatch blocks stale or uncheckable expectations and returns condition evidence, including fresh trees in compact failures.
+- Added process-scoped `snapshot_session_id` metadata to UI-tree responses so conditional expectations cannot be reused across server restarts. Successful repeated observations refresh retained revision history timestamps.
+
 ## [0.32.4]
 - Removed the optional Android UI-tree bridge runtime and its APK build tooling. Android UI-tree reads use `uiautomator dump` through ADB.
 

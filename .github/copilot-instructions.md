@@ -1,5 +1,12 @@
 # Copilot Instructions for mobile-debug-mcp
 
+## Required workflow
+
+Read and follow [AGENTS.md](../AGENTS.md) and the shared
+[development process](../docs/specs/process.md) before planning, editing, or
+reviewing changes. These are the authoritative repository instructions, including
+for delegated work; the notes below supplement them.
+
 ## Build and Run
 - **Build**: `npm run build` (runs `tsc` to compile TypeScript to `dist/`)
 - **Start**: `npm start` (runs the compiled server at `dist/server.js`)

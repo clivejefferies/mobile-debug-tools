@@ -19,6 +19,90 @@ Important:
 - action tools report execution success, not outcome correctness.
 - `classify_action_outcome` should receive the runtime `action_type` when you want routing to distinguish local-state and side-effect actions.
 
+## Conditional actions
+
+`tap`, `tap_element`, and `swipe` (Android/iOS), plus Android `type_text` and
+`press_back`, accept an optional expected UI snapshot. Journey `tap` steps accept
+it per step. Other tools and step types reject `expectedState` rather than ignore
+it; it is not supported in journey defaults or on the journey itself.
+
+First call `get_ui_tree` on the chosen device. From a successful response, use
+`snapshot_session_id` and `snapshot_revision`:
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "selector": { "accessibility_id": "save" },
+  "expectedState": {
+    "snapshotSessionId": "<snapshot_session_id from get_ui_tree>",
+    "snapshotRevision": 12,
+    "timeoutMs": 15000
+  },
+  "verificationMode": "none",
+  "responseMode": "compact"
+}
+```
+
+This is a `tap_element` example. Guarded standalone calls require explicit
+`platform` and concrete `deviceId` from the observed tree; `booted` and `default`
+are not valid guarded targets. Journey taps inherit the journey's resolved device.
+The expected-state object is strict: nonempty session ID, positive safe-integer
+revision, and optional integer timeout of 100–60000 ms (default 15000). Invalid or
+unsupported conditions return an `INVALID_ARGUMENT` error before device work.
+Calls without a condition preserve existing behaviour.
+
+After target and adapter preparation, the server reads a new hierarchy just
+before native input. It checks the same device, server session, and retained
+revision, even with post-action verification disabled. It never waits for a
+mismatch to become a match or retries/rebases the input automatically.
+
+| Result | Meaning |
+| --- | --- |
+| `condition.status: matched` | Condition passed; inspect the ordinary action outcome for delivery and verify its effect separately. |
+| `PRECONDITION_FAILED`, `condition.status: mismatch` | State changed; input was not dispatched. The condition includes the exact fresh tree that blocked it. |
+| `PRECONDITION_UNAVAILABLE`, `condition.status: unavailable` | Condition could not be established; input was not dispatched. Inspect `condition.reason` and observe again. |
+| `condition.status: not_checked` | Target/capability preparation failed before reaching the guard; inspect the original action failure. |
+
+Blocked input reports `success: false`, `dispatch_started: false`,
+`delivery_status: not_delivered`, `retryable: false`, `lifecycle_state: failed`,
+and `verification.status: not_requested`. No network action window is reset and
+no post-input verification runs. A failed conditional journey tap stops the
+journey; subsequent steps are `not_run` and earlier steps are not rolled back.
+
+Condition evidence has `status`, `expected: { snapshot_session_id,
+snapshot_revision }`, `observed`, `elapsed_ms`, and an optional `reason`.
+Reasons are `BASELINE_UNAVAILABLE`, `SESSION_MISMATCH`, `DEVICE_MISMATCH`,
+`OBSERVATION_FAILED`, `OBSERVATION_INVALID`, `CONDITION_TIMEOUT`, or
+`ACTION_NOT_REACHED` for a check that was not reached. `observed` is null when
+there is no valid fresh observation. Error trees cannot authorise input merely
+because they contain an old revision.
+
+Debug responses retain the full condition tree. Compact responses retain full
+fresh evidence on mismatch/unavailable results; this is an exception to their
+usual omission of device identifiers and tree contents. Successful compact
+conditions contain only observed session/revision and capture time. UI trees may
+contain private text; avoid copying them into logs unnecessarily.
+
+The baseline must still be in this process's same-device history: up to eight
+revisions, retained for ten minutes since a successful observation of that
+revision. Server restart or eviction requires a new observation. A fresh read
+cannot evict the baseline out from under its own check.
+
+The match covers the existing normalized accessibility snapshot: element text,
+identity, state, bounds, actionability, screen, and resolution. String identity
+fields are trimmed/lowercased; native state values retain their representation.
+All elements contribute, even when delta history is truncated. Pixel-only,
+backend, inaccessible, and normalization-hidden changes are not detected; the
+current tree does not establish foreground package/activity. Any observed
+intervening change invalidates the old revision, even if the UI later returns.
+
+A condition read can add seconds. Its timeout budget is separate from the action
+budget; enclosing operation deadlines still apply. This check is not atomic with
+OS input delivery. Concurrent clients, external input, or app updates can change
+the UI after the observation. Sequence device actions and verify outcomes with
+`expect_*` as usual.
+
 ## tap / swipe / type_text / press_back
 
 These tools return a shared action execution envelope.
@@ -644,5 +728,5 @@ the journey; remaining steps report `not_run`. Journey responses default to comp
 `defaults` supplies execution controls; step verification overrides the default.
 `captureOnFailure: true` includes a screenshot-free failure snapshot in debug mode.
 
-See [RFC 018](../specs-deltas/018-interaction-latency-and-batched-journeys.md) for
+See [RFC 018](../specs/018-interaction-latency-and-batched-journeys/spec.md) for
 contracts and the device acceptance criteria.

@@ -1,3 +1,4 @@
+import { isConditionBlocked } from './conditional-action.js'
 import { remainingBudget } from '../utils/operation-budget.js'
 import { createHash } from 'crypto'
 import { AndroidInteract } from './android.js';
@@ -605,6 +606,7 @@ export class ToolsInteract {
   }
 
   private static async _captureFingerprint(platform: 'android' | 'ios', deviceId?: string): Promise<string | null> {
+    if (isConditionBlocked()) return null
     try {
       const fingerprint = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
       return fingerprint?.fingerprint ?? null

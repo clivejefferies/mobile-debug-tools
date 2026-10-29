@@ -14,7 +14,17 @@ interface SnapshotState {
 }
 
 let nextRevision = 1
+const snapshotSessionId = crypto.randomUUID()
 const snapshotStateByDevice = new Map<string, SnapshotState>()
+
+export function getSnapshotSessionId() { return snapshotSessionId }
+
+export function hasSnapshotBaseline(deviceKey: string, revision: number) {
+  const state = snapshotStateByDevice.get(deviceKey)
+  const capturedAt = state?.historyTimes.get(revision)
+  return !!state && capturedAt !== undefined && state.history.has(revision) &&
+    Date.now() - capturedAt <= 10 * 60 * 1000 && Date.now() - state.updatedAt <= 10 * 60 * 1000
+}
 
 function normalize(value: unknown): string {
   if (value === null || value === undefined) return ''
@@ -163,7 +173,7 @@ export function deriveSnapshotMetadata(
   const oversized = previous?.oversized ?? new Map<number, number>()
   if (hasValidTree) {
     history.set(revision, currentElements)
-    if (!historyTimes.has(revision)) historyTimes.set(revision, Date.now())
+    historyTimes.set(revision, Date.now())
     if ((tree.elements?.length ?? 0) > 500) oversized.set(revision, (tree.elements?.length ?? 0) - 500)
   }
   for (const [id, timestamp] of historyTimes) {
@@ -191,6 +201,7 @@ export function deriveSnapshotMetadata(
   })
 
   return {
+    snapshot_session_id: snapshotSessionId,
     snapshot_revision: revision,
     captured_at_ms: Date.now(),
     snapshot_delta: hasValidTree ? summarizeSnapshotDelta(previous, currentElementSignatures) : null,

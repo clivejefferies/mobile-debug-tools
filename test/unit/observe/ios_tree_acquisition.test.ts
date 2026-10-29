@@ -43,6 +43,8 @@ console.log(JSON.stringify({ devices: { 'com.apple.CoreSimulator.SimRuntime.iOS-
     const first = await observe.getUITree('fake-a')
     const second = await observe.getUITree('fake-b')
     assert.equal(first.error, undefined)
+    assert.equal(typeof first.snapshot_session_id, 'string')
+    assert.equal(first.snapshot_session_id, second.snapshot_session_id)
     assert.equal(second.error, undefined)
     assert.equal(first.elements[0].text, 'Ready')
     assert.equal(second.snapshot_delta, null, 'different simulators keep independent delta history')

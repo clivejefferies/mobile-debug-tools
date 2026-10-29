@@ -226,6 +226,7 @@ export interface GetUITreeResponse {
   };
   elements: UIElement[];
   snapshot_revision: number;
+  snapshot_session_id?: string;
   captured_at_ms: number;
   snapshot_delta?: SnapshotDelta | null;
   loading_state?: LoadingState | null;
@@ -289,6 +290,8 @@ export interface TapResponse {
 }
 
 export type ActionFailureCode =
+  | 'PRECONDITION_FAILED'
+  | 'PRECONDITION_UNAVAILABLE'
   | 'ELEMENT_NOT_FOUND'
   | 'ELEMENT_NOT_INTERACTABLE'
   | 'TIMEOUT'
@@ -417,6 +420,15 @@ export interface TimingBreakdown {
   serialization_ms?: number;
 }
 
+export interface ActionConditionResult {
+  status: 'matched' | 'mismatch' | 'unavailable' | 'not_checked';
+  expected: { snapshot_session_id: string; snapshot_revision: number };
+  observed: GetUITreeResponse | null;
+  elapsed_ms: number;
+  reason?: 'BASELINE_UNAVAILABLE' | 'SESSION_MISMATCH' | 'DEVICE_MISMATCH' |
+    'OBSERVATION_FAILED' | 'OBSERVATION_INVALID' | 'CONDITION_TIMEOUT' | 'ACTION_NOT_REACHED';
+}
+
 export interface ActionExecutionResult {
   action_id: string;
   timestamp: string;
@@ -435,6 +447,7 @@ export interface ActionExecutionResult {
   dispatch_started?: boolean;
   verification?: { mode: 'none' | 'light' | 'full'; status: 'not_requested' | 'observed' | 'verified' | 'unavailable' | 'failed' };
   state_delta?: StateDelta;
+  condition?: ActionConditionResult;
   timing?: TimingBreakdown;
   recovery?: RecoveryState;
   trace: ActionTrace;

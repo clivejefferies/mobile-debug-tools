@@ -1,4 +1,5 @@
 import { journeyStepsJson } from './journey-schema.js'
+import { conditionalTools, expectedStateJson } from './condition-schema.js'
 
 export const toolDefinitions: any[] = [
   {
@@ -1130,6 +1131,22 @@ Returns { requests: [], count: 0 } when no credible network signals are found.`,
 
 // Keep the additive execution controls consistent across all action tools.
 for (const tool of toolDefinitions) {
+  if (tool.name === 'get_ui_tree') tool.description += '\nSuccessful observations include snapshot_session_id and snapshot_revision for same-device conditional input. Compact errors preserve the error and cannot authorize an expectation.'
+  if (tool.name === 'run_journey') tool.description += '\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence even in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.'
+  if (conditionalTools.has(tool.name)) {
+    tool.inputSchema.properties.expectedState = expectedStateJson
+    tool.inputSchema.properties.platform ??= { type: 'string', enum: ['android'] }
+    tool.inputSchema.allOf = [...(tool.inputSchema.allOf ?? []), {
+      if: { required: ['expectedState'] },
+      then: { required: ['platform', 'deviceId'], properties: {
+        platform: { enum: ['type_text', 'press_back'].includes(tool.name) ? ['android'] : ['android', 'ios'] },
+        deviceId: { type: 'string', minLength: 1, pattern: '\\S', not: { enum: ['booted', 'default'] } }
+      } }
+    }]
+    tool.description += '\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.'
+  } else {
+    tool.inputSchema.allOf = [...(tool.inputSchema.allOf ?? []), { not: { required: ['expectedState'] } }]
+  }
   if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
     Object.assign(tool.inputSchema.properties, {
       verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
