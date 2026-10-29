@@ -2,6 +2,8 @@ import { measure, withTiming } from '../utils/timing.js'
 import { randomUUID } from 'node:crypto'
 import { runWithBudget } from '../utils/operation-budget.js'
 import { journeySchema, tapElementControlsSchema } from './journey-schema.js'
+import { readinessSchema, readinessWaitSchema } from './readiness-schema.js'
+import { getAppReadiness, withReadyWait } from '../observe/readiness-service.js'
 import { validateExpectedState } from './condition-schema.js'
 import { conditionFailureCode, createConditionalAction, notifyActionStart, withConditionalAction } from '../interact/conditional-action.js'
 import { resolveTargetDevice, withResolvedDevice } from '../utils/resolve-device.js'
@@ -457,6 +459,7 @@ async function handleAdjustControl(args: ToolCallArgs) {
 }
 
 async function handleWaitForUI(args: ToolCallArgs) {
+  if (args.requireReady !== undefined && typeof args.requireReady !== 'boolean') throw new Error('INVALID_ARGUMENT: requireReady must be boolean')
   const selector = getObjectArg<ExpectElementSelectorArg>(args, 'selector')
   const condition = (getStringArg(args, 'condition') as 'exists' | 'not_exists' | 'visible' | 'clickable' | undefined) ?? 'exists'
   const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
@@ -465,11 +468,14 @@ async function handleWaitForUI(args: ToolCallArgs) {
   const retry = getObjectArg<WaitForUiRetryArg>(args, 'retry')
   const platform = getStringArg(args, 'platform') as PlatformArg | undefined
   const deviceId = getStringArg(args, 'deviceId')
-  const res = await ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform, deviceId })
+  const execute = (targetPlatform = platform, targetId = deviceId) => ToolsInteract.waitForUIHandler({ selector, condition, timeout_ms, poll_interval_ms, match, retry, platform: targetPlatform, deviceId: targetId })
+  const res = args.requireReady === true ? await withReadyWait({ platform, deviceId }, timeout_ms,
+    device => execute(device.platform as PlatformArg, device.id), (code, elapsed, samples) => ({ status: 'timeout', error: { code, message: 'Readiness wait could not complete' }, metrics: { latency_ms: elapsed, poll_count: samples, attempts: samples ? 1 : 0 }, requested: { selector, condition, match }, observed: { matched_count: 0, condition_satisfied: false, selected_index: null, last_matched_element: null } })) : await execute()
   return wrapResponse(res)
 }
 
 async function handleWaitForUIChange(args: ToolCallArgs) {
+  if (args.requireReady !== undefined && typeof args.requireReady !== 'boolean') throw new Error('INVALID_ARGUMENT: requireReady must be boolean')
   const platform = getStringArg(args, 'platform') as PlatformArg | undefined
   const deviceId = getStringArg(args, 'deviceId')
   const timeout_ms = getNumberArg(args, 'timeout_ms') ?? 60000
@@ -477,7 +483,9 @@ async function handleWaitForUIChange(args: ToolCallArgs) {
   const expected_change = getStringArg(args, 'expected_change') as 'hierarchy_diff' | 'text_change' | 'state_change' | undefined
   const scope = getStringArg(args, 'scope') as 'screen' | 'subtree' | undefined
   const target = getStringArg(args, 'target')
-  const res = await ToolsInteract.waitForUIChangeHandler({ platform, deviceId, timeout_ms, stability_window_ms, expected_change, scope, target })
+  const execute = (targetPlatform = platform, targetId = deviceId) => ToolsInteract.waitForUIChangeHandler({ platform: targetPlatform, deviceId: targetId, timeout_ms, stability_window_ms, expected_change, scope, target })
+  const res = args.requireReady === true ? await withReadyWait({ platform, deviceId }, timeout_ms,
+    device => execute(device.platform as PlatformArg, device.id), (code, elapsed) => ({ success: false, timeout: true, observed_change: null, elapsed_ms: elapsed, reason: code, error: { code, message: 'Readiness wait could not complete' } })) : await execute()
   return wrapResponse(res)
 }
 
@@ -810,6 +818,16 @@ async function handleGetNetworkActivity(args: ToolCallArgs) {
 }
 
 export const toolHandlers: Record<string, ToolHandler> = {
+  get_app_readiness: async args => {
+    const parsed = readinessSchema.safeParse(args)
+    if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
+    return wrapResponse(await getAppReadiness(parsed.data))
+  },
+  wait_for_app_ready: async args => {
+    const parsed = readinessWaitSchema.safeParse(args)
+    if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
+    return wrapResponse(await getAppReadiness(parsed.data, true))
+  },
   start_app: handleStartApp,
   terminate_app: handleTerminateApp,
   restart_app: handleRestartApp,

@@ -185,6 +185,11 @@ tools, examples, and the limits of the check.
 
 ## Docs
 
+Use `get_app_readiness` to observe loading, transitioning, settled, or unknown UI
+state, and `wait_for_app_ready` for a bounded wait. Existing UI waits can opt into
+`requireReady: true`. Results include evidence and uncertainty; see
+[app readiness](docs/tools/observe.md#app-readiness) for limits and examples.
+
 - Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
 - Changelog: [Changelog](docs/CHANGELOG.md)
 - Agents: [AGENTS.md](AGENTS.md) — cold-start guidance for autonomous agents entering the public repo

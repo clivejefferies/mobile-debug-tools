@@ -730,3 +730,31 @@ the journey; remaining steps report `not_run`. Journey responses default to comp
 
 See [RFC 018](../specs/018-interaction-latency-and-batched-journeys/spec.md) for
 contracts and the device acceptance criteria.
+
+## Readiness-aware waits
+
+`wait_for_ui` and `wait_for_ui_change` accept optional `requireReady: true`.
+They require both their existing predicate and settled full-screen UI readiness
+on the same current samples. Readiness uses a 500 ms stability window, shares the
+wait's existing deadline (including retries), and adds no separate hierarchy reads.
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "selector": { "text": "Ready" },
+  "condition": "visible",
+  "requireReady": true,
+  "timeout_ms": 30000
+}
+```
+
+Results retain the existing success/timeout envelope and include `readiness`
+evidence and limitations. Opt-in shared-deadline expiry uses a `TIMEOUT` error
+code and preserves whether the underlying predicate was observed; a readiness
+timeout does not mean that a visible target was absent. A visible target while a loader is active cannot pass
+this opt-in check. Observation failure resets readiness continuity; an exhausted
+budget is not proof of an unresponsive app. Default `requireReady: false` retains
+existing predicate semantics. There is no new journey assertion or change to
+conditional-action preconditions. See [app readiness](observe.md#app-readiness)
+for supported states and limits.

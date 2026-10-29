@@ -62,7 +62,7 @@ export async function isIDBInstalled(): Promise<boolean> {
   const cmd = getIdbCmd()
   if (!cmd) return false
   try {
-    execSync(`${cmd} list-targets --json`, { stdio: ['ignore','pipe','pipe'], timeout: 5000 })
+    execSync(`${cmd} list-targets --json`, { stdio: ['ignore','pipe','pipe'], timeout: remainingBudget(5000), killSignal: 'SIGKILL' })
     return true
   } catch (e: unknown) {
     console.debug(`[isIDBInstalled] idb probe failed for '${cmd}': ${e instanceof Error ? e.message : String(e)}`)
@@ -200,7 +200,7 @@ export async function findAppBundle(dir: string): Promise<string | undefined> {
 export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise<DeviceInfo> {
   return new Promise((resolve) => {
     // If deviceId is provided (and not "booted"), attempt to find that device among booted simulators.
-    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], (err, stdout) => {
+    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], { timeout: remainingBudget(), killSignal: 'SIGKILL' }, (err, stdout) => {
       const fallback: DeviceInfo = {
         platform: "ios",
         id: deviceId,
@@ -247,7 +247,7 @@ export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise
 export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
   return new Promise((resolve) => {
     // Query all devices and separately query booted devices to mark them
-    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', '--json'], (err, stdout) => {
+    execFile(getXcrunCmd(), ['simctl', 'list', 'devices', '--json'], { timeout: remainingBudget(), killSignal: 'SIGKILL' }, (err, stdout) => {
       if (err || !stdout) return resolve([])
       try {
         const data = JSON.parse(stdout)
@@ -256,7 +256,7 @@ export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
         const checks: Promise<void>[] = []
 
         // Get booted devices set
-        execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], (err2, stdout2) => {
+        execFile(getXcrunCmd(), ['simctl', 'list', 'devices', 'booted', '--json'], { timeout: remainingBudget(), killSignal: 'SIGKILL' }, (err2, stdout2) => {
           const bootedSet = new Set<string>()
           if (!err2 && stdout2) {
             try {

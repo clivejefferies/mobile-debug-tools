@@ -84,6 +84,15 @@ device; do not infer a performance improvement from a single fast action.
 
 ## Match the evidence to the claim
 
+When a visible target may still be loading or transitioning, use
+`wait_for_app_ready` or `requireReady: true` on `wait_for_ui` /
+`wait_for_ui_change` with a budget covering multiple hierarchy reads.
+`get_app_readiness` reports loading, transitioning, settled, or unknown with
+supporting evidence. A single tree cannot establish settled state. Settled means
+normalized foreground UI stability, not proven responsiveness, app identity, or
+backend completion. Unresponsive/debugger-paused detection is unsupported;
+timeouts and screenshots must not be interpreted as proof of those states.
+
 When input must depend on a previously observed UI, and the server supports
 conditional actions, take `snapshot_session_id` and `snapshot_revision` from a
 successful `get_ui_tree` and pass `expectedState: { snapshotSessionId,

@@ -1,3 +1,5 @@
+import { currentReadinessWait, observeReadinessWait, isDeviceUnavailable } from '../observe/readiness.js'
+import { readinessDelay } from '../observe/readiness-service.js'
 import { isConditionBlocked } from './conditional-action.js'
 import { remainingBudget } from '../utils/operation-budget.js'
 import { createHash } from 'crypto'
@@ -2494,6 +2496,7 @@ export class ToolsInteract {
   }
 
   static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId, singleObservation = false, singleAttempt = false, rejectAmbiguous = false }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string, singleObservation?: boolean, singleAttempt?: boolean, rejectAmbiguous?: boolean }) {
+    const readinessTracker = currentReadinessWait()
     const overallStart = Date.now()
     const requestedIndex = typeof match?.index === 'number' ? match.index : null
     const requested = {
@@ -2561,7 +2564,9 @@ export class ToolsInteract {
           remainingBudget()
           totalPollCount++
           try {
+            const acquisitionStarted = Date.now()
             const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+            observeReadinessWait(tree, acquisitionStarted)
             const elements = (tree && Array.isArray(tree.elements)) ? tree.elements as any[] : []
 
             const matches: { el: any, idx: number }[] = []
@@ -2658,7 +2663,7 @@ export class ToolsInteract {
             if (conditionMet && snapshotFresh) {
               if (matchedAt === null) matchedAt = now
               stableMatchCount++
-              if (stableMatchCount >= stableObservationCount) {
+              if (stableMatchCount >= stableObservationCount && (!readinessTracker || readinessTracker.summary.state === 'settled')) {
                 const latency_ms = now - overallStart
                 const outEl = lastMatchedElement
 
@@ -2683,19 +2688,21 @@ export class ToolsInteract {
             }
 
           } catch (e) {
+            if (readinessTracker && !String(e).includes('READINESS_')) readinessTracker.unavailable()
+            if (readinessTracker && isDeviceUnavailable(e)) throw e
             if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             // Non-fatal per-poll error; record and continue
-            console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
+            if (!readinessTracker) console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
           }
 
           if (singleAttempt) break
           // Sleep until next poll
-          await new Promise(r => setTimeout(r, effectivePoll || 50))
+          await (readinessTracker ? readinessDelay(effectivePoll || 50) : new Promise(r => setTimeout(r, effectivePoll || 50)))
         }
 
         // Attempt timed out; if more attempts allowed, backoff then retry
         if (attempts < maxAttempts) {
-          if (backoff > 0) await new Promise(r => setTimeout(r, backoff))
+          if (backoff > 0) await (readinessTracker ? readinessDelay(backoff) : new Promise(r => setTimeout(r, backoff)))
           continue
         }
 
@@ -2712,7 +2719,7 @@ export class ToolsInteract {
           : ` observed ${lastMatchedCount} match(es)`
         return {
           status: 'timeout',
-          error: { code: 'ELEMENT_NOT_FOUND', message: `Condition ${condition} not satisfied within timeout;${matchNote}` },
+          error: { code: readinessTracker ? 'TIMEOUT' : 'ELEMENT_NOT_FOUND', message: `Condition ${condition} not satisfied within timeout;${matchNote}` },
           metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts },
           requested,
           observed
@@ -2720,16 +2727,17 @@ export class ToolsInteract {
       }
 
     } catch (err) {
-      if (err instanceof Error && err.message === 'ACTION_TIMEOUT') throw err
+      if (!readinessTracker && err instanceof Error && err.message === 'ACTION_TIMEOUT') throw err
+      if (readinessTracker && isDeviceUnavailable(err)) throw err
       const elapsed = Date.now() - overallStart
       return {
         status: 'timeout',
-        error: { code: 'INTERNAL_ERROR', message: err instanceof Error ? err.message : String(err) },
+        error: { code: readinessTracker && String(err).includes('ACTION_TIMEOUT') ? 'TIMEOUT' : 'INTERNAL_ERROR', message: readinessTracker ? 'Readiness predicate wait did not complete' : err instanceof Error ? err.message : String(err) },
         metrics: { latency_ms: elapsed, poll_count: totalPollCount, attempts },
         requested,
         observed: {
           matched_count: lastMatchedCount,
-          condition_satisfied: false,
+          condition_satisfied: readinessTracker ? lastConditionSatisfied : false,
           selected_index: lastMatchedElement?.index ?? null,
           last_matched_element: lastMatchedElement
         }
@@ -2823,6 +2831,7 @@ export class ToolsInteract {
     scope?: 'screen' | 'subtree',
     target?: string | null
   }): Promise<WaitForUIChangeResponse> {
+    const readinessTracker = currentReadinessWait()
     const start = Date.now()
     const pollIntervalMs = 300
     const stabilityWindow = Math.max(0, typeof stability_window_ms === 'number' ? stability_window_ms : 300)
@@ -2846,7 +2855,10 @@ export class ToolsInteract {
 
     while (Date.now() - start < timeout_ms) {
       try {
+        if (readinessTracker) remainingBudget()
+        const acquisitionStarted = Date.now()
         const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
+        observeReadinessWait(tree, acquisitionStarted)
         const scopedTree = ToolsInteract._resolveUiChangeScope(tree, scope, target)
         if (scopedTree.error) {
           lastScopeResolution = scopedTree.resolution
@@ -2894,7 +2906,7 @@ export class ToolsInteract {
             }
 
             const stableForMs = candidateSinceMs === null ? 0 : Date.now() - candidateSinceMs
-            if (stabilityWindow === 0 || stableForMs >= stabilityWindow) {
+            if ((stabilityWindow === 0 || stableForMs >= stabilityWindow) && (!readinessTracker || readinessTracker.summary.state === 'settled')) {
                 return {
                   success: true,
                   observed_change: candidateObservedChange ?? observedChange,
@@ -2917,11 +2929,14 @@ export class ToolsInteract {
             candidateSinceMs = null
           }
         }
-      } catch {
-        // Keep polling until timeout; the observable surface should be best-effort.
+      } catch (error) {
+        if (readinessTracker && !String(error).includes('READINESS_')) readinessTracker.unavailable()
+        if (readinessTracker && isDeviceUnavailable(error)) throw error
+        if (readinessTracker && String(error).includes('ACTION_TIMEOUT')) { readinessTracker.deadline(); break }
+        // Default waits retain best-effort polling.
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+      await (readinessTracker ? readinessDelay(pollIntervalMs) : new Promise(resolve => setTimeout(resolve, pollIntervalMs)))
     }
 
     return {

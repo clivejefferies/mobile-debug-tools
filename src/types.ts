@@ -218,6 +218,7 @@ export interface UIElement {
 }
 
 export interface GetUITreeResponse {
+  readiness?: ReadinessSummary;
   device: DeviceInfo;
   screen: string;
   resolution: {
@@ -231,6 +232,20 @@ export interface GetUITreeResponse {
   snapshot_delta?: SnapshotDelta | null;
   loading_state?: LoadingState | null;
   error?: string;
+}
+
+export interface ReadinessSummary {
+  state: 'loading' | 'transitioning' | 'settled' | 'unknown' | 'unresponsive' | 'debugger_paused';
+  scope: 'device_ui';
+  basis: 'observed' | 'heuristic' | 'insufficient';
+  captured_at_ms: number | null;
+  sample_count: number;
+  stable_for_ms: number;
+  snapshot_session_id: string | null;
+  snapshot_revision: number | null;
+  evidence: Array<{ code: string; source: string; captured_at_ms: number | null; snapshot_revision: number | null }>;
+  limitations: string[];
+  capabilities: { loading: boolean; transitioning: boolean; settled: boolean; unresponsive: boolean; debugger_paused: boolean };
 }
 
 export interface GetCurrentScreenResponse {
@@ -548,6 +563,7 @@ export interface AdjustControlResponse extends ActionExecutionResult {
 }
 
 export interface WaitForUIChangeResponse {
+  readiness?: ReadinessSummary;
   success: boolean;
   observed_change: 'hierarchy_diff' | 'text_change' | 'state_change' | null;
   snapshot_revision?: number;
@@ -567,7 +583,7 @@ export interface WaitForUIChangeResponse {
   reason?: string;
   loading_state?: LoadingState | null;
   error?: {
-    code: 'INVALID_SCOPE' | 'ELEMENT_NOT_FOUND';
+    code: 'INVALID_SCOPE' | 'ELEMENT_NOT_FOUND' | 'TIMEOUT' | 'DEVICE_UNAVAILABLE';
     message: string;
   };
 }

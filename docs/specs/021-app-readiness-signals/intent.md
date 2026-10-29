@@ -1,7 +1,7 @@
 # Intent: app readiness signals
 
 Originator: repository maintainer (current conversation).
-Date: 2026-10-29. Status: draft — awaiting intent approval.
+Date: 2026-10-29. Status: approved.
 Source: [GitHub issue #65: App readiness signals](https://github.com/clivejefferies/mobile-debug-tools/issues/65), roadmap priority 2 of 9.
 
 ## Problem
@@ -36,5 +36,5 @@ unsupported signals, API placement, and how long observations remain current.
 
 ## Approval
 
-Pending. The request to pick up this issue authorises investigation and intent
-capture; acceptance of this complete intent is not yet recorded.
+Approved on 2026-10-29 by the originator’s “yes” in direct response to the
+complete intent summary and linked artifact in this conversation.
