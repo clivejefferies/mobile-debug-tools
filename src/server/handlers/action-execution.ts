@@ -44,9 +44,11 @@ function createAction(type: string, args: ToolCallArgs, timing: Record<string, n
   const condition = expected ? createConditionalAction(args.platform as PlatformArg, args.deviceId as string, expected) : undefined
   const budgetMs = controls.actionTimeoutMs ?? ({ start_app: 10000, restart_app: 15000, scroll_to_element: 10000 }[type] ?? 5000)
   const unbounded = args._journey !== true && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined
-  return { type, args, timing, started, controls, condition, budgetMs, unbounded,
+  return {
+    type, args, timing, started, controls, condition, budgetMs, unbounded,
     result: {} as ToolPayload, dispatchStarted: false, blocked: false,
-    delta: undefined as unknown, observationAvailable: false }
+    delta: undefined as unknown, observationAvailable: false
+  }
 }
 type Action = ReturnType<typeof createAction>
 async function dispatchAction(s: Action, execute: ToolHandler) {
@@ -116,7 +118,7 @@ async function verifyAction(s: Action) {
       verification_outcome: s.observationAvailable ? 'observed' : 'unavailable',
       verification_budget_expired: !s.observationAvailable && performance.now() - verificationStarted >= controls.verificationTimeoutMs
     })
-    if (s.observationAvailable && tree?.device) s.delta = ToolsObserve.getLatestStateDelta(tree.device.platform, tree.device.id) ?? undefined
+    if (s.observationAvailable && tree?.device) s.delta = ToolsObserve.getLatestStateDelta(tree.device.platform as PlatformArg, tree.device.id) ?? undefined
   }
   if (!s.blocked && controls.verificationMode === 'full' && s.dispatchStarted) markEvidenceVerification()
 }
@@ -127,12 +129,16 @@ function actionResponse(s: Action) {
   if (s.result.success && controls.verificationMode === 'light' && !s.observationAvailable) compact.verification.status = 'unavailable'
   const evidence = {
     ...compact,
-    ...(condition ? { condition: controls.responseMode === 'compact' && condition.result.status === 'matched'
-      ? { ...condition.result, observed: condition.result.observed ? {
-        snapshot_session_id: condition.result.observed.snapshot_session_id,
-        snapshot_revision: condition.result.observed.snapshot_revision,
-        captured_at_ms: condition.result.observed.captured_at_ms
-      } : null } : condition.result } : {}),
+    ...(condition ? {
+      condition: controls.responseMode === 'compact' && condition.result.status === 'matched'
+        ? {
+          ...condition.result, observed: condition.result.observed ? {
+            snapshot_session_id: condition.result.observed.snapshot_session_id,
+            snapshot_revision: condition.result.observed.snapshot_revision,
+            captured_at_ms: condition.result.observed.captured_at_ms
+          } : null
+        } : condition.result
+    } : {}),
     ...(controls.verificationMode === 'light' ? { state_delta_available: !!s.delta } : {}),
     ...(s.result.success && controls.verificationMode === 'light' && !s.observationAvailable ? { verification_diagnostic: { code: 'VERIFICATION_UNAVAILABLE', retryable: true } } : {})
   }

@@ -7,7 +7,7 @@ async function main() {
   const interact = new iOSInteract();
 
   console.log('Fetching UI tree...');
-  const tree = await obs.getUITree(deviceId as any);
+  const tree = await obs.getUITree(deviceId);
   if (tree.error) {
     console.error('getUITree error:', tree.error);
     process.exit(2);
@@ -18,12 +18,12 @@ async function main() {
     process.exit(3);
   }
 
-  const clickable = tree.elements.find((e: any) => e.clickable) || tree.elements[0];
+  const clickable = tree.elements.find((e: import('../../../types.js').UIElement) => e.clickable) || tree.elements[0];
   console.log('Using element:', clickable.text || '(no text)', 'clickable=', clickable.clickable, 'center=', clickable.center);
-  const [x,y] = clickable.center || [0,0];
+  const [x, y] = clickable.center || [0, 0];
 
   console.log(`Tapping at ${x},${y}...`);
-  const res = await interact.tap(x, y, deviceId as any);
+  const res = await interact.tap(x, y, deviceId);
   console.log('Tap result:', res);
 
   if (res.success) process.exit(0);

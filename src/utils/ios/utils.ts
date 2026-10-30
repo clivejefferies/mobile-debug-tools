@@ -19,17 +19,14 @@ export function getConfiguredIdbPath(): string | undefined {
     for (const p of cfgPaths) {
       if (!p) continue
       try {
-        if (fs.existsSync(p)) {
-          const raw = fs.readFileSync(p, 'utf8')
-          const json = JSON.parse(raw)
-          if (json) {
-            if (json.idbPath) return json.idbPath
-            if (json.IDB_PATH) return json.IDB_PATH
-          }
-        }
-      } catch {}
+        if (!fs.existsSync(p)) continue
+        const raw = fs.readFileSync(p, 'utf8')
+        const json = JSON.parse(raw)
+        if (json?.idbPath) return json.idbPath
+        if (json?.IDB_PATH) return json.IDB_PATH
+      } catch { }
     }
-  } catch {}
+  } catch { }
   return undefined
 }
 
@@ -38,13 +35,13 @@ export function getIdbCmd() {
   if (cfg) return cfg
   if (process.env.IDB_PATH) return process.env.IDB_PATH
   try {
-    const p = execSync('which idb', { stdio: ['ignore','pipe','ignore'] }).toString().trim()
+    const p = execSync('which idb', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
     if (p) return p
-  } catch {}
+  } catch { }
   try {
-    const p2 = execSync('command -v idb', { stdio: ['ignore','pipe','ignore'] }).toString().trim()
+    const p2 = execSync('command -v idb', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
     if (p2) return p2
-  } catch {}
+  } catch { }
   // check common user locations
   const common = [
     `${process.env.HOME}/Library/Python/3.9/bin/idb`,
@@ -53,7 +50,7 @@ export function getIdbCmd() {
     '/usr/local/bin/idb',
   ]
   for (const c of common) {
-    try { execSync(`test -x ${c}`, { stdio: ['ignore','pipe','ignore'] }); return c } catch {}
+    try { execSync(`test -x ${c}`, { stdio: ['ignore', 'pipe', 'ignore'] }); return c } catch { }
   }
   return 'idb'
 }
@@ -62,7 +59,7 @@ export async function isIDBInstalled(): Promise<boolean> {
   const cmd = getIdbCmd()
   if (!cmd) return false
   try {
-    execSync(`${cmd} list-targets --json`, { stdio: ['ignore','pipe','pipe'], timeout: remainingBudget(5000), killSignal: 'SIGKILL' })
+    execSync(`${cmd} list-targets --json`, { stdio: ['ignore', 'pipe', 'pipe'], timeout: remainingBudget(5000), killSignal: 'SIGKILL' })
     return true
   } catch (e: unknown) {
     console.debug(`[isIDBInstalled] idb probe failed for '${cmd}': ${e instanceof Error ? e.message : String(e)}`)
@@ -89,7 +86,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
     // Use spawn for better stream control and consistency with Android implementation
     const budgetMs = remainingBudget()
     const child = spawn(getXcrunCmd(), args)
-    
+
     let stdout = ''
     let stderr = ''
 
@@ -106,8 +103,8 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
     }
 
     const DEFAULT_XCRUN_LOG_TIMEOUT = parseInt(process.env.MCP_XCRUN_LOG_TIMEOUT || '', 10) || 30000 // env (ms) or default 30s
-  const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000 // env (ms) or default 60s
-  const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT) // choose appropriate timeout
+    const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000 // env (ms) or default 60s
+    const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT) // choose appropriate timeout
     const timeout = setTimeout(() => {
       child.kill()
       reject(new Error(`Command timed out after ${timeoutMs}ms: ${getXcrunCmd()} ${args.join(' ')}`))
@@ -135,12 +132,12 @@ export function execCommandWithDiagnostics(args: string[], deviceId: string = "b
   const DEFAULT_XCRUN_LOG_TIMEOUT = parseInt(process.env.MCP_XCRUN_LOG_TIMEOUT || '', 10) || 30000
   const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000
   const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT)
-  const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs }) as any
+  const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs })
   const runResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,
     stdout: res.stdout || '',
     stderr: res.stderr || '',
-    envSnapshot: makeEnvSnapshot(['PATH','IDB_PATH','JAVA_HOME','HOME']),
+    envSnapshot: makeEnvSnapshot(['PATH', 'IDB_PATH', 'JAVA_HOME', 'HOME']),
     command: getXcrunCmd(),
     args,
     deviceId
@@ -168,17 +165,17 @@ function parseRuntimeName(runtime: string): string {
   try {
     const parts = runtime.split('.')
     const lastPart = parts[parts.length - 1] // e.g. "iOS-17-0"
-    
+
     // Split by hyphen to separate OS from version numbers
     // e.g. "iOS-17-0" -> ["iOS", "17", "0"]
     const segments = lastPart.split('-');
-    
+
     if (segments.length > 1) {
-        const os = segments[0]; // "iOS"
-        const version = segments.slice(1).join('.'); // "17.0"
-        return `${os} ${version}`;
+      const os = segments[0]; // "iOS"
+      const version = segments.slice(1).join('.'); // "17.0"
+      return `${os} ${version}`;
     }
-    
+
     return lastPart;
   } catch {
     return runtime
@@ -220,18 +217,17 @@ export async function getIOSDeviceMetadata(deviceId: string = "booted"): Promise
 
         for (const runtime in devicesMap) {
           const devices = devicesMap[runtime]
-          if (Array.isArray(devices)) {
-            for (const device of devices) {
-              if (deviceId === "booted" || device.udid === deviceId) {
-                resolve({
-                  platform: "ios",
-                  id: device.udid,
-                  osVersion: parseRuntimeName(runtime),
-                  model: device.name,
-                  simulator: true,
-                })
-                return
-              }
+          if (!Array.isArray(devices)) continue
+          for (const device of devices) {
+            if (deviceId === "booted" || device.udid === deviceId) {
+              resolve({
+                platform: "ios",
+                id: device.udid,
+                osVersion: parseRuntimeName(runtime),
+                model: device.name,
+                simulator: true,
+              })
+              return
             }
           }
         }
@@ -264,34 +260,34 @@ export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
               const bmap = bdata.devices || {}
               for (const rt in bmap) {
                 const devs = bmap[rt]
-                if (Array.isArray(devs)) for (const d of devs) bootedSet.add(d.udid)
+                if (!Array.isArray(devs)) continue
+                for (const d of devs) bootedSet.add(d.udid)
               }
-            } catch {}
+            } catch { }
           }
 
           for (const runtime in devicesMap) {
             const devices = devicesMap[runtime]
-            if (Array.isArray(devices)) {
-              for (const device of devices) {
-                const info: any = {
-                  platform: 'ios',
-                  id: device.udid,
-                  osVersion: parseRuntimeName(runtime),
-                  model: device.name,
-                  simulator: true,
-                  booted: bootedSet.has(device.udid)
-                }
+            if (!Array.isArray(devices)) continue
+            for (const device of devices) {
+              const info: DeviceInfo = {
+                platform: 'ios',
+                id: device.udid,
+                osVersion: parseRuntimeName(runtime),
+                model: device.name,
+                simulator: true,
+                booted: bootedSet.has(device.udid)
+              }
 
-                if (appId) {
-                  // check if installed
-                  const p = execCommand(['simctl', 'get_app_container', device.udid, appId, 'data'], device.udid)
-                    .then(() => { info.appInstalled = true })
-                    .catch(() => { info.appInstalled = false })
-                    .then(() => { out.push(info) })
-                  checks.push(p)
-                } else {
-                  out.push(info)
-                }
+              if (appId) {
+                // check if installed
+                const p = execCommand(['simctl', 'get_app_container', device.udid, appId, 'data'], device.udid)
+                  .then(() => { info.appInstalled = true })
+                  .catch(() => { info.appInstalled = false })
+                  .then(() => { out.push(info) })
+                checks.push(p)
+              } else {
+                out.push(info)
               }
             }
           }

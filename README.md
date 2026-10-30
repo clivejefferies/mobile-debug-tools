@@ -25,7 +25,7 @@ Check the [requirements](#requirements) for your platform, then follow
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 22
 - [Android SDK](https://developer.android.com/studio) (adb) for Android support
 - Xcode and its command-line tools on macOS for iOS support
 - [idb](https://github.com/facebook/idb) for iOS UI inspection and interaction
@@ -94,7 +94,7 @@ Marketplaces. To test it locally, copy [agent-plugin](agent-plugin/) into
 
 Start a new chat or session after installation so the client loads the skill
 and MCP tools. Each plugin launches the published npm package locally and needs
-Node.js 18 or newer and the platform toolchains for your device. If you also
+Node.js 22 or newer and the platform toolchains for your device. If you also
 registered the MCP server directly, disable that registration to avoid
 duplicate tools.
 

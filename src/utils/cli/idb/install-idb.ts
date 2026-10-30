@@ -6,7 +6,7 @@ import { getIdbCmd, isIDBInstalled, commandWhich } from './idb-helper.js'
 const IDB_PKG = 'fb-idb'
 
 function runCommand(cmd: string, args: string[]): number {
-  const res = spawnSync(cmd, args, { stdio: 'inherit' as any })
+  const res = spawnSync(cmd, args, { stdio: 'inherit' })
   return typeof res.status === 'number' ? res.status : 1
 }
 
@@ -42,14 +42,7 @@ async function main() {
       console.log('Auto-install enabled (MCP_AUTO_INSTALL_IDB=true or CI=true)')
     }
 
-    const attempts: { name: string; cmd: string; args: string[] }[] = []
-    if (commandWhich('pipx')) attempts.push({ name: 'pipx', cmd: 'pipx', args: ['install', IDB_PKG] })
-    if (commandWhich('pip') || commandWhich('python3')) attempts.push({ name: 'pip', cmd: commandWhich('pip') ? 'pip' : 'python3', args: commandWhich('pip') ? ['install', '--user', IDB_PKG] : ['-m', 'pip', 'install', '--user', IDB_PKG] })
-
-    // Add brew as a fallback on macOS if present (best-effort)
-    if (process.platform === 'darwin' && commandWhich('brew')) {
-      attempts.push({ name: 'brew', cmd: 'brew', args: ['install', 'idb'] })
-    }
+    const attempts = installerCandidates()
 
     if (attempts.length === 0) {
       console.error('No installer tool (pipx/pip/brew) detected. Please install pipx or pip and re-run.')
@@ -88,3 +81,16 @@ if (scriptPath === process.argv[1]) {
 }
 
 export { main }
+
+function installerCandidates() {
+  const attempts: { name: string; cmd: string; args: string[] }[] = []
+  if (commandWhich('pipx')) attempts.push({ name: 'pipx', cmd: 'pipx', args: ['install', IDB_PKG] })
+  if (commandWhich('pip') || commandWhich('python3')) attempts.push({ name: 'pip', cmd: commandWhich('pip') ? 'pip' : 'python3', args: commandWhich('pip') ? ['install', '--user', IDB_PKG] : ['-m', 'pip', 'install', '--user', IDB_PKG] })
+
+  // Add brew as a fallback on macOS if present (best-effort)
+  if (process.platform === 'darwin' && commandWhich('brew')) {
+    attempts.push({ name: 'brew', cmd: 'brew', args: ['install', 'idb'] })
+  }
+
+  return attempts
+}

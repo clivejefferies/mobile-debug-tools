@@ -19,19 +19,25 @@ const specs = {
   detach_debugger: { fields: session, command: 'detach', description: 'Dispose the owned debugger connection, release owned suspension and remove its exact forward. Idempotent; retries incomplete cleanup.' }
 }
 // Derive JSON schemas and runtime validation from the same small Zod field vocabulary.
-function jsonField(schema: z.ZodTypeAny): any {
-  if (schema instanceof z.ZodOptional) return jsonField(schema.unwrap())
+function jsonField(schema: z.ZodType): Record<string, unknown> {
+  if (schema instanceof z.ZodOptional) return jsonField(schema.unwrap() as z.ZodType)
   if (schema instanceof z.ZodLiteral) return { type: 'string', enum: [schema.value] }
   if (schema instanceof z.ZodEnum) return { type: 'string', enum: schema.options }
-  if (schema instanceof z.ZodString) return { type: 'string', minLength: 1, maxLength: 512, ...Object.assign({}, ...schema._def.checks.filter(c => c.kind === 'regex').map(c => ({ pattern: (c as any).regex.source }))) }
+  if (schema instanceof z.ZodString) {
+    const json = z.toJSONSchema(schema)
+    return { type: 'string', minLength: 1, maxLength: 512, ...(json.pattern ? { pattern: json.pattern } : {}) }
+  }
   if (schema instanceof z.ZodNumber) return { type: 'integer', minimum: schema.minValue, maximum: schema.maxValue }
   throw new Error('Unsupported debugger field schema')
 }
 export const debuggerContracts = Object.fromEntries(Object.entries(specs).map(([name, spec]) => [name, {
   ...spec, schema: z.object({ ...spec.fields, timeoutMs: timeout.default(name === 'wait_for_debugger_event' ? 1000 : 10000) }).strict()
 }]))
-export const debuggerTools = Object.entries(debuggerContracts).map(([name, spec]) => ({ name, description: spec.description,
-  inputSchema: { type: 'object' as const, additionalProperties: false,
+export const debuggerTools = Object.entries(debuggerContracts).map(([name, spec]) => ({
+  name, description: spec.description,
+  inputSchema: {
+    type: 'object' as const, additionalProperties: false,
     required: Object.entries(spec.fields).filter(([, field]) => !field.isOptional()).map(([key]) => key),
-    properties: { ...Object.fromEntries(Object.entries(spec.fields).map(([key, field]) => [key, jsonField(field)])), timeoutMs: { type: 'integer', minimum: 100, maximum: 30000, default: name === 'wait_for_debugger_event' ? 1000 : 10000 } } }
+    properties: { ...Object.fromEntries(Object.entries(spec.fields).map(([key, field]) => [key, jsonField(field)])), timeoutMs: { type: 'integer', minimum: 100, maximum: 30000, default: name === 'wait_for_debugger_event' ? 1000 : 10000 } }
+  }
 }))

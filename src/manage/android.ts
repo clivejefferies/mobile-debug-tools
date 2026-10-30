@@ -41,7 +41,7 @@ export class AndroidManage {
         })
         proc.on('error', err => reject(err))
       })
-    
+
       const apk = await findApk(projectPath)
       if (!apk) return { error: 'Could not find APK after build' }
       return { artifactPath: apk }
@@ -56,54 +56,7 @@ export class AndroidManage {
 
     let apkToInstall: string = apkPath
     try {
-        const stat = await fs.stat(apkPath).catch(() => null)
-        if (stat && stat.isDirectory()) {
-          const detectedJavaHome = await detectJavaHome().catch(() => undefined)
-          const env = { ...process.env }
-          if (detectedJavaHome) {
-            if (env.JAVA_HOME !== detectedJavaHome) {
-              env.JAVA_HOME = detectedJavaHome
-            env.PATH = `${path.join(detectedJavaHome, 'bin')}${path.delimiter}${env.PATH || ''}`
-            console.debug('[android-run] Overriding JAVA_HOME with detected path:', detectedJavaHome)
-          }
-        }
-        try { delete env.SHELL } catch {}
-
-        const gradleArgs = ['assembleDebug']
-        if (detectedJavaHome) {
-          gradleArgs.push(`-Dorg.gradle.java.home=${detectedJavaHome}`)
-          gradleArgs.push('--no-daemon')
-          env.GRADLE_JAVA_HOME = detectedJavaHome
-        }
-
-        const wrapperPath = path.join(apkPath, 'gradlew')
-        const useWrapper = existsSync(wrapperPath)
-        const execCmd = useWrapper ? wrapperPath : 'gradle'
-        const spawnOpts: any = { cwd: apkPath, env }
-        if (useWrapper) {
-          await fs.chmod(wrapperPath, 0o755).catch(() => {})
-          // Run wrapper directly to avoid shell splitting of args
-          spawnOpts.shell = false
-        } else {
-          // Execute gradle directly without a shell so paths with spaces are preserved
-          spawnOpts.shell = false
-        }
-
-        const proc = spawn(execCmd, gradleArgs, spawnOpts)
-        let stderr = ''
-        await new Promise<void>((resolve, reject) => {
-          proc.stderr?.on('data', d => stderr += d.toString())
-          proc.on('close', code => {
-            if (code === 0) resolve()
-            else reject(new Error(stderr || `Gradle build failed with code ${code}`))
-          })
-          proc.on('error', err => reject(err))
-        })
-
-        const built = await findApk(apkPath)
-        if (!built) throw new Error('Could not locate built APK after running Gradle')
-        apkToInstall = built
-      }
+      apkToInstall = await prepareInstallApk(apkPath)
 
       try {
         const res = await spawnAdb(['install', '-r', apkToInstall], deviceId)
@@ -138,7 +91,7 @@ export class AndroidManage {
         }
         throw new Error(finalPmRes.stderr || finalPmRes.stdout || 'pm install failed')
       } finally {
-        try { await execAdb(['shell', 'rm', remotePath], deviceId) } catch {}
+        try { await execAdb(['shell', 'rm', remotePath], deviceId) } catch { }
       }
     } catch (e) {
       // gather diagnostics for attempted adb operations
@@ -223,4 +176,57 @@ export class AndroidManage {
       return { device: deviceInfo, dataCleared: false, error: e instanceof Error ? e.message : String(e), diagnostics: diag }
     }
   }
+}
+
+async function prepareInstallApk(apkPath: string): Promise<string> {
+  const stat = await fs.stat(apkPath).catch(() => null)
+  if (stat && stat.isDirectory()) {
+    const detectedJavaHome = await detectJavaHome().catch(() => undefined)
+    const env = { ...process.env }
+    if (detectedJavaHome) {
+      if (env.JAVA_HOME !== detectedJavaHome) {
+        env.JAVA_HOME = detectedJavaHome
+        env.PATH = `${path.join(detectedJavaHome, 'bin')}${path.delimiter}${env.PATH || ''}`
+        console.debug('[android-run] Overriding JAVA_HOME with detected path:', detectedJavaHome)
+      }
+    }
+    try { delete env.SHELL } catch { }
+
+    const gradleArgs = ['assembleDebug']
+    if (detectedJavaHome) {
+      gradleArgs.push(`-Dorg.gradle.java.home=${detectedJavaHome}`)
+      gradleArgs.push('--no-daemon')
+      env.GRADLE_JAVA_HOME = detectedJavaHome
+    }
+
+    const wrapperPath = path.join(apkPath, 'gradlew')
+    const useWrapper = existsSync(wrapperPath)
+    const execCmd = useWrapper ? wrapperPath : 'gradle'
+    const spawnOpts: import('node:child_process').SpawnOptions = { cwd: apkPath, env }
+    if (useWrapper) {
+      await fs.chmod(wrapperPath, 0o755).catch(() => { })
+      // Run wrapper directly to avoid shell splitting of args
+      spawnOpts.shell = false
+    } else {
+      // Execute gradle directly without a shell so paths with spaces are preserved
+      spawnOpts.shell = false
+    }
+
+    const proc = spawn(execCmd, gradleArgs, spawnOpts)
+    let stderr = ''
+    await new Promise<void>((resolve, reject) => {
+      proc.stderr?.on('data', d => stderr += d.toString())
+      proc.on('close', code => {
+        if (code === 0) resolve()
+        else reject(new Error(stderr || `Gradle build failed with code ${code}`))
+      })
+      proc.on('error', err => reject(err))
+    })
+
+    const built = await findApk(apkPath)
+    if (!built) throw new Error('Could not locate built APK after running Gradle')
+    return built
+  }
+
+  return apkPath
 }

@@ -6,7 +6,7 @@ Use the [client installation instructions](../README.md#agent-plugin) to install
 the plugin. It supports clients with
 both skills and stdio MCP servers. It provides the mobile-debug MCP
 usage skill and launches the published `mobile-debug-mcp` npm package. The
-plugin requires Node.js 18 or newer, `npx`, and the platform toolchains needed
+plugin requires Node.js 22 or newer, `npx`, and the platform toolchains needed
 for the devices you want to use. The first launch may need npm registry access.
 The MCP process starts in the client-managed plugin data directory so npm does
 not resolve the source checkout as a local package when installed from this repo.

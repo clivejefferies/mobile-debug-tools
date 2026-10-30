@@ -184,3 +184,8 @@ scope and reason for each. These are additional environment coverage limits,
 not passing device evidence or remaining implementation tasks. Local Node 18 and
 Android adjustable-control convergence are now verified, superseding those
 unrun entries in earlier checkpoints.
+
+## Follow-on maintenance
+
+See the [codebase health cleanup](health-plan.md) for subsequent debt removal,
+Node 22 support and verification. The results above describe the original change.

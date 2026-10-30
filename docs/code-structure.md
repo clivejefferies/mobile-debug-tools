@@ -55,10 +55,12 @@ and empty or incomplete graphs fail. The current graph needs no cycle exceptions
 Keep new rules aligned with the module ownership below; changing architecture
 requires reviewing the rule alongside the implementation.
 
-## Existing debt
+## Baseline policy
 
-The [reviewed baseline](../scripts/code-quality-baseline.json) records remaining
-legacy exceptions by file, rule and symbol. Each entry is a ceiling, not a target.
+The [reviewed baseline](../scripts/code-quality-baseline.json) is empty: all
+production source currently meets the default limits, including zero explicit
+`any` occurrences. If an exception is explicitly approved, its entry records the
+file, rule and symbol. Each entry is a ceiling, not a target.
 An existing exception cannot grow, and an improvement must lower or remove its
 entry. New files and renamed symbols do not inherit exceptions. Unrelated
 improvements cannot compensate for a regression elsewhere.
@@ -95,6 +97,15 @@ requires reviewing its exception rather than silently transferring it.
   screen, visibility and state checks. Shared observation and input interfaces
   remain at the interaction root. `ToolsInteract` must meet the 300-line class
   budget without exceptions.
+- `src/observe/` owns evidence acquisition and snapshots. Android and iOS facades
+  delegate to platform folders for trees, logs, screenshots, fingerprints and log
+  streams. Snapshot collection, log normalization and semantic summaries are
+  separate modules; screenshot encoding retains platform-specific alpha policies.
+- `src/manage/ios/` owns Xcode project and scheme discovery, build preparation,
+  execution, watchdogs and diagnostics behind the existing iOS facade.
+- `src/system/` separates probes, platform capability policies and status summaries.
+  `src/utils/android/` separates commands, Gradle preparation, logs and UI parsing;
+  `utils.ts` retains compatibility exports and device discovery.
 - `src/observe/network/` infers HTTP activity from Android logcat and iOS
   simulator logs. It supports `get_network_activity` and action classification;
   it is not packet capture or a proxy. Results depend on the app logging requests,
@@ -103,5 +114,5 @@ requires reviewing its exception rather than silently transferring it.
   serialized transitions and cleanup; the Java worker owns JDI operations.
 
 The [refactoring plan](specs/026-code-structure-and-quality-gates/plan.md) records
-progress and verification. Remaining baseline entries are known debt, not evidence
-that the entire source tree meets the defaults.
+progress and verification. The [follow-on health cleanup](specs/026-code-structure-and-quality-gates/health-plan.md)
+records removal of the legacy baseline and the Node 22 dependency updates.

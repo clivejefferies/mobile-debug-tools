@@ -7,7 +7,7 @@ approval. Automated contributors also start with [AGENTS.md](AGENTS.md).
 
 ## Local development
 
-Use Node.js 18 or newer and npm. Platform tooling is needed only for the mobile
+Use Node.js 22 or newer and npm. Platform tooling is needed only for the mobile
 operations you exercise; see [requirements and setup](README.md#requirements).
 
 ```sh

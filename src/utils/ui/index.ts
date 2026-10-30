@@ -2,8 +2,8 @@ import { remainingBudget } from '../operation-budget.js'
 import crypto from 'crypto'
 import { GetUITreeResponse, GetCurrentScreenResponse, UIElement, SwipeResponse } from '../../types.js'
 
-const ANDROID_STRUCTURAL_TYPES = ['Window','Application','View','ViewGroup','LinearLayout','FrameLayout','RelativeLayout','ScrollView','RecyclerView','TextView','ImageView']
-const IOS_STRUCTURAL_TYPES = ['Window','Application','View','ViewController','UITableView','UICollectionView','UILabel','UIImageView','UIView','UIWindow','UIStackView','UITextView','UITableViewCell']
+const ANDROID_STRUCTURAL_TYPES = ['Window', 'Application', 'View', 'ViewGroup', 'LinearLayout', 'FrameLayout', 'RelativeLayout', 'ScrollView', 'RecyclerView', 'TextView', 'ImageView']
+const IOS_STRUCTURAL_TYPES = ['Window', 'Application', 'View', 'ViewController', 'UITableView', 'UICollectionView', 'UILabel', 'UIImageView', 'UIView', 'UIWindow', 'UIStackView', 'UITextView', 'UITableViewCell']
 
 function isDynamicText(t?: string): boolean {
   if (!t) return false
@@ -23,15 +23,15 @@ function normalizeElement(e: UIElement) {
     resourceId: (e.resourceId || '').toString(),
     text: typeof e.text === 'string' ? (isDynamicText(e.text) ? '' : e.text.trim().toLowerCase()) : '',
     contentDesc: (e.contentDescription || '').toString(),
-    bounds: Array.isArray(e.bounds) ? e.bounds.slice(0,4).map((n:any)=>Number(n)||0) : [0,0,0,0]
+    bounds: Array.isArray(e.bounds) ? e.bounds.slice(0, 4).map((n: number) => Number(n) || 0) : [0, 0, 0, 0]
   }
 }
 
 export function computeScreenFingerprint(tree: GetUITreeResponse, current: GetCurrentScreenResponse | null, platform: 'android' | 'ios', limit: number = 50): { fingerprint: string | null; activity?: string; error?: string } {
   try {
-    if (!tree || (tree as any).error) return { fingerprint: null, error: (tree as any).error }
+    if (!tree || tree.error) return { fingerprint: null, error: tree.error }
 
-    const activity = current && (current.activity || (current as any).shortActivity) ? (current.activity || (current as any).shortActivity) : ''
+    const activity = current && (current.activity || current.shortActivity) ? (current.activity || current.shortActivity) : ''
 
     const candidates: UIElement[] = (tree.elements || []).filter(e => {
       if (!e) return false
@@ -48,7 +48,7 @@ export function computeScreenFingerprint(tree: GetUITreeResponse, current: GetCu
 
     const filteredNormalized = normalized.filter(e => (e.text && e.text.length > 0) || (e.resourceId && e.resourceId.length > 0) || (e.contentDesc && e.contentDesc.length > 0))
 
-    filteredNormalized.sort((a,b) => {
+    filteredNormalized.sort((a, b) => {
       const ay = (a.bounds && a.bounds[1]) || 0
       const by = (b.bounds && b.bounds[1]) || 0
       if (ay !== by) return ay - by
@@ -61,7 +61,7 @@ export function computeScreenFingerprint(tree: GetUITreeResponse, current: GetCu
 
     const payload = {
       activity: platform === 'android' ? (activity || '') : '',
-      resolution: (tree as any).resolution || { width: 0, height: 0 },
+      resolution: tree.resolution || { width: 0, height: 0 },
       elements: limited.map(e => ({ type: e.type, resourceId: e.resourceId, text: e.text, contentDesc: e.contentDesc }))
     }
 
@@ -87,29 +87,10 @@ export async function scrollToElementShared(opts: {
 }): Promise<{ success: boolean; reason?: string; element?: Partial<UIElement>; scrollsPerformed: number }> {
   const { selector, direction = 'down', maxScrolls = 10, scrollAmount = 0.7, deviceId, fetchTree, swipe, stabilizationDelayMs = 350 } = opts
 
-  const matchElement = (el?: UIElement) => {
-    if (!el) return false
-    if (selector.text !== undefined && selector.text !== el.text) return false
-    if (selector.resourceId !== undefined && selector.resourceId !== el.resourceId) return false
-    if (selector.contentDesc !== undefined && selector.contentDesc !== el.contentDescription) return false
-    if (selector.className !== undefined && selector.className !== el.type) return false
-    return true
-  }
-
-  const isVisible = (el?: UIElement, resolution?: GetUITreeResponse['resolution']) => {
-    if (!el) return false
-    if (el.visible === false) return false
-    if (!el.bounds || !resolution || !resolution.width || !resolution.height) return (el.visible === undefined ? true : !!el.visible)
-    const [left, top, right, bottom] = el.bounds
-    const withinY = bottom > 0 && top < resolution.height
-    const withinX = right > 0 && left < resolution.width
-    return withinX && withinY
-  }
-
   const findVisibleMatch = (elements?: UIElement[], resolution?: GetUITreeResponse['resolution']) => {
     if (!Array.isArray(elements)) return null
     for (const e of elements) {
-      if (matchElement(e) && isVisible(e, resolution)) return e
+      if (matchElement(selector, e) && isVisible(e, resolution)) return e
     }
     return null
   }
@@ -158,7 +139,7 @@ export async function scrollToElementShared(opts: {
     try {
       await swipe(x1, y1, x2, y2, duration, deviceId)
     } catch (e) {
-      try { console.warn(`scrollToElement swipe failed: ${e instanceof Error ? e.message : String(e)}`) } catch {}
+      try { console.warn(`scrollToElement swipe failed: ${e instanceof Error ? e.message : String(e)}`) } catch { }
     }
 
     scrollsPerformed++
@@ -180,4 +161,23 @@ export async function scrollToElementShared(opts: {
   }
 
   return { success: false, reason: 'Element not found after scrolling', scrollsPerformed: scrollsPerformed }
+}
+
+function matchElement(selector: ScrollSelector, el?: UIElement) {
+  if (!el) return false
+  if (selector.text !== undefined && selector.text !== el.text) return false
+  if (selector.resourceId !== undefined && selector.resourceId !== el.resourceId) return false
+  if (selector.contentDesc !== undefined && selector.contentDesc !== el.contentDescription) return false
+  if (selector.className !== undefined && selector.className !== el.type) return false
+  return true
+}
+
+function isVisible(el?: UIElement, resolution?: GetUITreeResponse['resolution']) {
+  if (!el) return false
+  if (el.visible === false) return false
+  if (!el.bounds || !resolution || !resolution.width || !resolution.height) return (el.visible === undefined ? true : !!el.visible)
+  const [left, top, right, bottom] = el.bounds
+  const withinY = bottom > 0 && top < resolution.height
+  const withinX = right > 0 && left < resolution.width
+  return withinX && withinY
 }

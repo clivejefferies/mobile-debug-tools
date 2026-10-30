@@ -8,19 +8,12 @@ export async function checkIOS() {
   try {
     const xcrun = getXcrunCmd()
     try {
-      execSync(`${xcrun} --version`, { stdio: ['ignore','pipe','ignore'], timeout: 1500 })
+      execSync(`${xcrun} --version`, { stdio: ['ignore', 'pipe', 'ignore'], timeout: 1500 })
       iosAvailable = true
       try {
-        const simOut = execSync(`${xcrun} simctl list devices booted --json`, { encoding: 'utf8', timeout: 1500, stdio: ['ignore','pipe','ignore'] })
+        const simOut = execSync(`${xcrun} simctl list devices booted --json`, { encoding: 'utf8', timeout: 1500, stdio: ['ignore', 'pipe', 'ignore'] })
         try {
-          const data = JSON.parse(simOut)
-          type SimDevice = { state?: string }
-          let count = 0
-          for (const k in data.devices) {
-            const arr = data.devices[k]
-            if (Array.isArray(arr)) count += arr.filter((d: SimDevice) => (d.state || '').toLowerCase() === 'booted').length
-          }
-          iosDevices = count
+          iosDevices = countBooted(simOut)
         } catch {
           // Some xcrun builds include extra text around the JSON response.
           // Fall back to counting explicit booted state markers so readiness remains deterministic.
@@ -32,4 +25,15 @@ export async function checkIOS() {
     } catch (e: unknown) { iosAvailable = false; console.debug('[get_system_status] xcrun --version failed: ' + String(e)) }
   } catch (e: unknown) { console.debug('[get_system_status] xcrun check failed: ' + String(e)) }
   return { iosAvailable, iosDevices, issues }
+}
+
+function countBooted(simOut: string) {
+  const data = JSON.parse(simOut)
+  type SimDevice = { state?: string }
+  let count = 0
+  for (const k in data.devices) {
+    const arr = data.devices[k]
+    if (Array.isArray(arr)) count += arr.filter((d: SimDevice) => (d.state || '').toLowerCase() === 'booted').length
+  }
+  return count
 }

@@ -3,7 +3,7 @@ export function wrapResponse<T>(data: T, includeSerializationTiming = true) {
   const start = performance.now()
   let text = JSON.stringify(data, null, 2)
   const elapsed = performance.now() - start
-  const value = data as any
+  const value = data as { timing?: { serialization_ms?: number } } | null
   if (includeSerializationTiming && value && typeof value === 'object' && value.timing && typeof value.timing === 'object') {
     value.timing.serialization_ms = (value.timing.serialization_ms ?? 0) + elapsed
     recordTiming('serialization_ms', elapsed)
@@ -73,12 +73,12 @@ export function wrapToolError(name: string, error: unknown) {
     ? error.message
     : typeof error === 'object' && error !== null
       ? (() => {
-          try {
-            return JSON.stringify(error, null, 2)
-          } catch {
-            return '[unserializable error object]'
-          }
-        })()
+        try {
+          return JSON.stringify(error, null, 2)
+        } catch {
+          return '[unserializable error object]'
+        }
+      })()
       : String(error)
   return {
     content: [{

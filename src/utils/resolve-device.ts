@@ -16,7 +16,7 @@ export interface ResolveOptions {
 
 function parseNumericVersion(v: string): number {
   if (!v) return 0
-  const m = v.match(/(\d+)(?:[\.\-](\d+))?/) 
+  const m = v.match(/(\d+)(?:[\.\-](\d+))?/)
   if (!m) return 0
   const major = parseInt(m[1], 10) || 0
   const minor = parseInt(m[2] || "0", 10) || 0
@@ -82,13 +82,17 @@ async function resolveDevice(opts: ResolveOptions): Promise<DeviceInfo> {
     return found
   }
 
+  return selectDevice(devices, platform, appId, prefer)
+}
+
+function selectDevice(devices: DeviceInfo[], platform: string, appId?: string, prefer?: ResolveOptions['prefer']): DeviceInfo {
   let candidates = devices.slice()
 
   if (prefer === "physical") candidates = candidates.filter(d => !d.simulator)
   if (prefer === "emulator") candidates = candidates.filter(d => d.simulator)
 
   if (appId) {
-    const installed = candidates.filter(d => (d as any).appInstalled)
+    const installed = candidates.filter(d => d.appInstalled)
     if (installed.length > 0) candidates = installed
   }
 
@@ -103,7 +107,7 @@ async function resolveDevice(opts: ResolveOptions): Promise<DeviceInfo> {
 
     // Prefer booted iOS simulators if present
     if (platform === 'ios') {
-      const booted = candidates.filter((d: any) => !!d.booted)
+      const booted = candidates.filter((d: DeviceInfo) => !!d.booted)
       if (booted.length === 1) return booted[0]
       if (booted.length > 1) return booted[0] // if multiple booted, pick the first
     }
@@ -113,9 +117,8 @@ async function resolveDevice(opts: ResolveOptions): Promise<DeviceInfo> {
       return candidates[0]
     }
 
-    const list = candidates.map(d => ({ id: d.id, platform: d.platform, osVersion: d.osVersion, model: d.model, simulator: d.simulator, appInstalled: (d as any).appInstalled }))
-    const err = new Error(`Multiple matching devices found: ${JSON.stringify(list, null, 2)}`)
-    ;(err as any).devices = list
+    const list = candidates.map(d => ({ id: d.id, platform: d.platform, osVersion: d.osVersion, model: d.model, simulator: d.simulator, appInstalled: d.appInstalled }))
+    const err = Object.assign(new Error(`Multiple matching devices found: ${JSON.stringify(list, null, 2)}`), { devices: list })
     throw err
   }
 

@@ -10,6 +10,14 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- **Runtime requirement:** Node.js 22 or newer is now required. Updated Sharp,
+  Zod and transitive dependencies to clear the dependency audit findings; CI
+  configuration now uses Node 22. Public tool definitions remain unchanged.
+- Split observation, snapshot, iOS build, Android utility and system diagnostic
+  responsibilities into typed services. Removed all 136 legacy quality exceptions;
+  production source meets the default size, complexity, nesting and explicit-any
+  limits. Added screenshot encoding and snapshot log normalization regressions.
+
 - Split server handlers by capability, share target/execution-control contracts, and inject clocks into interaction polling services while preserving tool contracts. Added deterministic timing tests and an Android labelled-slider convergence journey.
 
 - Added ArchUnitTS architecture checks to lint and CI for shared contracts, server boundaries, pure interaction calculations and runtime dependency cycles. Negative controls cover NodeNext resolution, aliases, dynamic imports and re-exports.

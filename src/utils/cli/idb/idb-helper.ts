@@ -14,12 +14,10 @@ export function getConfiguredIdbPath(): string | undefined {
       if (fs.existsSync(p)) {
         const raw = fs.readFileSync(p, 'utf8')
         const json = JSON.parse(raw)
-        if (json) {
-          if (json.idbPath) return json.idbPath
-          if (json.IDB_PATH) return json.IDB_PATH
-        }
+        if (json?.idbPath) return json.idbPath
+        if (json?.IDB_PATH) return json.IDB_PATH
       }
-    } catch {}
+    } catch { }
   }
   return undefined
 }
@@ -28,11 +26,11 @@ export function commandWhich(cmd: string): string | null {
   try {
     const r = spawnSync('command', ['-v', cmd], { stdio: ['ignore', 'pipe', 'ignore'] })
     if (r && r.status === 0 && r.stdout) return r.stdout.toString().trim()
-  } catch {}
+  } catch { }
   try {
     const p = execSync(`which ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
     if (p) return p
-  } catch {}
+  } catch { }
   return null
 }
 
@@ -54,7 +52,7 @@ export function getIdbCmd(): string | null {
   ]
   for (const c of common) {
     if (!c) continue
-    try { execSync(`test -x ${c}`, { stdio: ['ignore', 'pipe', 'ignore'] }); return c } catch {}
+    try { execSync(`test -x ${c}`, { stdio: ['ignore', 'pipe', 'ignore'] }); return c } catch { }
   }
   return null
 }

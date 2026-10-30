@@ -25,15 +25,14 @@
     "check:agent-plugin": "node scripts/agent-plugin.mjs --check",
     "verify": "npm run lint && npm run build && npm run test:unit && npm run check:agent-plugin"
   },
-
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "fast-xml-parser": "^5.5.1",
-    "zod": "^3.22.4",
-    "sharp": "^0.32.1"
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
@@ -42,7 +41,8 @@
     "archunit": "2.5.4",
     "eslint": "^9.39.4",
     "eslint-plugin-unused-imports": "^4.4.1",
-    "tsx": "^4.21.0",
+    "minimist": "^1.2.8",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

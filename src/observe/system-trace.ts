@@ -37,7 +37,7 @@ const clock: TraceClock = {
 export class SystemTraceSessions {
   private sessions = new Map<string, Session>()
   private closing = false
-  constructor(private native: TraceNative = new AndroidTraceNative(), private time: TraceClock = clock) {}
+  constructor(private native: TraceNative = new AndroidTraceNative(), private time: TraceClock = clock) { }
   private prune() {
     const terminal = [...this.sessions.values()].filter(s => s.terminalAt !== undefined && s.result.cleanup.status === 'complete')
     for (const s of terminal) if (this.time.mono() - s.terminalAt! >= 600000) this.sessions.delete(s.result.trace_id)
@@ -49,7 +49,7 @@ export class SystemTraceSessions {
   private snapshot(s: Session): TraceResult { return structuredClone(s.result) }
   private serial<T>(s: Session, fn: () => Promise<T>): Promise<T> {
     const result = s.queue.then(fn)
-    s.queue = result.catch(() => {})
+    s.queue = result.catch(() => { })
     return result
   }
   async capabilities(device: string) { return this.native.capabilities(device) }
@@ -59,11 +59,15 @@ export class SystemTraceSessions {
     const reserved = [...this.sessions.values()].filter(s => s.result.cleanup.status !== 'complete')
     if (this.closing || reserved.length >= 4 || reserved.some(s => s.result.device.id === device)) throw new TraceError('TRACE_BUSY')
     const id = randomUUID()
-    const result: TraceResult = { trace_id: id, session_id: evidenceSessionId(), device: { platform: 'android', id: device }, backend: 'perfetto',
+    const result: TraceResult = {
+      trace_id: id, session_id: evidenceSessionId(), device: { platform: 'android', id: device }, backend: 'perfetto',
       state: 'starting', reason: null, completion_reason: null, capture_started_at_ms: null, capture_completed_at_ms: null,
-      artifact: null, cleanup: { status: 'pending', remaining_resources: [] }, correlation_ids: [], enabled_sources: [], unavailable_categories: [] }
-    const s: Session = { result, remote: `/data/misc/perfetto-traces/mcp-${id}.perfetto-trace`, owner: null, stopped: true,
-      discard: false, deadline: Infinity, queue: Promise.resolve(), linked: new Set(), partial: new Set() }
+      artifact: null, cleanup: { status: 'pending', remaining_resources: [] }, correlation_ids: [], enabled_sources: [], unavailable_categories: []
+    }
+    const s: Session = {
+      result, remote: `/data/misc/perfetto-traces/mcp-${id}.perfetto-trace`, owner: null, stopped: true,
+      discard: false, deadline: Infinity, queue: Promise.resolve(), linked: new Set(), partial: new Set()
+    }
     this.sessions.set(id, s)
     return this.serial(s, async () => {
       let cap: TraceCapabilities
@@ -81,7 +85,7 @@ export class SystemTraceSessions {
         await this.native.start(device, s.remote, duration, cap.enabled_sources)
         s.owner = await this.native.find(device, s.remote)
         s.result.state = 'recording'
-        s.timer = this.time.schedule(() => { void this.control(id, 'duration').catch(() => {}) }, Math.max(0, s.deadline - this.time.mono()))
+        s.timer = this.time.schedule(() => { void this.control(id, 'duration').catch(() => { }) }, Math.max(0, s.deadline - this.time.mono()))
       } catch (error) {
         s.discard = true
         this.fail(s, this.code(error, 'TRACE_START_FAILED'))
@@ -173,14 +177,17 @@ export class SystemTraceSessions {
       }
       try { await this.remove(s) }
       catch { this.fail(s, 'TRACE_STOP_FAILED'); s.result.cleanup.status = 'failed'; return this.snapshot(s) }
-      if (hadStartFailure) s.result.state = 'failed'
-      else {
-        s.result.state = s.discard ? 'cancelled' : 'completed'
-        s.result.reason = s.discard ? 'TRACE_CANCELLED' : null
-        s.result.completion_reason = s.discard ? 'cancelled' : operation === 'duration' || this.time.mono() >= s.deadline ? 'duration_limit' : 'requested'
-      }
+      this.complete(s, hadStartFailure, operation)
       return this.snapshot(s)
     })
+  }
+  private complete(s: Session, hadStartFailure: boolean, operation: string) {
+    if (hadStartFailure) s.result.state = 'failed'
+    else {
+      s.result.state = s.discard ? 'cancelled' : 'completed'
+      s.result.reason = s.discard ? 'TRACE_CANCELLED' : null
+      s.result.completion_reason = s.discard ? 'cancelled' : operation === 'duration' || this.time.mono() >= s.deadline ? 'duration_limit' : 'requested'
+    }
   }
   async link(id: string, device: { platform: string; id: string }, correlation: string) {
     const s = this.get(id)
@@ -201,8 +208,10 @@ export class SystemTraceSessions {
         try { recording = (await this.control(id, 'status')).state === 'recording' }
         catch { /* Unavailable state cannot establish complete coverage. */ }
         s.linked.delete(correlation)
-        return { trace_id: id, coverage: !recording || s.partial.has(correlation) || this.time.mono() >= s.deadline ? 'partial' : 'covered',
-          clock_alignment: 'unknown' }
+        return {
+          trace_id: id, coverage: !recording || s.partial.has(correlation) || this.time.mono() >= s.deadline ? 'partial' : 'covered',
+          clock_alignment: 'unknown'
+        }
       })()
     })
   }

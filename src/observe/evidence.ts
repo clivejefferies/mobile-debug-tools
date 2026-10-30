@@ -38,7 +38,13 @@ const orders = new Map<string, DeviceOrder>()
 const stamp = (): Stamp => ({ wall: Date.now(), mono: performance.now() })
 const deviceKey = (d: EvidenceDevice) => `${d.platform}:${d.id}`
 const sameDevice = (a: EvidenceDevice | null, b: EvidenceDevice | null) => !!a && !!b && deviceKey(a) === deviceKey(b)
-function validDevice(d: any): EvidenceDevice | null {
+interface EvidencePayload {
+  device?: unknown; error?: string; meta?: { error?: string }; success?: boolean; fingerprint?: string | null
+  captured_at_ms?: number; snapshot_session_id?: string; snapshot_revision?: number
+  logs?: Array<{ timestamp?: unknown; _iso?: unknown }>; entries?: Array<{ timestamp?: unknown; _iso?: unknown }>
+}
+function validDevice(value: unknown): EvidenceDevice | null {
+  const d = value as EvidenceDevice | null
   return d && ['android', 'ios'].includes(d.platform) && typeof d.id === 'string' && d.id && !['default', 'booted'].includes(d.id)
     ? { platform: d.platform, id: d.id } : null
 }
@@ -68,7 +74,7 @@ function prune() {
 export function validateActionRef(value: unknown): ActionRef | undefined {
   if (value === undefined) return undefined
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).some(key => !['sessionId', 'actionId'].includes(key))) throw new Error('INVALID_ARGUMENT: invalid actionRef')
+    Object.keys(value).some(key => !['sessionId', 'actionId'].includes(key))) throw new Error('INVALID_ARGUMENT: invalid actionRef')
   const ref = value as ActionRef
   for (const v of [ref.sessionId, ref.actionId]) if (typeof v !== 'string' || v.length < 1 || v.length > 128) throw new Error('INVALID_ARGUMENT: invalid actionRef')
   return { sessionId: ref.sessionId, actionId: ref.actionId }
@@ -114,11 +120,13 @@ export function omitEvidence(kind: Kind) {
   const current = context.getStore()
   if (!current) return
   const start = stamp()
-  current.observations.push({ value: {
-    evidence_id: randomUUID(), kind, status: 'omitted', capture_started_at_ms: null,
-    capture_completed_at_ms: null, source_captured_at_ms: null, age_ms: null,
-    freshness: kind === 'logs' ? 'not_applicable' : 'unknown', freshness_reasons: [], device: current.device
-  }, start, end: null, order: null, startSequence: 0, endSequence: 0, overlapping: false, reused: false })
+  current.observations.push({
+    value: {
+      evidence_id: randomUUID(), kind, status: 'omitted', capture_started_at_ms: null,
+      capture_completed_at_ms: null, source_captured_at_ms: null, age_ms: null,
+      freshness: kind === 'logs' ? 'not_applicable' : 'unknown', freshness_reasons: [], device: current.device
+    }, start, end: null, order: null, startSequence: 0, endSequence: 0, overlapping: false, reused: false
+  })
 }
 export async function captureEvidence<T>(kind: Kind, device: EvidenceDevice | null, operation: () => Promise<T>): Promise<T> {
   const current = context.getStore()
@@ -127,42 +135,19 @@ export async function captureEvidence<T>(kind: Kind, device: EvidenceDevice | nu
   if (target) bindEvidenceDevice(target)
   const order = orderFor(target)
   const start = stamp()
-  const acquisition: Acquisition = { value: {
-    evidence_id: randomUUID(), kind, status: 'failed', capture_started_at_ms: start.wall,
-    capture_completed_at_ms: null, source_captured_at_ms: null, age_ms: null,
-    freshness: 'unknown', freshness_reasons: [], device: target
-  }, start, end: null, order, startSequence: order?.sequence ?? 0,
-  endSequence: 0, overlapping: !!order?.active, reused: false }
+  const acquisition: Acquisition = {
+    value: {
+      evidence_id: randomUUID(), kind, status: 'failed', capture_started_at_ms: start.wall,
+      capture_completed_at_ms: null, source_captured_at_ms: null, age_ms: null,
+      freshness: 'unknown', freshness_reasons: [], device: target
+    }, start, end: null, order, startSequence: order?.sequence ?? 0,
+    endSequence: 0, overlapping: !!order?.active, reused: false
+  }
   current.observations.push(acquisition)
   try {
-    const result = await operation() as any
-    const value = acquisition.value
-    const resolved = validDevice(result?.device) ?? target
-    value.device = resolved
-    if (resolved) bindEvidenceDevice(resolved)
-    const failure = result?.error ?? result?.meta?.error
-    value.status = failure || result?.success === false || (kind === 'fingerprint' && !result?.fingerprint) ? 'failed' : 'captured'
-    if (failure) value.error = failure
-    const source = result?.captured_at_ms
-    if (Number.isFinite(source) && source > 0) {
-      value.source_captured_at_ms = source
-      acquisition.reused = source < start.wall
-    }
-    if (kind === 'ui_tree') {
-      value.snapshot_session_id = result?.snapshot_session_id
-      value.snapshot_revision = result?.snapshot_revision
-    }
-    if (kind === 'logs') {
-      const entries = result?.logs ?? result?.entries ?? []
-      const times = entries.map((e: any) => {
-        const t = e?.timestamp ?? e?._iso
-        return typeof t === 'number' ? t : typeof t === 'string' ? Date.parse(t) : NaN
-      }).filter((t: number) => Number.isFinite(t)) as number[]
-      value.clock = 'device_or_unknown'; value.event_time_comparable = false
-      value.earliest_entry_at_ms = times.length ? times.reduce((a, b) => Math.min(a, b)) : null
-      value.latest_entry_at_ms = times.length ? times.reduce((a, b) => Math.max(a, b)) : null
-    }
-    return result
+    const original = await operation()
+    recordObservationResult(acquisition, original as EvidencePayload | null, kind, target, start)
+    return original
   } catch (error) {
     acquisition.value.error = error instanceof Error ? error.message : String(error)
     throw error
@@ -188,35 +173,13 @@ function assemble(current: EvidenceContext) {
   const link = association(current)
   const action = link.association === 'unavailable' ? null : current.action
   const clockChanged = end.wall < current.start.wall
-  const observations = current.observations.map(a => {
-    const v = { ...a.value, freshness_reasons: [] as string[] }
-    if (v.status === 'omitted') return v
-    const componentAction = sameDevice(v.device, action?.device ?? null) ? action : null
-    const sourceMono = a.end && v.source_captured_at_ms !== null ? a.end.mono + v.source_captured_at_ms - a.end.wall : a.end?.mono
-    const reason = (freshness: Freshness, code: string) => { v.freshness = freshness; v.freshness_reasons.push(code) }
-    if (v.kind === 'logs') reason('unknown', 'DEVICE_CLOCK_UNVERIFIED')
-    else if (clockChanged || (a.end && a.end.wall < a.start.wall)) reason('unknown', 'CLOCK_DISCONTINUITY')
-    else if (v.source_captured_at_ms !== null && a.end && v.source_captured_at_ms > a.end.wall) reason('unknown', 'CLOCK_DISCONTINUITY')
-    else if (!v.device || !a.order || orders.get(deviceKey(v.device)) !== a.order || v.status !== 'captured' || !a.end) reason('unknown', 'CAPTURE_TIME_UNKNOWN')
-    else if (componentAction?.dispatchStart && sourceMono !== undefined && sourceMono < componentAction.dispatchStart.mono) reason('stale', 'BEFORE_ACTION')
-    else if (a.order && (a.order.sequence > a.endSequence || (a.reused && sourceMono !== undefined && sourceMono < a.order.lastStarted))) reason('stale', 'SUPERSEDED_BY_ACTION')
-    else if (a.overlapping) reason('unknown', 'OVERLAPPING_ACTION')
-    else if (a.reused) reason('unknown', 'REUSED_OBSERVATION')
-    else { v.freshness = 'fresh' }
-    if (!clockChanged && a.end && a.end.wall >= a.start.wall && v.source_captured_at_ms !== null && v.source_captured_at_ms <= end.wall) {
-      v.age_ms = Math.max(0, end.mono - a.end.mono + a.end.wall - v.source_captured_at_ms)
-    }
-    return { ...v, session_id: sessionId, correlation_id: componentAction?.correlationId ?? current.correlationId,
-      action_id: componentAction?.id ?? null, association: componentAction ? 'internal' : link.association }
-  })
+  const observations = current.observations.map(a => assembleObservation(a, action, current, link, end, clockChanged))
   return {
     session_id: sessionId, correlation_id: action?.correlationId ?? current.correlationId,
     action_id: action?.id ?? null, device: current.device, ...link,
     ...(current.ref ? { requested_action_ref: current.ref } : {}),
     operation_started_at_ms: current.start.wall, operation_completed_at_ms: current.end?.wall ?? end.wall,
-    dispatch_started_at_ms: action?.dispatchStart?.wall ?? null,
-    dispatch_completed_at_ms: action?.dispatchEnd?.wall ?? null,
-    verification_completed_at_ms: current.verification?.wall ?? action?.verification?.wall ?? null,
+    ...actionTimes(action, current),
     observations, trace_context: { supported: !!current.systemTraceId, trace_id: current.systemTraceId ?? null, markers: [] }
   }
 }
@@ -224,10 +187,14 @@ export async function withEvidence<T>(options: { action?: boolean; journey?: boo
   prune()
   const parent = context.getStore()
   const id = randomUUID()
-  const record: ActionRecord | null = options.action ? { id, correlationId: parent?.correlationId ?? id, device: null,
-    dispatchStart: null, dispatchEnd: null, verification: null, completed: null } : options.ref?.sessionId === sessionId ? active.get(options.ref.actionId) ?? history.get(options.ref.actionId) ?? null : null
-  const current: EvidenceContext = { systemTraceId: parent?.systemTraceId, correlationId: options.action ? record!.correlationId : options.journey ? id : randomUUID(),
-    action: record, ref: options.ref, device: null, start: stamp(), end: null, verification: null, observations: [], children: [], isAction: !!options.action }
+  const record: ActionRecord | null = options.action ? {
+    id, correlationId: parent?.correlationId ?? id, device: null,
+    dispatchStart: null, dispatchEnd: null, verification: null, completed: null
+  } : options.ref?.sessionId === sessionId ? active.get(options.ref.actionId) ?? history.get(options.ref.actionId) ?? null : null
+  const current: EvidenceContext = {
+    systemTraceId: parent?.systemTraceId, correlationId: options.action ? record!.correlationId : options.journey ? id : randomUUID(),
+    action: record, ref: options.ref, device: null, start: stamp(), end: null, verification: null, observations: [], children: [], isAction: !!options.action
+  }
   if (options.action && record) active.set(id, record)
   if (parent && options.action) parent.children.push(current)
   try {
@@ -258,5 +225,90 @@ export function completeJourneyVerification(actionId: string) {
   if (child?.action) {
     child.verification = stamp()
     child.action.verification = child.verification
+  }
+}
+
+function recordObservationResult(acquisition: Acquisition, result: EvidencePayload | null, kind: Kind, target: EvidenceDevice | null, start: Stamp) {
+  const value = acquisition.value
+  const resolved = validDevice(result?.device) ?? target
+  value.device = resolved
+  if (resolved) bindEvidenceDevice(resolved)
+  const failure = result?.error ?? result?.meta?.error
+  value.status = failure || result?.success === false || (kind === 'fingerprint' && !result?.fingerprint) ? 'failed' : 'captured'
+  if (failure) value.error = failure
+  recordCaptureTime(acquisition, result, start)
+  if (kind === 'ui_tree') {
+    value.snapshot_session_id = result?.snapshot_session_id
+    value.snapshot_revision = result?.snapshot_revision
+  }
+  if (kind === 'logs') recordLogWindow(value, result)
+
+}
+
+function recordLogWindow(value: Component, result: EvidencePayload | null) {
+  const entries = result?.logs ?? result?.entries ?? []
+  const times = entries.map((e: { timestamp?: unknown; _iso?: unknown } | null) => {
+    const t = e?.timestamp ?? e?._iso
+    return typeof t === 'number' ? t : typeof t === 'string' ? Date.parse(t) : NaN
+  }).filter((t: number) => Number.isFinite(t)) as number[]
+  value.clock = 'device_or_unknown'; value.event_time_comparable = false
+  value.earliest_entry_at_ms = times.length ? times.reduce((a, b) => Math.min(a, b)) : null
+  value.latest_entry_at_ms = times.length ? times.reduce((a, b) => Math.max(a, b)) : null
+}
+
+function assembleObservation(a: Acquisition, action: ActionRecord | null, current: EvidenceContext, link: ReturnType<typeof association>, end: Stamp, clockChanged: boolean) {
+
+  const v = { ...a.value, freshness_reasons: [] as string[] }
+  if (v.status === 'omitted') return v
+  const componentAction = sameDevice(v.device, action?.device ?? null) ? action : null
+  const sourceMono = a.end && v.source_captured_at_ms !== null ? a.end.mono + v.source_captured_at_ms - a.end.wall : a.end?.mono
+  const freshness = observationFreshness(a, componentAction, sourceMono, clockChanged)
+  if (freshness) { v.freshness = freshness[0]; v.freshness_reasons.push(freshness[1]) }
+  else v.freshness = 'fresh'
+
+  if (!clockChanged && a.end && a.end.wall >= a.start.wall && v.source_captured_at_ms !== null && v.source_captured_at_ms <= end.wall) {
+    v.age_ms = Math.max(0, end.mono - a.end.mono + a.end.wall - v.source_captured_at_ms)
+  }
+  return {
+    ...v, session_id: sessionId, correlation_id: componentAction?.correlationId ?? current.correlationId,
+    action_id: componentAction?.id ?? null, association: componentAction ? 'internal' : link.association
+  }
+
+}
+
+function observationFreshness(a: Acquisition, action: ActionRecord | null, sourceMono: number | undefined, clockChanged: boolean): [Freshness, string] | null {
+  const v = a.value
+  if (v.kind === 'logs') return ['unknown', 'DEVICE_CLOCK_UNVERIFIED']
+  if (clockDiscontinuity(a, clockChanged)) return ['unknown', 'CLOCK_DISCONTINUITY']
+  if (!knownCapture(a)) return ['unknown', 'CAPTURE_TIME_UNKNOWN']
+  if (action?.dispatchStart && sourceMono !== undefined && sourceMono < action.dispatchStart.mono) return ['stale', 'BEFORE_ACTION']
+  if (superseded(a, sourceMono)) return ['stale', 'SUPERSEDED_BY_ACTION']
+  if (a.overlapping) return ['unknown', 'OVERLAPPING_ACTION']
+  if (a.reused) return ['unknown', 'REUSED_OBSERVATION']
+  return null
+}
+function clockDiscontinuity(a: Acquisition, changed: boolean) {
+  return changed || !!(a.end && a.end.wall < a.start.wall) || !!(a.value.source_captured_at_ms !== null && a.end && a.value.source_captured_at_ms > a.end.wall)
+}
+function knownCapture(a: Acquisition) {
+  return !!a.value.device && !!a.order && orders.get(deviceKey(a.value.device)) === a.order && a.value.status === 'captured' && !!a.end
+}
+function superseded(a: Acquisition, sourceMono: number | undefined) {
+  return !!a.order && (a.order.sequence > a.endSequence || (a.reused && sourceMono !== undefined && sourceMono < a.order.lastStarted))
+}
+
+function actionTimes(action: ActionRecord | null, current: EvidenceContext) {
+  return {
+    dispatch_started_at_ms: action?.dispatchStart?.wall ?? null,
+    dispatch_completed_at_ms: action?.dispatchEnd?.wall ?? null,
+    verification_completed_at_ms: current.verification?.wall ?? action?.verification?.wall ?? null,
+  }
+}
+
+function recordCaptureTime(acquisition: Acquisition, result: EvidencePayload | null, start: Stamp) {
+  const source = result?.captured_at_ms
+  if (typeof source === 'number' && Number.isFinite(source) && source > 0) {
+    acquisition.value.source_captured_at_ms = source
+    acquisition.reused = source < start.wall
   }
 }

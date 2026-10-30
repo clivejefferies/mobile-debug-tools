@@ -1,9 +1,13 @@
+export type { UIElementState, SelectorConfidence, UIResolutionSelector, UIElementSemanticMetadata, LoadingState, SnapshotDelta, StateDelta, UIElement, ReadinessSummary } from './contracts/ui.js'
+import type { UIElementState, UIResolutionSelector, UIElementSemanticMetadata, LoadingState, SnapshotDelta, StateDelta, UIElement, ReadinessSummary } from './contracts/ui.js'
 export interface DeviceInfo {
   platform: string;
   id: string;
   osVersion: string;
   model: string;
   simulator: boolean;
+  appInstalled?: boolean;
+  booted?: boolean;
 }
 
 export interface StartAppResponse {
@@ -20,14 +24,14 @@ export interface StartAppResponse {
     matchedTarget?: boolean | null;
   };
   error?: string;
-  diagnostics?: any;
+  diagnostics?: unknown;
 }
 
 export interface TerminateAppResponse {
   device: DeviceInfo;
   appTerminated: boolean;
   error?: string;
-  diagnostics?: any;
+  diagnostics?: unknown;
 }
 
 export interface RestartAppResponse {
@@ -46,14 +50,14 @@ export interface RestartAppResponse {
   terminatedBeforeRestart?: boolean;
   terminateError?: string;
   error?: string;
-  diagnostics?: any;
+  diagnostics?: unknown;
 }
 
 export interface ResetAppDataResponse {
   device: DeviceInfo;
   dataCleared: boolean;
   error?: string;
-  diagnostics?: any;
+  diagnostics?: unknown;
 }
 
 export interface StructuredLogEntry {
@@ -71,7 +75,7 @@ export interface GetLogsResponse {
   // Source indicates the filtering method used: 'pid', 'package'/'process', or 'broad'
   source?: string;
   // Meta contains debugging information about how logs were collected and filters applied
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 }
 
 export interface GetCrashResponse {
@@ -79,43 +83,8 @@ export interface GetCrashResponse {
   crashes: string[];
 }
 
-export interface UIElementState {
-  checked?: boolean | null;
-  selected?: boolean | string | { id: string; label?: string } | null;
-  focused?: boolean | null;
-  expanded?: boolean | null;
-  enabled?: boolean | null;
-  text_value?: string | null;
-  value?: number | string | null;
-  raw_value?: number | string | null;
-  value_range?: {
-    min: number;
-    max: number;
-    step?: number | null;
-  } | null;
-  step?: number | null;
-}
-
-export interface SelectorConfidence {
-  score: number;
-  reason: string;
-}
-
-export interface UIResolutionSelector {
-  value: string | null;
-  confidence: SelectorConfidence | null;
-}
-
-export interface UIElementSemanticMetadata {
-  is_clickable: boolean;
-  is_container: boolean;
-  semantic_role?: 'slider' | 'stepper' | 'dropdown' | 'segmented_control' | 'custom_adjustable' | 'composite_control' | null;
-  supported_actions?: string[] | null;
-  adjustable?: boolean | null;
-  state_shape?: 'continuous' | 'discrete' | 'semantic' | null;
-}
-
 export type TraceStage = 'resolve' | 'execute' | 'verify' | 'stabilize' | 'recover';
+
 export type TraceResult = 'success' | 'failure' | 'retry';
 
 export interface TraceStep {
@@ -148,35 +117,11 @@ export type RecoveryStrategy =
   | 'retry_adjustment'
   | 'step_back';
 
-export interface LoadingState {
-  active: boolean;
-  signal: string;
-  source: string;
-}
-
-export interface SnapshotDelta {
-  previous_snapshot_revision: number | null;
-  added_elements: number;
-  removed_elements: number;
-  mutated_elements: number;
-  total_elements: number;
-}
-
-export interface StateDelta {
-  base_snapshot_revision: number | null;
-  snapshot_revision: number;
-  added: UIElement[];
-  removed: Array<{ stable_id?: string; resourceId?: string; contentDescription?: string; text?: string; index: number }>;
-  changed: UIElement[];
-  truncated: boolean;
-  omitted_changes?: number;
-}
-
 export interface CaptureAndroidScreenResponse {
   device: DeviceInfo;
   screenshot: string; // base64 encoded string
   screenshot_mime?: string; // e.g. image/webp, image/jpeg, image/png
-  screenshot_fallback?: string; // optional fallback base64 (e.g., jpeg)
+  screenshot_fallback?: string | null; // optional fallback base64 (e.g., jpeg)
   screenshot_fallback_mime?: string;
   resolution: {
     width: number;
@@ -188,33 +133,12 @@ export interface CaptureIOSScreenshotResponse {
   device: DeviceInfo;
   screenshot: string; // base64 encoded string
   screenshot_mime?: string; // e.g. image/webp, image/jpeg, image/png
-  screenshot_fallback?: string; // optional fallback base64 (e.g., jpeg)
+  screenshot_fallback?: string | null; // optional fallback base64 (e.g., jpeg)
   screenshot_fallback_mime?: string;
   resolution: {
     width: number;
     height: number;
   };
-}
-
-export interface UIElement {
-  text: string | null;
-  contentDescription: string | null;
-  type: string;
-  clickable: boolean;
-  enabled: boolean;
-  visible: boolean;
-  bounds: [number, number, number, number];
-  resourceId: string | null;
-  parentId?: number;
-  children?: number[];
-  center?: [number, number];
-  depth?: number;
-  state?: UIElementState | null;
-  stable_id?: string | null;
-  role?: string | null;
-  test_tag?: string | null;
-  selector?: UIResolutionSelector | null;
-  semantic?: UIElementSemanticMetadata | null;
 }
 
 export interface GetUITreeResponse {
@@ -232,20 +156,6 @@ export interface GetUITreeResponse {
   snapshot_delta?: SnapshotDelta | null;
   loading_state?: LoadingState | null;
   error?: string;
-}
-
-export interface ReadinessSummary {
-  state: 'loading' | 'transitioning' | 'settled' | 'unknown' | 'unresponsive' | 'debugger_paused';
-  scope: 'device_ui';
-  basis: 'observed' | 'heuristic' | 'insufficient';
-  captured_at_ms: number | null;
-  sample_count: number;
-  stable_for_ms: number;
-  snapshot_session_id: string | null;
-  snapshot_revision: number | null;
-  evidence: Array<{ code: string; source: string; captured_at_ms: number | null; snapshot_revision: number | null }>;
-  limitations: string[];
-  capabilities: { loading: boolean; transitioning: boolean; settled: boolean; unresponsive: boolean; debugger_paused: boolean };
 }
 
 export interface GetCurrentScreenResponse {
@@ -274,7 +184,7 @@ export interface CaptureDebugSnapshotRawResponse {
   fingerprint: string | null;
   screenshot: string | null;
   ui_tree: GetUITreeResponse | null;
-  logs: StructuredLogEntry[];
+  logs: import('./observe/snapshot-logs.js').SnapshotLogEntry[];
   loading_state?: LoadingState | null;
   device?: DeviceInfo;
   screenshot_error?: string;
@@ -441,7 +351,7 @@ export interface ActionConditionResult {
   observed: GetUITreeResponse | null;
   elapsed_ms: number;
   reason?: 'BASELINE_UNAVAILABLE' | 'SESSION_MISMATCH' | 'DEVICE_MISMATCH' |
-    'OBSERVATION_FAILED' | 'OBSERVATION_INVALID' | 'CONDITION_TIMEOUT' | 'ACTION_NOT_REACHED';
+  'OBSERVATION_FAILED' | 'OBSERVATION_INVALID' | 'CONDITION_TIMEOUT' | 'ACTION_NOT_REACHED';
 }
 
 export interface ActionExecutionResult {
@@ -615,5 +525,5 @@ export interface InstallAppResponse {
   installed: boolean;
   output?: string;
   error?: string;
-  diagnostics?: any;
+  diagnostics?: unknown;
 }

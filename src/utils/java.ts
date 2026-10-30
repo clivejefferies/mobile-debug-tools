@@ -35,27 +35,8 @@ export async function detectJavaHome(options: { quiet?: boolean } = {}): Promise
       debug('[java.detect] ANDROID_STUDIO_JDK present but java -version did not match expected versions')
     }
 
-    // 2) Android Studio JBR candidates (prefer these over JAVA_HOME)
-    const jbrCandidates = [
-      '/Applications/Android Studio.app/Contents/jbr',
-      '/Applications/Android Studio.app/Contents/jbr/Contents/Home',
-      '/Applications/Android Studio Preview.app/Contents/jbr',
-      '/Applications/Android Studio Preview.app/Contents/jbr/Contents/Home',
-      '/Applications/Android Studio Preview 2022.3.app/Contents/jbr',
-      '/Applications/Android Studio Preview 2022.3.app/Contents/jbr/Contents/Home',
-      '/Applications/Android Studio Preview 2023.1.app/Contents/jbr',
-      '/Applications/Android Studio Preview 2023.1.app/Contents/jbr/Contents/Home'
-    ]
-    for (const p of jbrCandidates) {
-      const javaBin = path.join(p, 'bin', 'java')
-      if (existsSync(javaBin)) {
-        const v = javaVersionOf(javaBin)
-        if (isJavaVersionAcceptable(v)) {
-          debug('[java.detect] Found Android Studio JBR at:', p)
-          return p
-        }
-      }
-    }
+    const jbr = findStudioJava(debug)
+    if (jbr) return jbr
 
     // 3) If JAVA_HOME set, validate it (accept 17 or 21)
     if (process.env.JAVA_HOME) {
@@ -86,31 +67,69 @@ export async function detectJavaHome(options: { quiet?: boolean } = {}): Promise
       if (out21) return out21
     } catch (e: unknown) { debug('[java.detect] /usr/libexec/java_home -v 21 failed: ' + String(e)) }
 
-    // 6) macOS common JDK locations
-    try {
-      const homes = execSync('ls -1 /Library/Java/JavaVirtualMachines || true', { stdio: ['ignore', 'pipe', 'inherit'] }).toString().split(/\r?\n/).filter(Boolean)
-      for (const h of homes) {
-        if (h.toLowerCase().includes('17') || h.toLowerCase().includes('jdk-17') || h.toLowerCase().includes('21') || h.toLowerCase().includes('jdk-21')) {
-          const candidate = `/Library/Java/JavaVirtualMachines/${h}/Contents/Home`
-          return candidate
-        }
-      }
-    } catch (e: unknown) { debug('[java.detect] listing /Library/Java/JavaVirtualMachines failed: ' + String(e)) }
+    const commonHome = findMacJavaHome(debug)
+    if (commonHome) return commonHome
 
-    // 7) Linux locations
-    const linuxCandidates = [
-      '/usr/lib/jvm/java-17-openjdk-amd64',
-      '/usr/lib/jvm/java-17-openjdk',
-      '/usr/lib/jvm/zulu17',
-      '/usr/lib/jvm/temurin-17-jdk',
-      '/usr/lib/jvm/temurin-21-jdk',
-      '/usr/lib/jvm/java-21-openjdk-amd64'
-    ]
-    for (const p of linuxCandidates) {
-      try { if (existsSync(p)) return p } catch (e: unknown) { debug(`[java.detect] checking linux candidate ${p} failed: ${String(e)}`) }
-    }
+    return findLinuxJavaHome(debug)
   } catch (e: unknown) {
     debug('[java.detect] error detecting java home:', e instanceof Error ? e.message : String(e))
+  }
+  return undefined
+}
+
+function findStudioJava(debug: (...args: unknown[]) => void): string | undefined {
+  // 2) Android Studio JBR candidates (prefer these over JAVA_HOME)
+  const jbrCandidates = [
+    '/Applications/Android Studio.app/Contents/jbr',
+    '/Applications/Android Studio.app/Contents/jbr/Contents/Home',
+    '/Applications/Android Studio Preview.app/Contents/jbr',
+    '/Applications/Android Studio Preview.app/Contents/jbr/Contents/Home',
+    '/Applications/Android Studio Preview 2022.3.app/Contents/jbr',
+    '/Applications/Android Studio Preview 2022.3.app/Contents/jbr/Contents/Home',
+    '/Applications/Android Studio Preview 2023.1.app/Contents/jbr',
+    '/Applications/Android Studio Preview 2023.1.app/Contents/jbr/Contents/Home'
+  ]
+  for (const p of jbrCandidates) {
+    const javaBin = path.join(p, 'bin', 'java')
+    if (existsSync(javaBin)) {
+      const v = javaVersionOf(javaBin)
+      if (isJavaVersionAcceptable(v)) {
+        debug('[java.detect] Found Android Studio JBR at:', p)
+        return p
+      }
+    }
+  }
+
+  return undefined
+}
+
+function findMacJavaHome(debug: (...args: unknown[]) => void): string | undefined {
+  // 6) macOS common JDK locations
+  try {
+    const homes = execSync('ls -1 /Library/Java/JavaVirtualMachines || true', { stdio: ['ignore', 'pipe', 'inherit'] }).toString().split(/\r?\n/).filter(Boolean)
+    for (const h of homes) {
+      if (h.toLowerCase().includes('17') || h.toLowerCase().includes('jdk-17') || h.toLowerCase().includes('21') || h.toLowerCase().includes('jdk-21')) {
+        const candidate = `/Library/Java/JavaVirtualMachines/${h}/Contents/Home`
+        return candidate
+      }
+    }
+  } catch (e: unknown) { debug('[java.detect] listing /Library/Java/JavaVirtualMachines failed: ' + String(e)) }
+
+  return undefined
+}
+
+function findLinuxJavaHome(debug: (...args: unknown[]) => void): string | undefined {
+  // 7) Linux locations
+  const linuxCandidates = [
+    '/usr/lib/jvm/java-17-openjdk-amd64',
+    '/usr/lib/jvm/java-17-openjdk',
+    '/usr/lib/jvm/zulu17',
+    '/usr/lib/jvm/temurin-17-jdk',
+    '/usr/lib/jvm/temurin-21-jdk',
+    '/usr/lib/jvm/java-21-openjdk-amd64'
+  ]
+  for (const p of linuxCandidates) {
+    try { if (existsSync(p)) return p } catch (e: unknown) { debug(`[java.detect] checking linux candidate ${p} failed: ${String(e)}`) }
   }
   return undefined
 }
