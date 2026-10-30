@@ -1,8 +1,10 @@
+import { systemTraceTools } from './system-trace-schema.js'
 import { journeyStepsJson } from './journey-schema.js'
 import { conditionalTools, expectedStateJson } from './condition-schema.js'
 import { readinessPropertiesJson } from './readiness-schema.js'
 
 export const toolDefinitions: any[] = [
+  ...systemTraceTools,
   ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
     name,
     description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Unresponsive/debugger-paused detection is unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
@@ -1172,6 +1174,7 @@ for (const tool of toolDefinitions) {
   if (tool.name === 'tap_element') Object.assign(tool.inputSchema, { oneOf: [{ required: ['elementId'], not: { required: ['selector'] } }, { required: ['selector'], not: { required: ['elementId'] } }] })
   if (tool.name === 'run_journey') Object.assign(tool.inputSchema.properties, {
     steps: journeyStepsJson,
+    systemTraceId: { type: 'string', format: 'uuid', description: 'Explicit active same-device system trace. Invalid references prevent all journey input. Capture lifetime is controlled separately.' },
     captureOnFailure: { type: 'boolean', default: false },
     defaults: { type: 'object', additionalProperties: false, properties: {
       verificationMode: { type: 'string', enum: ['none', 'light', 'full'] },
