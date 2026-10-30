@@ -1,3 +1,4 @@
+import { withEvidence, currentEvidenceActionId, validateActionRef, markEvidenceVerification, refreshJourneyEvidence, completeJourneyVerification } from '../observe/evidence.js'
 import { measure, withTiming } from '../utils/timing.js'
 import { randomUUID } from 'node:crypto'
 import { runWithBudget } from '../utils/operation-budget.js'
@@ -80,8 +81,25 @@ function compactAction(result: any, verificationMode: VerificationMode, started 
   }
 }
 
+function correlatedHandler(name: string, handler: ToolHandler, action = false, journey = false): ToolHandler {
+  return async args => {
+    const ref = validateActionRef(args.actionRef)
+    const { result, evidence } = await withEvidence({ action, journey, ref }, async () => {
+      try { return await handler(args) }
+      catch (error) { return wrapToolError(name, error) }
+    })
+    const item = result.content.find(item => item.type === 'text')
+    if (item?.text) {
+      const payload = JSON.parse(item.text)
+      payload.evidence = evidence
+      item.text = JSON.stringify(payload)
+    }
+    return result
+  }
+}
+
 function actionHandler(type: string, execute: ToolHandler): ToolHandler {
-  return async (args) => {
+  return correlatedHandler(type, async (args) => {
     const timing: Record<string, number> = {}
     return withTiming(timing, async () => {
     const started = performance.now()
@@ -124,7 +142,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
     if (result.failure_code === 'TIMEOUT' || /ACTION_TIMEOUT|timeout/i.test(result.error ?? result.reason ?? result.details?.error ?? '')) result.failure_code = 'ACTION_TIMEOUT'
     if (result.failure_code === 'ACTION_TIMEOUT') result.retryable = !dispatchStarted
     if (!result.success && typeof result.retryable !== 'boolean') result.retryable = !dispatchStarted
-    result.action_id ??= randomUUID()
+    result.action_id ??= currentEvidenceActionId() ?? randomUUID()
     result.action_type ??= type
     recordObservationEvent({
       step_id: args._stepId as string | undefined,
@@ -140,6 +158,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
       const tree = await withObservationContext({ stepId: args._stepId as string | undefined, purpose: 'verification' }, () =>
         measure('post_observation_ms', () => runWithBudget(controls.verificationTimeoutMs, () =>
           ToolsObserve.getUITreeHandler({ platform: (args.platform as PlatformArg | undefined) ?? result.device?.platform, deviceId: (args.deviceId as string | undefined) ?? result.device?.id })))).catch(() => null) as any
+      markEvidenceVerification()
       observationAvailable = !!tree && !tree.error
       recordObservationEvent({
         verification_budget_ms: controls.verificationTimeoutMs,
@@ -149,6 +168,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
       })
       if (observationAvailable && tree.device) delta = ToolsObserve.getLatestStateDelta(tree.device.platform, tree.device.id) ?? undefined
     }
+    if (!blocked && controls.verificationMode === 'full' && dispatchStarted) markEvidenceVerification()
     const compact = compactAction(result, controls.verificationMode, dispatchStarted, delta, performance.now() - started)
     if (blocked) compact.verification.status = 'not_requested'
     if (result.success && controls.verificationMode === 'light' && !observationAvailable) compact.verification.status = 'unavailable'
@@ -168,7 +188,7 @@ function actionHandler(type: string, execute: ToolHandler): ToolHandler {
       effective_controls: { ...controls, actionTimeoutMs: args._journey !== true && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined ? null : budgetMs, timeout_bound: !(args._journey !== true && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined) }
     }, controls.responseMode === 'debug')
     })
-  }
+  }, true)
 }
 const handleStartApp = actionHandler('start_app', executeStartApp)
 const handleRestartApp = actionHandler('restart_app', executeRestartApp)
@@ -455,6 +475,7 @@ async function handleAdjustControl(args: ToolCallArgs) {
     platform,
     deviceId
   })
+  markEvidenceVerification()
   return wrapResponse(res)
 }
 
@@ -534,8 +555,9 @@ async function executeTapElement(args: ToolCallArgs) {
   if (selector) {
     const waitFor = getObjectArg<WaitForUiMatchArg>(args, 'waitFor') as any
     const targetStarted = performance.now()
+    const resolutionTimeoutMs = waitFor?.timeoutMs ?? actionTimeoutMs ?? 5000
     const resolution = await withObservationContext({ stepId: args._stepId as string | undefined, purpose: 'target' }, () =>
-      measure('target_resolution_ms', () => runWithBudget(waitFor?.timeoutMs ?? 1500, () => ToolsInteract.waitForUIHandler({ selector, condition: waitFor?.condition ?? 'clickable', timeout_ms: waitFor?.timeoutMs ?? 1500, poll_interval_ms: waitFor?.pollIntervalMs ?? 100, match: waitFor?.match, singleObservation: true, singleAttempt: !waitFor, rejectAmbiguous: !waitFor, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') })))) as any
+      measure('target_resolution_ms', () => runWithBudget(resolutionTimeoutMs, () => ToolsInteract.waitForUIHandler({ selector, condition: waitFor?.condition ?? 'clickable', timeout_ms: resolutionTimeoutMs, poll_interval_ms: waitFor?.pollIntervalMs ?? 100, match: waitFor?.match, singleObservation: true, singleAttempt: !waitFor, rejectAmbiguous: !waitFor, resolveTapTarget: true, platform: getStringArg(args, 'platform') as PlatformArg | undefined, deviceId: getStringArg(args, 'deviceId') })))) as any
     recordObservationEvent({ step_id: args._stepId as string | undefined, purpose: 'target', target_resolution_ms: performance.now() - targetStarted, target_resolution_outcome: resolution.status })
     if (resolution.status !== 'success' || !resolution.element?.elementId) return wrapResponse({ success: false, action_type: 'tap_element', failure_code: resolution.error?.code ?? 'ELEMENT_NOT_FOUND', retryable: true })
     resolvedId = resolution.element.elementId
@@ -645,6 +667,7 @@ async function handleRunJourney(args: ToolCallArgs) {
       const pending = results[pendingLightStep].result
       if (typeof result?.observed?.matched_count === 'number') {
         pending.verification.status = 'observed'
+        if (pending.evidence) completeJourneyVerification(pending.evidence.action_id)
         delete pending.verification_diagnostic
         const delta = ToolsObserve.getLatestStateDelta(platform, deviceId)
         if (delta) { pending.state_delta = delta; pending.state_delta_available = true }
@@ -667,6 +690,7 @@ async function handleRunJourney(args: ToolCallArgs) {
   for (const step of results) for (const [key, value] of Object.entries(step.result?.timing ?? {})) {
     if (key !== 'total_ms' && typeof value === 'number') componentTiming[key] = (componentTiming[key] ?? 0) + value
   }
+  refreshJourneyEvidence(results)
   return wrapResponse({ success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, ...(failureSnapshot ? { failure_snapshot: failureSnapshot } : {}), timing: responseMode === 'compact' ? { total_ms: performance.now() - started } : { ...componentTiming, total_ms: performance.now() - started } }, responseMode === 'debug')
   })
 }
@@ -863,6 +887,10 @@ export const toolHandlers: Record<string, ToolHandler> = {
   stop_log_stream: handleStopLogStream,
   classify_action_outcome: handleClassifyActionOutcome,
   get_network_activity: handleGetNetworkActivity
+}
+
+for (const name of ['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'read_log_stream', 'run_journey', 'adjust_control']) {
+  toolHandlers[name] = correlatedHandler(name, toolHandlers[name], name === 'adjust_control', name === 'run_journey')
 }
 
 export async function handleToolCall(name: string, args: ToolCallArgs = {}) {

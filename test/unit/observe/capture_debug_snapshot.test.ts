@@ -1,5 +1,6 @@
 import { ToolsObserve } from '../../../src/observe/index.js'
 import assert from 'assert'
+import { _setDeviceListersForTests, _resetDeviceListersForTests } from '../../../src/utils/resolve-device.js'
 
 async function run() {
   console.log('Starting capture_debug_snapshot unit tests...')
@@ -12,24 +13,41 @@ async function run() {
   const origReadLogStreamHandler = (ToolsObserve as any).readLogStreamHandler
   const origGetLogsHandler = (ToolsObserve as any).getLogsHandler
 
+  const device = { platform: 'android', id: 'mock', osVersion: '12', model: 'Pixel', simulator: true }
+  let resolutions = 0
+  _setDeviceListersForTests({
+    listAndroidDevices: async () => { resolutions++; return [device] },
+    listIOSDevices: async () => { throw new Error('Android snapshot must not discover iOS devices') }
+  })
+  const assertTarget = (args: any) => {
+    assert.strictEqual(args.platform, 'android')
+    assert.strictEqual(args.deviceId, device.id, 'Every component must use the resolved fixture device')
+  }
+
   try {
     // --- Test 1: all components succeed and logs come from stream ---
-    ;(ToolsObserve as any).captureScreenshotHandler = async function() {
+    ;(ToolsObserve as any).captureScreenshotHandler = async function(args: any) {
+      assertTarget(args)
       return { device: { platform: 'android', id: 'mock', osVersion: '12', model: 'Pixel', simulator: true }, screenshot: 'BASE64PNG', resolution: { width: 1080, height: 1920 } }
     }
-    ;(ToolsObserve as any).getCurrentScreenHandler = async function() {
+    ;(ToolsObserve as any).getCurrentScreenHandler = async function(args: any) {
+      assert.strictEqual(args.deviceId, device.id)
       return { device: { platform: 'android', id: 'mock' }, package: 'com.example', activity: 'com.example.Main', shortActivity: 'Main' }
     }
-    ;(ToolsObserve as any).getScreenFingerprintHandler = async function() {
+    ;(ToolsObserve as any).getScreenFingerprintHandler = async function(args: any) {
+      assertTarget(args)
       return { fingerprint: 'abc123', activity: 'Main' }
     }
-    ;(ToolsObserve as any).getUITreeHandler = async function() {
+    ;(ToolsObserve as any).getUITreeHandler = async function(args: any) {
+      assertTarget(args)
       return { device: { platform: 'android', id: 'mock', osVersion: '12', model: 'Pixel', simulator: true }, screen: '', resolution: { width: 1080, height: 1920 }, elements: [] }
     }
-    ;(ToolsObserve as any).readLogStreamHandler = async function() {
+    ;(ToolsObserve as any).readLogStreamHandler = async function(args: any) {
+      assertTarget(args)
       return { entries: [ { timestamp: '2026-03-23T20:00:00.000Z', level: 'ERROR', message: 'Boom' } ], crash_summary: { crash_detected: true } }
     }
-    ;(ToolsObserve as any).getLogsHandler = async function() {
+    ;(ToolsObserve as any).getLogsHandler = async function(args: any) {
+      assertTarget(args)
       return { device: { platform: 'android', id: 'mock' }, logs: [], logCount: 0 }
     }
 
@@ -41,20 +59,13 @@ async function run() {
     assert.strictEqual(res1.semantic.confidence >= 0.7, true)
     assert.deepStrictEqual(res1.semantic.actions_available, null)
     console.log('Test 1:', pass1 ? 'PASS' : 'FAIL')
-
-    // Restore handlers before next test
-    ;(ToolsObserve as any).captureScreenshotHandler = origCaptureHandler
-    ;(ToolsObserve as any).getCurrentScreenHandler = origGetCurrentHandler
-    ;(ToolsObserve as any).getScreenFingerprintHandler = origGetFpHandler
-    ;(ToolsObserve as any).getUITreeHandler = origGetTreeHandler
-    ;(ToolsObserve as any).readLogStreamHandler = origReadLogStreamHandler
-    ;(ToolsObserve as any).getLogsHandler = origGetLogsHandler
+    assert.strictEqual(resolutions, 1, 'Resolve one device for the entire snapshot')
 
     // --- Test 2: screenshot and ui tree fail; logs fallback to getLogs ---
-    ;(ToolsObserve as any).captureScreenshotHandler = async function() { throw new Error('screencap failed') }
-    ;(ToolsObserve as any).getUITreeHandler = async function() { throw new Error('uie_error') }
-    ;(ToolsObserve as any).readLogStreamHandler = async function() { return { entries: [] } }
-    ;(ToolsObserve as any).getLogsHandler = async function() { return { device: { platform: 'android', id: 'mock' }, logs: ['INFO starting','ERROR crash here'], logCount: 2 } }
+    ;(ToolsObserve as any).captureScreenshotHandler = async function(args: any) { assertTarget(args); throw new Error('screencap failed') }
+    ;(ToolsObserve as any).getUITreeHandler = async function(args: any) { assertTarget(args); throw new Error('uie_error') }
+    ;(ToolsObserve as any).readLogStreamHandler = async function(args: any) { assertTarget(args); return { entries: [] } }
+    ;(ToolsObserve as any).getLogsHandler = async function(args: any) { assertTarget(args); return { device: { platform: 'android', id: 'mock' }, logs: ['INFO starting','ERROR crash here'], logCount: 2 } }
 
     const res2: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: true, logLines: 10, appId: 'com.example' })
     console.log('res2:', JSON.stringify(res2, null, 2))
@@ -62,20 +73,12 @@ async function run() {
     assert.ok(pass2, 'captureDebugSnapshot should surface partial failures and fallback logs')
     console.log('Test 2:', pass2 ? 'PASS' : 'FAIL')
 
-    // Restore handlers before next test
-    ;(ToolsObserve as any).captureScreenshotHandler = origCaptureHandler
-    ;(ToolsObserve as any).getCurrentScreenHandler = origGetCurrentHandler
-    ;(ToolsObserve as any).getScreenFingerprintHandler = origGetFpHandler
-    ;(ToolsObserve as any).getUITreeHandler = origGetTreeHandler
-    ;(ToolsObserve as any).readLogStreamHandler = origReadLogStreamHandler
-    ;(ToolsObserve as any).getLogsHandler = origGetLogsHandler
-
     // --- Test 3: includeLogs=false should omit logs ---
-    ;(ToolsObserve as any).captureScreenshotHandler = async function() { return { device: { platform: 'android', id: 'mock' }, screenshot: null } }
-    ;(ToolsObserve as any).getCurrentScreenHandler = async function() { return { device: { platform: 'android', id: 'mock' }, package: '', activity: '', shortActivity: '' } }
-    ;(ToolsObserve as any).getScreenFingerprintHandler = async function() { return { fingerprint: null } }
-    ;(ToolsObserve as any).getUITreeHandler = async function() { return { device: { platform: 'android', id: 'mock' }, screen: '', resolution: { width: 0, height: 0 }, elements: [] } }
-    ;(ToolsObserve as any).readLogStreamHandler = async function() { return { entries: [] } }
+    ;(ToolsObserve as any).captureScreenshotHandler = async function(args: any) { assertTarget(args); return { device: { platform: 'android', id: 'mock' }, screenshot: null } }
+    ;(ToolsObserve as any).getCurrentScreenHandler = async function(args: any) { assert.strictEqual(args.deviceId, device.id); return { device: { platform: 'android', id: 'mock' }, package: '', activity: '', shortActivity: '' } }
+    ;(ToolsObserve as any).getScreenFingerprintHandler = async function(args: any) { assertTarget(args); return { fingerprint: null } }
+    ;(ToolsObserve as any).getUITreeHandler = async function(args: any) { assertTarget(args); return { device: { platform: 'android', id: 'mock' }, screen: '', resolution: { width: 0, height: 0 }, elements: [] } }
+    ;(ToolsObserve as any).readLogStreamHandler = async function(args: any) { assertTarget(args); return { entries: [] } }
 
     const res3: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: false })
     console.log('res3:', JSON.stringify(res3, null, 2))
@@ -84,12 +87,19 @@ async function run() {
     console.log('Test 3:', pass3 ? 'PASS' : 'FAIL')
 
     let screenshotCalls = 0
-    ;(ToolsObserve as any).captureScreenshotHandler = async function() { screenshotCalls++; return { screenshot: 'unexpected' } }
+    ;(ToolsObserve as any).captureScreenshotHandler = async function(args: any) { assertTarget(args); screenshotCalls++; return { screenshot: 'unexpected' } }
     const res4: any = await ToolsObserve.captureDebugSnapshotHandler({ platform: 'android', includeLogs: false, includeScreenshot: false })
     assert.strictEqual(screenshotCalls, 0, 'includeScreenshot=false must not invoke screenshot capture')
     assert.strictEqual(res4.raw.screenshot, null)
+    assert.strictEqual(resolutions, 4, 'Each snapshot resolves its own target once')
+
+    // Discovery failure must not collect from an arbitrary/default device.
+    _setDeviceListersForTests({ listAndroidDevices: async () => { throw new Error('fixture discovery unavailable') } })
+    await assert.rejects(() => ToolsObserve.captureDebugSnapshotHandler({ platform: 'android' }), /fixture discovery unavailable/)
+    assert.strictEqual(screenshotCalls, 0, 'No component capture should run without a resolved target')
 
   } finally {
+    _resetDeviceListersForTests()
     ;(ToolsObserve as any).captureScreenshotHandler = origCaptureHandler
     ;(ToolsObserve as any).getCurrentScreenHandler = origGetCurrentHandler
     ;(ToolsObserve as any).getScreenFingerprintHandler = origGetFpHandler

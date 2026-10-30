@@ -40,8 +40,8 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
             tracker.observe(tree, captureStarted)
             if (isDeviceUnavailable((tree as any)?.error)) { failureCode = 'DEVICE_UNAVAILABLE'; return }
           } catch (error) {
-            tracker.unavailable()
             if (/ACTION_TIMEOUT/.test(String(error))) throw error
+            tracker.unavailable()
             if (isDeviceUnavailable(error)) { failureCode = 'DEVICE_UNAVAILABLE'; return }
           }
           count++

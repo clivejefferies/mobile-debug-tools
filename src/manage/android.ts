@@ -1,3 +1,4 @@
+import { evidenceDispatch } from '../observe/evidence.js'
 import { hasFiniteBudget, markDispatchStarted, remainingBudget, runWithBudget } from '../utils/operation-budget.js'
 import { promises as fs } from 'fs'
 import { spawn } from 'child_process'
@@ -156,7 +157,7 @@ export class AndroidManage {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
       markDispatchStarted()
-      const output = await execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId, { timeout: timeoutMs })
+      const output = await evidenceDispatch({ platform: 'android', id: deviceInfo.id }, () => execAdb(['shell', 'monkey', '-p', appId, '-c', 'android.intent.category.LAUNCHER', '1'], deviceId, { timeout: timeoutMs }))
       const current = await new AndroidObserve().getCurrentScreen(deviceId).catch(() => null)
       return {
         device: deviceInfo,
@@ -182,7 +183,7 @@ export class AndroidManage {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
       markDispatchStarted()
-      await execAdb(['shell', 'am', 'force-stop', appId], deviceId)
+      await evidenceDispatch({ platform: 'android', id: deviceInfo.id }, () => execAdb(['shell', 'am', 'force-stop', appId], deviceId))
       return { device: deviceInfo, appTerminated: true }
     } catch (e: unknown) {
       const diagnostics = hasFiniteBudget() ? undefined : execAdbWithDiagnostics(['shell', 'am', 'force-stop', appId], deviceId)
@@ -215,7 +216,7 @@ export class AndroidManage {
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
     try {
       markDispatchStarted()
-      const output = await execAdb(['shell', 'pm', 'clear', appId], deviceId)
+      const output = await evidenceDispatch({ platform: 'android', id: deviceInfo.id }, () => execAdb(['shell', 'pm', 'clear', appId], deviceId))
       return { device: deviceInfo, dataCleared: output === 'Success' }
     } catch (e: unknown) {
       const diag = execAdbWithDiagnostics(['shell', 'pm', 'clear', appId], deviceId)

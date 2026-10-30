@@ -10,6 +10,9 @@ These tools are primarily for:
 
 They are **not** the primary success signal when an applicable `expect_*` tool exists.
 
+Covered observations support optional `actionRef` and return acquisition/freshness
+metadata; see [correlated evidence](evidence.md).
+
 ## get_logs
 
 Fetch recent logs as structured entries optimized for AI agents.
@@ -247,7 +250,7 @@ cannot establish stability and break sample continuity. Broad legacy loading
 keywords such as a button named Progress are not sufficient loading evidence.
 
 The summary includes `basis` (observed/heuristic/insufficient), `scope: device_ui`,
-latest successful capture time and snapshot session/revision, attempted sample
+latest successful capture time and snapshot session/revision, sample
 count, `stable_for_ms`, up to eight signal-code evidence records, limitations,
 and capability flags. Evidence excludes UI text and full trees. Unresponsive and
 debugger-paused detection are explicitly unsupported on both platforms; neither
@@ -262,8 +265,9 @@ Readiness describes normalized foreground UI during the capture window. It does
 not verify foreground app identity, process health, business outcome, or backend
 completion, and does not guarantee the UI will stay unchanged. A screenshot alone
 never establishes readiness. Network observation windows and device input are
-untouched. Timeouts include `DEADLINE_EXCEEDED`; the latest read failing makes
-current state unknown. Sampling and subprocess cleanup respect outer budgets.
+untouched. Timeouts include `DEADLINE_EXCEEDED` and retain the last valid
+readiness evidence; an aborted acquisition does not erase that observation.
+A non-timeout observation failure still makes current state unknown. Sampling and subprocess cleanup respect outer budgets.
 Transport cancellation does not currently abort platform reads immediately;
 reads remain bounded by their operation deadlines.
 

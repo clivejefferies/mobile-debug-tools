@@ -1,3 +1,5 @@
+import { omitEvidence } from './evidence.js'
+import { withResolvedDevice } from '../utils/resolve-device.js'
 import { measure } from '../utils/timing.js'
 import { ReadinessTracker } from './readiness.js'
 import { resolveTargetDevice } from '../utils/resolve-device.js'
@@ -239,16 +241,24 @@ export class ToolsObserve {
     }
   }
 
-  static async readLogStreamHandler({ platform, sessionId, limit, since }: { platform?: 'android' | 'ios', sessionId?: string, limit?: number, since?: string }) {
+  static async readLogStreamHandler({ platform, sessionId, limit, since, deviceId }: { deviceId?: string, platform?: 'android' | 'ios', sessionId?: string, limit?: number, since?: string }) {
     const sid = sessionId || 'default'
-    const { observe } = await ToolsObserve.resolveObserve(platform)
-    return await (observe as any).readLogStream(sid, limit ?? 100, since)
+    const android = new AndroidObserve()
+    const ios = new iOSObserve()
+    const observe = platform === 'android' ? android : platform === 'ios' ? ios :
+      ios.getLogStreamDevice(sid) && !android.getLogStreamDevice(sid) ? ios : android
+    const streamDevice = observe.getLogStreamDevice(sid)
+    if (deviceId && streamDevice && streamDevice.id !== deviceId) throw new Error('LOG_STREAM_DEVICE_MISMATCH')
+    return await observe.readLogStream(sid, limit ?? 100, since)
   }
 
   static async stopLogStreamHandler({ platform, sessionId }: { platform?: 'android' | 'ios', sessionId?: string }) {
     const sid = sessionId || 'default'
-    const { observe } = await ToolsObserve.resolveObserve(platform)
-    return await (observe as any).stopLogStream(sid)
+    const android = new AndroidObserve()
+    const ios = new iOSObserve()
+    const observe = platform === 'android' ? android : platform === 'ios' ? ios :
+      ios.getLogStreamDevice(sid) && !android.getLogStreamDevice(sid) ? ios : android
+    return await observe.stopLogStream(sid)
   }
 
   static async captureScreenshotHandler({ platform, deviceId }: { platform?: 'android' | 'ios', deviceId?: string }) {
@@ -267,6 +277,14 @@ export class ToolsObserve {
   }
 
   static async captureDebugSnapshotHandler({ reason, includeLogs = true, includeScreenshot = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; includeScreenshot?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
+    const { resolved } = await ToolsObserve.resolveObserve(platform, deviceId, appId)
+    return withResolvedDevice(resolved, () => ToolsObserve.collectDebugSnapshot({ reason, includeLogs, includeScreenshot, logLines,
+      platform: resolved.platform as 'android' | 'ios', appId, deviceId: resolved.id, sessionId }))
+  }
+
+  private static async collectDebugSnapshot({ reason, includeLogs = true, includeScreenshot = true, logLines = 200, platform, appId, deviceId, sessionId }: { reason?: string; includeLogs?: boolean; includeScreenshot?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string } = {}) {
+    if (!includeScreenshot) omitEvidence('screenshot')
+    if (!includeLogs) omitEvidence('logs')
     const timestamp = Date.now()
     const raw: CaptureDebugSnapshotRawResponse = {
       timestamp,
@@ -287,7 +305,7 @@ export class ToolsObserve {
       currentScreen: (!platform || platform === 'android') ? ToolsObserve.getCurrentScreenHandler({ deviceId }) : Promise.resolve(null),
       fingerprint: ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }),
       uiTree: ToolsObserve.getUITreeHandler({ platform, deviceId }),
-      readLogStream: includeLogs ? ToolsObserve.readLogStreamHandler({ platform, sessionId: sid, limit: logLines }) : Promise.resolve({ entries: [] }),
+      readLogStream: includeLogs ? ToolsObserve.readLogStreamHandler({ platform, deviceId, sessionId: sid, limit: logLines }) : Promise.resolve({ entries: [] }),
     }
 
     const results = await Promise.allSettled(Object.values(tasks))

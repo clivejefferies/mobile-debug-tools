@@ -13,21 +13,36 @@ async function run() {
   let reads = 0
   let mode = 'stable'
   let delayed = 0
+  let expireDuringRead: (() => void) | undefined
   const tree = () => {
     const label = mode === 'changing' ? `Item ${reads}` : mode === 'changeThenStable' && reads === 1 ? 'Before' : 'Ready'
     const elements = [{ type: 'Button', text: label, contentDescription: 'target', visible: true, enabled: true, clickable: true, bounds: [0, 0, 50, 50] }]
-    if (mode === 'loading' || (mode === 'loaderThenReady' && reads <= 2)) elements.push({ type: 'android.widget.ProgressBar', text: '', contentDescription: '', visible: true, enabled: true, clickable: false, bounds: [0, 60, 20, 80] })
+    if (mode === 'loading' || mode === 'loadingThenTimeout' || (mode === 'loaderThenReady' && reads <= 2)) elements.push({ type: 'android.widget.ProgressBar', text: '', contentDescription: '', visible: true, enabled: true, clickable: false, bounds: [0, 60, 20, 80] })
     const body = { device, elements, screen: '', resolution: { width: 100, height: 200 } }
     return { ...body, ...deriveSnapshotMetadata('android:fixture', body, 'ui_tree') }
   }
   ToolsObserve.getUITreeHandler = async () => {
     reads++
     if (delayed) await new Promise(resolve => setTimeout(resolve, delayed))
+    if (mode === 'loadingThenTimeout' && reads === 2) { expireDuringRead?.(); throw new Error('ACTION_TIMEOUT') }
     if (mode === 'error') throw new Error('observation failed')
     if (mode === 'disconnect') return { ...tree(), error: 'device fixture offline' } as any
     return tree()
   }
   _setDeviceListersForTests({ listAndroidDevices: async () => [device] })
+  // Sample counts depend on elapsed time, not the host timer's wakeup precision.
+  // Advance both clocks exactly when a fixture/poll timer completes.
+  const originalDateNow = Date.now
+  const originalPerformanceNow = Object.getOwnPropertyDescriptor(performance, 'now')
+  const originalSetTimeout = globalThis.setTimeout
+  const epoch = originalDateNow()
+  let elapsed = 0
+  Date.now = () => epoch + elapsed
+  Object.defineProperty(performance, 'now', { configurable: true, value: () => elapsed })
+  globalThis.setTimeout = ((callback: (...args: any[]) => void, delay = 0, ...args: any[]) => {
+    queueMicrotask(() => { elapsed += Math.max(0, Number(delay) || 0); callback(...args) })
+    return {} as ReturnType<typeof setTimeout>
+  }) as typeof setTimeout
   const call = async (name: string, args: any = {}) => JSON.parse((await handleToolCall(name, { platform: 'android', deviceId: 'fixture', ...args })).content[0].text!)
   try {
     let result = await call('get_app_readiness', { stabilityMs: 100 })
@@ -73,6 +88,30 @@ async function run() {
     assert.equal(blocked.readiness.state, 'loading')
     assert.equal(blocked.observed.condition_satisfied, true, 'a readiness timeout must not pretend the visible target was absent')
     assert.ok(blocked.readiness.limitations.includes('DEADLINE_EXCEEDED'))
+    // Force expiry inside a later acquisition rather than depending on timer rounding.
+    for (const tool of ['wait_for_ui', 'wait_for_app_ready']) {
+      const originalNow = Object.getOwnPropertyDescriptor(performance, 'now')
+      const nativeNow = performance.now.bind(performance)
+      let advance = 0
+      Object.defineProperty(performance, 'now', { configurable: true, value: () => nativeNow() + advance })
+      expireDuringRead = () => { advance += 2000 }
+      mode = 'loadingThenTimeout'; reads = 0
+      try {
+        const timedOut = await call(tool, tool === 'wait_for_ui'
+          ? { selector: { text: 'Ready' }, requireReady: true, timeout_ms: 1000, poll_interval_ms: 100 }
+          : { timeoutMs: 1000, pollIntervalMs: 100 })
+        assert.equal(reads, 2)
+        assert.equal(timedOut.readiness.state, 'loading', 'expiry retains the last valid loading evidence')
+        assert.ok(timedOut.readiness.limitations.includes('DEADLINE_EXCEEDED'))
+        assert.equal(timedOut.readiness.evidence.at(-1).code, 'NATIVE_LOADING_INDICATOR')
+        if (tool === 'wait_for_ui') assert.equal(timedOut.observed.condition_satisfied, true)
+        else assert.equal(timedOut.failure_code, 'READINESS_TIMEOUT')
+      } finally {
+        expireDuringRead = undefined
+        if (originalNow) Object.defineProperty(performance, 'now', originalNow)
+        else delete (performance as any).now
+      }
+    }
     mode = 'loaderThenReady'; reads = 0
     const ready = await call('wait_for_ui', { selector: { text: 'Ready' }, requireReady: true, timeout_ms: 2000, poll_interval_ms: 100 })
     assert.equal(ready.status, 'success')
@@ -118,6 +157,10 @@ async function run() {
     }
     console.log('Readiness tools, schemas and opt-in waits: PASS')
   } finally {
+    globalThis.setTimeout = originalSetTimeout
+    Date.now = originalDateNow
+    if (originalPerformanceNow) Object.defineProperty(performance, 'now', originalPerformanceNow)
+    else delete (performance as any).now
     ToolsObserve.getUITreeHandler = originalTree
     AndroidObserve.prototype.getUITree = originalNative
     _resetDeviceListersForTests()

@@ -1,3 +1,4 @@
+import { bindEvidenceDevice } from '../observe/evidence.js'
 import { retainConnectedDeviceSnapshots } from '../observe/snapshot-metadata.js'
 import { measure } from './timing.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -50,10 +51,17 @@ export async function listDevices(platform?: "android" | "ios", appId?: string):
 const deviceContext = new AsyncLocalStorage<DeviceInfo>()
 
 export function withResolvedDevice<T>(device: DeviceInfo, operation: () => Promise<T>): Promise<T> {
+  bindEvidenceDevice(device)
   return deviceContext.run(device, operation)
 }
 
 export async function resolveTargetDevice(opts: ResolveOptions): Promise<DeviceInfo> {
+  const device = await resolveDevice(opts)
+  bindEvidenceDevice(device)
+  return device
+}
+
+async function resolveDevice(opts: ResolveOptions): Promise<DeviceInfo> {
   const { platform, appId, prefer, deviceId } = opts
   const current = deviceContext.getStore()
   if (current && current.platform === platform && (!deviceId || current.id === deviceId)) return current

@@ -717,7 +717,13 @@ has unknown delivery and must be observed before retrying.
 
 `tap_element` accepts exactly one `elementId` or `selector`. A selector supports
 `text`, `resource_id`, `accessibility_id`, and `contains`. Optional `waitFor` waits
-for the target before tapping; without it, resolution uses one observation.
+for the target before tapping; without it, resolution uses one observation with
+the action budget (default 5,000 ms), rather than a separate shorter cutoff.
+An explicit `waitFor.timeoutMs` remains bounded by the overall action budget.
+Selector taps resolve matching label text to its actionable ancestor using the
+existing clickable-wait policy, including `waitFor.condition: exists` or `visible`.
+Hidden/disabled labels and non-actionable containers cannot be bypassed.
+Observation timeouts report `ACTION_TIMEOUT`, rather than claiming a missing target.
 Ambiguous targets require an explicit `waitFor.match.index`.
 
 `run_journey` accepts 1–50 steps with unique IDs, on one platform/device. Supported
@@ -758,3 +764,8 @@ budget is not proof of an unresponsive app. Default `requireReady: false` retain
 existing predicate semantics. There is no new journey assertion or change to
 conditional-action preconditions. See [app readiness](observe.md#app-readiness)
 for supported states and limits.
+
+## Correlated evidence
+
+Actions and journeys expose identifiers and phase timestamps for linking later
+observations. See [correlated evidence](evidence.md) for scope and limitations.

@@ -7,6 +7,9 @@ This repository groups the MCP tools into four areas aligned with the codebase:
 - [interact](interact.md) — UI resolution, actions, waits, and deterministic verification
 - [system](system.md) — environment and health checks
 
+Correlation metadata and explicit action references are documented in
+[correlated evidence](evidence.md).
+
 ## Agent guidance
 
 For interactive flows, the intended deterministic pattern is:

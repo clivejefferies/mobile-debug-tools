@@ -1,0 +1,336 @@
+{
+  "verified_on": "2026-10-30T09:14:34.967Z",
+  "device": {
+    "platform": "android",
+    "deviceId": "emulator-5554"
+  },
+  "package": "com.ideamechanics.modul8.dev",
+  "source": "rebuilt local MCP stdio server",
+  "build_sha256": "ab7f5916468b000b70f445de5a29406adfd141cea89e1298661562e68fbef61d",
+  "steps": [
+    {
+      "selector": {
+        "text": "FAVOURITES"
+      },
+      "waitForCondition": "default",
+      "status": "PASS",
+      "failure_code": null,
+      "evidence": {
+        "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+        "correlation_id": "01a328ba-91a9-4ac6-a768-b06701e71018",
+        "action_id": "01a328ba-91a9-4ac6-a768-b06701e71018",
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554"
+        },
+        "association": "self",
+        "association_reason": null,
+        "operation_started_at_ms": 1793351680409,
+        "operation_completed_at_ms": 1793351683123,
+        "dispatch_started_at_ms": 1793351683067,
+        "dispatch_completed_at_ms": 1793351683123,
+        "verification_completed_at_ms": null,
+        "observations": [
+          {
+            "evidence_id": "1dc56459-d61e-4814-9612-2e3ad6c8782b",
+            "kind": "ui_tree",
+            "status": "captured",
+            "capture_started_at_ms": 1793351680628,
+            "capture_completed_at_ms": 1793351682798,
+            "source_captured_at_ms": 1793351682798,
+            "age_ms": 324.72998046875,
+            "freshness": "stale",
+            "freshness_reasons": [
+              "BEFORE_ACTION"
+            ],
+            "device": {
+              "platform": "android",
+              "id": "emulator-5554"
+            },
+            "snapshot_session_id": "9f2a6439-590e-46a5-9025-d6c828525250",
+            "snapshot_revision": 1,
+            "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+            "correlation_id": "01a328ba-91a9-4ac6-a768-b06701e71018",
+            "action_id": "01a328ba-91a9-4ac6-a768-b06701e71018",
+            "association": "internal"
+          }
+        ],
+        "trace_context": {
+          "supported": false,
+          "trace_id": null,
+          "markers": []
+        }
+      }
+    },
+    {
+      "selector": {
+        "text": "GENER8"
+      },
+      "waitForCondition": "default",
+      "status": "PASS",
+      "failure_code": null,
+      "evidence": {
+        "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+        "correlation_id": "61cdf8f3-3702-4342-ad25-aaa7146f4e85",
+        "action_id": "61cdf8f3-3702-4342-ad25-aaa7146f4e85",
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554"
+        },
+        "association": "self",
+        "association_reason": null,
+        "operation_started_at_ms": 1793351688186,
+        "operation_completed_at_ms": 1793351691068,
+        "dispatch_started_at_ms": 1793351691021,
+        "dispatch_completed_at_ms": 1793351691068,
+        "verification_completed_at_ms": null,
+        "observations": [
+          {
+            "evidence_id": "74bda6d0-fdf1-40d3-92d6-31f61e49316b",
+            "kind": "ui_tree",
+            "status": "captured",
+            "capture_started_at_ms": 1793351688428,
+            "capture_completed_at_ms": 1793351690795,
+            "source_captured_at_ms": 1793351690795,
+            "age_ms": 273.0615234375,
+            "freshness": "stale",
+            "freshness_reasons": [
+              "BEFORE_ACTION"
+            ],
+            "device": {
+              "platform": "android",
+              "id": "emulator-5554"
+            },
+            "snapshot_session_id": "9f2a6439-590e-46a5-9025-d6c828525250",
+            "snapshot_revision": 2,
+            "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+            "correlation_id": "61cdf8f3-3702-4342-ad25-aaa7146f4e85",
+            "action_id": "61cdf8f3-3702-4342-ad25-aaa7146f4e85",
+            "association": "internal"
+          }
+        ],
+        "trace_context": {
+          "supported": false,
+          "trace_id": null,
+          "markers": []
+        }
+      }
+    },
+    {
+      "selector": {
+        "text": "SETTINGS"
+      },
+      "waitForCondition": "exists",
+      "status": "PASS",
+      "failure_code": null,
+      "resolved_target": {
+        "elementId": "el_9b12a59a90203e47349f1943",
+        "text": null,
+        "resource_id": null,
+        "accessibility_id": null,
+        "class": "android.view.View",
+        "bounds": [
+          476,
+          1408,
+          708,
+          1528
+        ],
+        "index": 12,
+        "state": {
+          "checked": false,
+          "selected": true,
+          "focused": false,
+          "enabled": true
+        }
+      },
+      "evidence": {
+        "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+        "correlation_id": "4f52aadc-2249-47f0-8149-781123a3e765",
+        "action_id": "4f52aadc-2249-47f0-8149-781123a3e765",
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554"
+        },
+        "association": "self",
+        "association_reason": null,
+        "operation_started_at_ms": 1793351696337,
+        "operation_completed_at_ms": 1793351699045,
+        "dispatch_started_at_ms": 1793351698985,
+        "dispatch_completed_at_ms": 1793351699045,
+        "verification_completed_at_ms": null,
+        "observations": [
+          {
+            "evidence_id": "35f26191-7b0f-466e-90b0-1cf22f9b03ac",
+            "kind": "ui_tree",
+            "status": "captured",
+            "capture_started_at_ms": 1793351696577,
+            "capture_completed_at_ms": 1793351698724,
+            "source_captured_at_ms": 1793351698724,
+            "age_ms": 321.01416015625,
+            "freshness": "stale",
+            "freshness_reasons": [
+              "BEFORE_ACTION"
+            ],
+            "device": {
+              "platform": "android",
+              "id": "emulator-5554"
+            },
+            "snapshot_session_id": "9f2a6439-590e-46a5-9025-d6c828525250",
+            "snapshot_revision": 3,
+            "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+            "correlation_id": "4f52aadc-2249-47f0-8149-781123a3e765",
+            "action_id": "4f52aadc-2249-47f0-8149-781123a3e765",
+            "association": "internal"
+          }
+        ],
+        "trace_context": {
+          "supported": false,
+          "trace_id": null,
+          "markers": []
+        }
+      }
+    },
+    {
+      "selector": {
+        "text": "FAVOURITES"
+      },
+      "waitForCondition": "visible",
+      "status": "PASS",
+      "failure_code": null,
+      "resolved_target": {
+        "elementId": "el_25faaaa4e20f6ef0b85ab86b",
+        "text": null,
+        "resource_id": null,
+        "accessibility_id": null,
+        "class": "android.view.View",
+        "bounds": [
+          12,
+          1408,
+          244,
+          1528
+        ],
+        "index": 13,
+        "state": {
+          "checked": false,
+          "selected": true,
+          "focused": false,
+          "enabled": true
+        }
+      },
+      "evidence": {
+        "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+        "correlation_id": "fbc19ace-4779-4b92-9677-11852aa6d339",
+        "action_id": "fbc19ace-4779-4b92-9677-11852aa6d339",
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554"
+        },
+        "association": "self",
+        "association_reason": null,
+        "operation_started_at_ms": 1793351704414,
+        "operation_completed_at_ms": 1793351707038,
+        "dispatch_started_at_ms": 1793351706987,
+        "dispatch_completed_at_ms": 1793351707038,
+        "verification_completed_at_ms": null,
+        "observations": [
+          {
+            "evidence_id": "489de2e9-21fe-405d-a680-3d56ece84aae",
+            "kind": "ui_tree",
+            "status": "captured",
+            "capture_started_at_ms": 1793351704599,
+            "capture_completed_at_ms": 1793351706754,
+            "source_captured_at_ms": 1793351706754,
+            "age_ms": 284.26416015625,
+            "freshness": "stale",
+            "freshness_reasons": [
+              "BEFORE_ACTION"
+            ],
+            "device": {
+              "platform": "android",
+              "id": "emulator-5554"
+            },
+            "snapshot_session_id": "9f2a6439-590e-46a5-9025-d6c828525250",
+            "snapshot_revision": 4,
+            "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+            "correlation_id": "fbc19ace-4779-4b92-9677-11852aa6d339",
+            "action_id": "fbc19ace-4779-4b92-9677-11852aa6d339",
+            "association": "internal"
+          }
+        ],
+        "trace_context": {
+          "supported": false,
+          "trace_id": null,
+          "markers": []
+        }
+      }
+    },
+    {
+      "selector": {
+        "text": "SETTINGS"
+      },
+      "waitForCondition": "default",
+      "status": "PASS",
+      "failure_code": null,
+      "evidence": {
+        "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+        "correlation_id": "c49cac9f-dca4-4a94-a4a4-f05119db855e",
+        "action_id": "c49cac9f-dca4-4a94-a4a4-f05119db855e",
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554"
+        },
+        "association": "self",
+        "association_reason": null,
+        "operation_started_at_ms": 1793351712316,
+        "operation_completed_at_ms": 1793351715175,
+        "dispatch_started_at_ms": 1793351715131,
+        "dispatch_completed_at_ms": 1793351715175,
+        "verification_completed_at_ms": null,
+        "observations": [
+          {
+            "evidence_id": "f8c8f253-3e66-456b-94be-318fb94fc868",
+            "kind": "ui_tree",
+            "status": "captured",
+            "capture_started_at_ms": 1793351712552,
+            "capture_completed_at_ms": 1793351714774,
+            "source_captured_at_ms": 1793351714774,
+            "age_ms": 400.86767578125,
+            "freshness": "stale",
+            "freshness_reasons": [
+              "BEFORE_ACTION"
+            ],
+            "device": {
+              "platform": "android",
+              "id": "emulator-5554"
+            },
+            "snapshot_session_id": "9f2a6439-590e-46a5-9025-d6c828525250",
+            "snapshot_revision": 5,
+            "session_id": "35528fe5-ba92-4d62-8380-5d977d390b08",
+            "correlation_id": "c49cac9f-dca4-4a94-a4a4-f05119db855e",
+            "action_id": "c49cac9f-dca4-4a94-a4a4-f05119db855e",
+            "association": "internal"
+          }
+        ],
+        "trace_context": {
+          "supported": false,
+          "trace_id": null,
+          "markers": []
+        }
+      }
+    }
+  ],
+  "status": "PASS",
+  "cleanup": "PASS: restored Subscription; no settings, account data, favourites or sessions changed; no streams or screenshots created",
+  "server": {
+    "name": "mobile-debug-mcp",
+    "version": "0.32.4"
+  },
+  "starting_state": "Subscription",
+  "source_base": "3701f3987940a8abc76ed893b575ed370e3fb673",
+  "interaction_build_sha256": "79cb709c20fe8775571aee92413d01f28e9f8bc97da77476c08310cc555d7c2b",
+  "fixture_version_from_same_session": {
+    "versionName": "0.3.1-dev",
+    "versionCode": 14
+  },
+  "post_suite_cleanup": "PASS: relaunched Modul8 after the general device suite and confirmed Subscription via expect_element_visible"
+}

@@ -10,6 +10,9 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 > * Flutter - not tested
 > * React native - not tested
 
+Actions, screenshots, trees, and logs expose [correlated evidence](docs/tools/evidence.md)
+with explicit action references, phase timestamps, and conservative freshness.
+
 ## Requirements
 
 - Node.js >= 18

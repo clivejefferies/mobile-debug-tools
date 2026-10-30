@@ -1,3 +1,4 @@
+import { captureEvidence } from './evidence.js'
 import { spawn } from "child_process"
 import { XMLParser } from "fast-xml-parser"
 import { GetLogsResponse, CaptureAndroidScreenResponse, GetUITreeResponse, GetCurrentScreenResponse, UIElement, DeviceInfo } from "../types.js"
@@ -11,14 +12,20 @@ import { deriveSnapshotMetadata } from "./snapshot-metadata.js"
 import { remainingBudget } from '../utils/operation-budget.js'
 import { createObservationMeasurement } from './performance-metrics.js'
 
-const activeLogStreams: Map<string, { proc: any, file: string }> = new Map()
+const activeLogStreams: Map<string, { proc: any, file: string, device?: { platform: 'android' | 'ios'; id: string } }> = new Map()
 
 export class AndroidObserve {
+  getLogStreamDevice(sessionId: string = 'default') { return activeLogStreams.get(sessionId)?.device ?? null }
+
   async getDeviceMetadata(appId: string, deviceId?: string): Promise<DeviceInfo> {
     return getAndroidDeviceMetadata(appId, deviceId);
   }
 
   async getUITree(deviceId?: string): Promise<GetUITreeResponse> {
+    return captureEvidence('ui_tree', { platform: 'android', id: deviceId ?? '' }, () => this.collectGetUITree(deviceId))
+  }
+
+  private async collectGetUITree(deviceId?: string): Promise<GetUITreeResponse> {
     const measurement = createObservationMeasurement('android')
     let metadata
     try {
@@ -122,6 +129,10 @@ export class AndroidObserve {
   }
 
   async getLogs(filters: { appId?: string, deviceId?: string, pid?: number, tag?: string, level?: string, contains?: string, since_seconds?: number, limit?: number } = {}): Promise<GetLogsResponse> {
+    return captureEvidence('logs', { platform: 'android', id: filters.deviceId ?? '' }, () => this.collectGetLogs(filters))
+  }
+
+  private async collectGetLogs(filters: { appId?: string, deviceId?: string, pid?: number, tag?: string, level?: string, contains?: string, since_seconds?: number, limit?: number } = {}): Promise<GetLogsResponse> {
     const { appId, deviceId, pid, tag, level, contains, since_seconds, limit } = filters
     const metadata = await getAndroidDeviceMetadata(appId || "", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
@@ -221,6 +232,10 @@ export class AndroidObserve {
   }
 
   async captureScreen(deviceId?: string): Promise<CaptureAndroidScreenResponse> {
+    return captureEvidence('screenshot', { platform: 'android', id: deviceId ?? '' }, () => this.collectCaptureScreen(deviceId))
+  }
+
+  private async collectCaptureScreen(deviceId?: string): Promise<CaptureAndroidScreenResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo: DeviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
@@ -349,6 +364,10 @@ export class AndroidObserve {
   }
 
   async getCurrentScreen(deviceId?: string): Promise<GetCurrentScreenResponse> {
+    return captureEvidence('activity', { platform: 'android', id: deviceId ?? '' }, () => this.collectGetCurrentScreen(deviceId))
+  }
+
+  private async collectGetCurrentScreen(deviceId?: string): Promise<GetCurrentScreenResponse> {
     const metadata = await getAndroidDeviceMetadata("", deviceId)
     const deviceInfo = getDeviceInfo(deviceId || 'default', metadata)
 
@@ -410,13 +429,17 @@ export class AndroidObserve {
     }
   }
 
-  async getScreenFingerprint(deviceId?: string): Promise<{ fingerprint: string | null; activity?: string; error?: string }> {
+  async getScreenFingerprint(deviceId?: string): Promise<{ fingerprint: string | null; activity?: string; error?: string; captured_at_ms?: number }> {
+    return captureEvidence('fingerprint', { platform: 'android', id: deviceId ?? '' }, () => this.collectGetScreenFingerprint(deviceId))
+  }
+
+  private async collectGetScreenFingerprint(deviceId?: string): Promise<{ fingerprint: string | null; activity?: string; error?: string; captured_at_ms?: number }> {
     try {
       const tree = await this.getUITree(deviceId)
       if (!tree || (tree as any).error) return { fingerprint: null, error: (tree as any).error }
 
       const current = await this.getCurrentScreen(deviceId).catch(() => null)
-      return computeScreenFingerprint(tree, current, 'android', 50)
+      return { ...computeScreenFingerprint(tree, current, 'android', 50), captured_at_ms: tree.captured_at_ms }
     } catch (e) {
       return { fingerprint: null, error: e instanceof Error ? e.message : String(e) }
     }
@@ -436,7 +459,7 @@ export class AndroidObserve {
         activeLogStreams.delete(sessionId)
       }
 
-      const args = ['logcat', `--pid=${pid}`, filter]
+      const args = [...(deviceId ? ['-s', deviceId] : []), 'logcat', `--pid=${pid}`, filter]
       const proc = spawn(getAdbCmd(), args)
 
       const tmpDir = process.env.TMPDIR || '/tmp'
@@ -463,10 +486,10 @@ export class AndroidObserve {
 
       proc.on('close', () => {
         stream.end()
-        activeLogStreams.delete(sessionId)
+        if (activeLogStreams.get(sessionId)?.proc === proc) activeLogStreams.delete(sessionId)
       })
 
-      activeLogStreams.set(sessionId, { proc, file })
+      activeLogStreams.set(sessionId, { proc, file, device: { platform: 'android', id: deviceId ?? '' } })
       return { success: true, stream_started: true }
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : String(e) }
@@ -482,6 +505,10 @@ export class AndroidObserve {
   }
 
   async readLogStream(sessionId: string = 'default', limit: number = 100, since?: string) {
+    return captureEvidence('logs', this.getLogStreamDevice(sessionId), () => this.collectReadLogStream(sessionId, limit, since))
+  }
+
+  private async collectReadLogStream(sessionId: string = 'default', limit: number = 100, since?: string) {
     const entry = activeLogStreams.get(sessionId)
     let file: string | undefined
     if (entry && entry.file) file = entry.file

@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+import { captureEvidence } from './evidence.js'
 import { spawn } from "child_process"
 import { remainingBudget } from '../utils/operation-budget.js'
 import { execCmd } from '../utils/exec.js'
@@ -283,10 +285,10 @@ export function traverseIDBNode(node: IDBElement, elements: UIElement[], parentI
   return currentIndex;
 }
 
-const iosActiveLogStreams: Map<string, { proc: ReturnType<typeof import('child_process').spawn>, file: string }> = new Map()
+const iosActiveLogStreams: Map<string, { proc: ReturnType<typeof import('child_process').spawn>, file: string, device?: { platform: 'android' | 'ios'; id: string } }> = new Map()
 
-export function _setIOSActiveLogStream(sessionId: string, file: string) {
-  iosActiveLogStreams.set(sessionId, { proc: {} as any, file })
+export function _setIOSActiveLogStream(sessionId: string, file: string, device?: { platform: 'android' | 'ios'; id: string }) {
+  iosActiveLogStreams.set(sessionId, { proc: {} as any, file, device })
 }
 
 export function _clearIOSActiveLogStream(sessionId: string) {
@@ -294,11 +296,17 @@ export function _clearIOSActiveLogStream(sessionId: string) {
 }
 
 export class iOSObserve {
+  getLogStreamDevice(sessionId: string = 'default') { return iosActiveLogStreams.get(sessionId)?.device ?? null }
+
   async getDeviceMetadata(deviceId: string = "booted"): Promise<DeviceInfo> {
     return getIOSDeviceMetadata(deviceId);
   }
 
   async getLogs(filters: { appId?: string, deviceId?: string, pid?: number, tag?: string, level?: string, contains?: string, since_seconds?: number, limit?: number } = {}): Promise<GetLogsResponse> {
+    return captureEvidence('logs', { platform: 'ios', id: filters.deviceId ?? '' }, () => this.collectGetLogs(filters))
+  }
+
+  private async collectGetLogs(filters: { appId?: string, deviceId?: string, pid?: number, tag?: string, level?: string, contains?: string, since_seconds?: number, limit?: number } = {}): Promise<GetLogsResponse> {
     const { appId, deviceId = 'booted', pid, tag, level, contains, since_seconds, limit } = filters
     const args: string[] = ['simctl', 'spawn', deviceId, 'log', 'show', '--style', 'syslog']
 
@@ -454,8 +462,12 @@ export class iOSObserve {
   }
 
   async captureScreenshot(deviceId: string = "booted"): Promise<CaptureIOSScreenshotResponse> {
+    return captureEvidence('screenshot', { platform: 'ios', id: deviceId ?? '' }, () => this.collectCaptureScreenshot(deviceId))
+  }
+
+  private async collectCaptureScreenshot(deviceId: string = "booted"): Promise<CaptureIOSScreenshotResponse> {
     const device = await getIOSDeviceMetadata(deviceId)
-    const tmpFile = `/tmp/mcp-ios-screenshot-${Date.now()}.png`
+    const tmpFile = `/tmp/mcp-ios-screenshot-${randomUUID()}.png`
 
     try {
       await iosExecCommand(['simctl', 'io', deviceId, 'screenshot', tmpFile], deviceId)
@@ -527,6 +539,10 @@ export class iOSObserve {
   }
 
   async getUITree(deviceId: string = "booted"): Promise<GetUITreeResponse> {
+    return captureEvidence('ui_tree', { platform: 'ios', id: deviceId ?? '' }, () => this.collectGetUITree(deviceId))
+  }
+
+  private async collectGetUITree(deviceId: string = "booted"): Promise<GetUITreeResponse> {
     const measurement = createObservationMeasurement('ios')
     let device
     try {
@@ -653,12 +669,16 @@ export class iOSObserve {
     }
   }
 
-  async getScreenFingerprint(deviceId: string = 'booted'): Promise<{ fingerprint: string | null; activity?: string; error?: string }> {
+  async getScreenFingerprint(deviceId: string = 'booted'): Promise<{ fingerprint: string | null; activity?: string; error?: string; captured_at_ms?: number }> {
+    return captureEvidence('fingerprint', { platform: 'ios', id: deviceId ?? '' }, () => this.collectGetScreenFingerprint(deviceId))
+  }
+
+  private async collectGetScreenFingerprint(deviceId: string = 'booted'): Promise<{ fingerprint: string | null; activity?: string; error?: string; captured_at_ms?: number }> {
     try {
       const tree = await this.getUITree(deviceId)
       if (!tree || tree.error) return { fingerprint: null, error: tree && (tree as any).error }
 
-      return computeScreenFingerprint(tree, null, 'ios', 50)
+      return { ...computeScreenFingerprint(tree, null, 'ios', 50), captured_at_ms: tree.captured_at_ms }
     } catch (e) {
       return { fingerprint: null, error: e instanceof Error ? e.message : String(e) }
     }
@@ -701,10 +721,10 @@ export class iOSObserve {
 
       proc.on('close', () => {
         stream.end()
-        iosActiveLogStreams.delete(sessionId)
+        if (iosActiveLogStreams.get(sessionId)?.proc === proc) iosActiveLogStreams.delete(sessionId)
       })
 
-      iosActiveLogStreams.set(sessionId, { proc, file })
+      iosActiveLogStreams.set(sessionId, { proc, file, device: { platform: 'ios', id: deviceId ?? '' } })
       return { success: true, stream_started: true }
     } catch {
       return { success: false, error: 'log_stream_start_failed' }
@@ -720,6 +740,10 @@ export class iOSObserve {
   }
 
   async readLogStream(sessionId: string = 'default', limit: number = 100, since?: string): Promise<{ entries: any[], crash_summary?: { crash_detected: boolean, exception?: string, sample?: string } }> {
+    return captureEvidence('logs', this.getLogStreamDevice(sessionId), () => this.collectReadLogStream(sessionId, limit, since))
+  }
+
+  private async collectReadLogStream(sessionId: string = 'default', limit: number = 100, since?: string): Promise<{ entries: any[], crash_summary?: { crash_detected: boolean, exception?: string, sample?: string } }> {
     const entry = iosActiveLogStreams.get(sessionId)
     if (!entry) return { entries: [] }
     try {

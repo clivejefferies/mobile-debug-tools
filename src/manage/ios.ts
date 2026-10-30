@@ -1,3 +1,4 @@
+import { evidenceDispatch } from '../observe/evidence.js'
 import { hasFiniteBudget, markDispatchStarted, remainingBudget, runWithBudget } from '../utils/operation-budget.js'
 import { promises as fs } from "fs"
 import { spawn, spawnSync } from "child_process"
@@ -316,7 +317,7 @@ export class iOSManage {
     validateBundleId(bundleId)
     try {
       markDispatchStarted()
-      const result = await execCommand(['simctl', 'launch', deviceId, bundleId], deviceId)
+      const result = await evidenceDispatch({ platform: 'ios', id: deviceId }, () => execCommand(['simctl', 'launch', deviceId, bundleId], deviceId))
       const device = await getIOSDeviceMetadata(deviceId)
       const fingerprint = observe ? await new iOSObserve().getScreenFingerprint(deviceId).catch(() => null) : null
       const pidMatch = result.output.match(/:\s*(\d+)\s*$/)
@@ -343,7 +344,7 @@ export class iOSManage {
     validateBundleId(bundleId)
     try {
       markDispatchStarted()
-      await execCommand(['simctl', 'terminate', deviceId, bundleId], deviceId)
+      await evidenceDispatch({ platform: 'ios', id: deviceId }, () => execCommand(['simctl', 'terminate', deviceId, bundleId], deviceId))
       const device = await getIOSDeviceMetadata(deviceId)
       return { device, appTerminated: true }
     } catch (e: unknown) {

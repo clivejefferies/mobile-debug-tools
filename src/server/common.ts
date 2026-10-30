@@ -1,3 +1,4 @@
+import { currentEvidenceActionId } from '../observe/evidence.js'
 import { recordTiming } from '../utils/timing.js'
 import type {
   ActionTrace,
@@ -88,6 +89,8 @@ export function getArrayArg<T>(args: ToolCallArgs, key: string): T[] | undefined
 let actionSequence = 0
 
 export function nextActionId(actionType: string, timestamp: number) {
+  const current = currentEvidenceActionId()
+  if (current) return current
   actionSequence += 1
   return `${actionType}_${timestamp}_${actionSequence}`
 }
