@@ -102,3 +102,16 @@ Validation logs: `/tmp/mobile-debug-system-traces-verify.log`,
 `/tmp/mobile-debug-system-traces-focused-device.log`.
 Changed documentation links, evidence JSON and whitespace checks pass.
 
+## Emulator recheck — 2026-10-30
+
+User requested a fresh emulator test. Rebuilt with `npm run build` (**pass**),
+then ran `SYSTEM_TRACE_EVIDENCE_PATH=docs/specs/023-android-system-traces/emulator-recheck.json node --import tsx test/device/automated/observe/system-trace.smoke.ts`
+on emulator-5554, Android 16, local stdio server 0.33.0, same runtime hash as above.
+**Pass:** fresh Settings UI baseline, traced launch and semantic visibility
+assertion, correlated IDs, nonempty Perfetto artifact with timestamped kernel and
+scheduler content, repeated stop, inactive reference rejection, cancellation,
+1,001 ms expiry, and active-capture server shutdown cleanup. Artifact: 996,053
+bytes, 230 packets, 23,054 timestamped ftrace events. Test-owned host/device trace
+files removed; no settings or app data changed. Settings remains foreground.
+Metadata: [emulator-recheck.json](emulator-recheck.json). Full Perfetto analysis,
+physical devices and failure-by-unplug were not part of this recheck.

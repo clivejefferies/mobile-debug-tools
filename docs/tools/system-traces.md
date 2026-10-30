@@ -27,6 +27,33 @@ cleanup reserves its slot until resolved. Terminal records with complete cleanup
 expire after 10 minutes or eviction beyond 100 records. Server restart invalidates
 IDs. Repeated terminal operations return the stored outcome.
 
+## Agent workflow and interpretation
+
+Trace a reproducible slow or stalled interaction when existing UI timing/state
+and logs leave a performance question unresolved. Check tool discovery first:
+older installed servers may not expose these tools. Capability failure is a
+reported limitation; it is not evidence that the app is frozen.
+
+Establish the initial UI state and include an outcome assertion in the journey.
+The launch-only example below demonstrates bracketing; it does not prove an app
+outcome. Use a fresh screenshot or semantic assertion appropriate to the actual
+screen. Settings, for example, may resume a subpage rather than show its main
+title. Allow enough capture time for complete observations as well as inputs.
+
+Always finalise an owned recording, including when a journey fails. Stop to keep
+diagnostic evidence; cancel to discard it. Check both `state` and `cleanup`, and
+use status/retry for an unresolved session before starting another capture.
+Do not rely on automatic duration expiry as routine cleanup.
+
+A useful report identifies the device, journey and assertion outcomes, trace ID,
+linked correlation IDs, coverage, artifact path and cleanup outcome. `covered`
+describes the capture session lifetime, not proof that every event survived the
+ring buffer. Capture success and valid trace contents are separate from a
+performance diagnosis. These tools do not return CPU summaries, frame metrics,
+blocked-thread analysis or a root cause. Inspect the artifact with an available
+analyser before making those claims; otherwise report analysis **unrun** and
+provide the local artifact for follow-up. Host/device clocks remain unaligned.
+
 ## Bracket a journey
 
 1. `get_system_trace_capabilities({"platform":"android","deviceId":"emulator-5554"})`
