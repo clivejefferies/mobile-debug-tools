@@ -5,7 +5,7 @@
       "command": "npx",
       "args": [
         "--yes",
-        "mobile-debug-mcp@0.32.4",
+        "mobile-debug-mcp@0.33.0",
         "server"
       ],
       "cwd": "${PLUGIN_DATA}"

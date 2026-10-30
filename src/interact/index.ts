@@ -2698,9 +2698,10 @@ export class ToolsInteract {
             }
 
           } catch (e) {
+            // Deadline expiry does not invalidate the last successfully observed state.
+            if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             if (readinessTracker && !String(e).includes('READINESS_')) readinessTracker.unavailable()
             if (readinessTracker && isDeviceUnavailable(e)) throw e
-            if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             // Non-fatal per-poll error; record and continue
             if (!readinessTracker) console.warn('waitForUI: poll error (non-fatal):', e instanceof Error ? e.message : String(e))
           }
