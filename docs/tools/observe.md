@@ -243,7 +243,8 @@ Both return `success`, resolved `device`, `readiness`, `elapsed_ms`, and a
 or settled; wait succeeds only for settled. Codes are `READINESS_UNAVAILABLE`,
 `READINESS_TIMEOUT`, and `DEVICE_UNAVAILABLE`. Invalid/unknown inputs are rejected.
 
-`readiness.state` is loading, transitioning, settled, or unknown. Visible native
+`readiness.state` is loading, transitioning, settled, unknown, or debugger_paused
+for an owned Android debugger stop. Visible native
 progress indicators establish loading; exact Loading / Please wait labels
 (ignoring case, whitespace and trailing dots/ellipsis) are heuristic loading.
 Loading takes priority over unchanged trees. Two different valid signatures show
@@ -255,12 +256,15 @@ keywords such as a button named Progress are not sufficient loading evidence.
 The summary includes `basis` (observed/heuristic/insufficient), `scope: device_ui`,
 latest successful capture time and snapshot session/revision, sample
 count, `stable_for_ms`, up to eight signal-code evidence records, limitations,
-and capability flags. Evidence excludes UI text and full trees. Unresponsive and
-debugger-paused detection are explicitly unsupported on both platforms; neither
-slow hierarchy retrieval nor a deadline expiry proves either state.
+and capability flags. Evidence excludes UI text and full trees. Managed Android
+[debugger pauses](debugger.md) are reported from session evidence without acquiring
+a UI tree; readiness waits fail with `DEBUGGER_PAUSED`. External-debugger and iOS
+pause detection remain unsupported. Unresponsive detection is unsupported; neither
+slow hierarchy retrieval nor a deadline expiry proves a pause or unresponsiveness.
 
 Tree responses (including compact and nested trees) add a single-sample readiness
-summary without extra reads. Such a summary reports loading or unknown; it does
+summary without extra reads. It reports an owned debugger pause when known;
+otherwise a single-sample summary reports loading or unknown; it does
 not inherit stability from an earlier request. Existing loading/delta fields and
 compact error evidence are preserved.
 

@@ -1,13 +1,15 @@
+import { debuggerTools } from './debugger-schema.js'
 import { systemTraceTools } from './system-trace-schema.js'
 import { journeyStepsJson } from './journey-schema.js'
 import { conditionalTools, expectedStateJson } from './condition-schema.js'
 import { readinessPropertiesJson } from './readiness-schema.js'
 
 export const toolDefinitions: any[] = [
+  ...debuggerTools,
   ...systemTraceTools,
   ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
     name,
-    description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Unresponsive/debugger-paused detection is unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
+    description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
     inputSchema: { type: 'object', additionalProperties: false, required: ['platform'], properties: {
       ...readinessPropertiesJson,
       timeoutMs: { ...readinessPropertiesJson.timeoutMs, default: name === 'get_app_readiness' ? 15000 : 30000 },

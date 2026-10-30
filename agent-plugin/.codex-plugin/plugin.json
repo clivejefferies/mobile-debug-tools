@@ -1,6 +1,6 @@
 {
   "name": "mobile-debug-tools",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
   "repository": "https://github.com/clivejefferies/mobile-debug-tools",
   "license": "Apache-2.0",

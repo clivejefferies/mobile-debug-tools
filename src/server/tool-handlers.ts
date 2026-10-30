@@ -1,3 +1,7 @@
+import { handleDebugger } from './debugger-handlers.js'
+import { debuggerContracts } from './debugger-schema.js'
+import { debuggerSessions } from '../debugger/sessions.js'
+import { withDebuggerGuard, guardDispatched } from '../debugger/guard.js'
 import { systemTraces, TraceError } from '../observe/system-trace.js'
 import { systemTraceTools, traceTargetSchema, traceStartSchema, traceControlSchema } from './system-trace-schema.js'
 import { currentEvidenceCorrelationId, bindSystemTrace, withEvidence, currentEvidenceActionId, validateActionRef, markEvidenceVerification, refreshJourneyEvidence, completeJourneyVerification } from '../observe/evidence.js'
@@ -627,6 +631,11 @@ async function handleRunJourney(args: ToolCallArgs) {
   let pendingLightStep: number | null = null
   for (let index = 0; index < steps.length; index++) {
     const step = steps[index]
+    if (platform === 'android' && debuggerSessions.paused(deviceId)) {
+      results.push({ id: step.id, type: step.type, status: 'failed', success: false, result: { success: false, failure_code: 'DEBUGGER_PAUSED', dispatch_started: false, delivery_status: 'not_delivered' } })
+      stoppedAt = step.id as string
+      break
+    }
     const requestedVerification = step.verificationMode ?? defaults?.verificationMode ?? 'full'
     const next = steps[index + 1]
     const lightCoveredByAssertion = step.type === 'tap' && responseMode === 'compact' && requestedVerification === 'light' && next?.type === 'assert' &&
@@ -661,6 +670,7 @@ async function handleRunJourney(args: ToolCallArgs) {
     } catch (error) {
       result = { success: false, failure_code: step.type === 'assert' ? 'ASSERTION_TIMEOUT' : 'STEP_FAILED', error: error instanceof Error ? error.message : String(error) }
     }
+    if (platform === 'android' && debuggerSessions.paused(deviceId)) { result.success = false; result.failure_code = 'DEBUGGER_PAUSED'; result.retryable = false }
     if (step.type === 'assert' && !result?.success && /TIMEOUT/.test(result?.failure_code ?? '')) result.failure_code = 'ASSERTION_TIMEOUT'
     const success = !!result?.success
     if (lightCoveredByAssertion) {
@@ -928,7 +938,8 @@ for (const name of ['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint
   toolHandlers[name] = correlatedHandler(name, toolHandlers[name], name === 'adjust_control', name === 'run_journey')
 }
 
-export async function handleToolCall(name: string, args: ToolCallArgs = {}) {
+export async function handleToolCall(name: string, args: ToolCallArgs = {}, signal?: AbortSignal) {
+  if (Object.hasOwn(debuggerContracts, name)) return handleDebugger(name, args, signal)
   const handler = toolHandlers[name]
   if (!handler) throw new Error(`Unknown tool: ${name}`)
 
@@ -949,7 +960,45 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}) {
   return withTiming(measured, async () => {
     try {
       if (!systemTraceToolNames.has(name)) validateExpectedState(name, args)
-      return addTiming(await handler(args))
+      const guarded = ['start_app', 'terminate_app', 'restart_app', 'reset_app_data', 'install_app', 'build_and_install', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'adjust_control', 'run_journey', 'wait_for_ui', 'wait_for_ui_change', 'wait_for_screen_change', 'expect_screen', 'expect_element_visible', 'expect_state'].includes(name)
+      if (guarded && args.platform !== 'ios' && debuggerSessions.hasActiveSessions()) {
+        const device = await resolveTargetDevice({ platform: 'android', deviceId: args.deviceId as string | undefined })
+        return withResolvedDevice(device, () => withDebuggerGuard('android', device.id, async () => {
+          const before = debuggerSessions.paused(device.id)
+          if (before) return wrapResponse({ success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before })
+          let response: ToolCallResult
+          try { response = await handler(args) } catch (error) {
+            if (!debuggerSessions.paused(device.id)) throw error
+            response = wrapResponse({ success: false })
+          }
+          const pause = debuggerSessions.paused(device.id)
+          if (pause) {
+            const item = response.content.find(item => item.type === 'text')
+            if (item?.text) {
+              const payload = JSON.parse(item.text)
+              Object.assign(payload, { success: false, failure_code: 'DEBUGGER_PAUSED', retryable: false,
+                dispatch_started: guardDispatched(), delivery_status: payload.success ? 'delivered' : guardDispatched() ? 'unknown' : 'not_delivered',
+                verification: { status: 'blocked', reason: 'DEBUGGER_PAUSED' }, debugger: pause })
+              item.text = JSON.stringify(payload)
+            }
+          }
+          return addTiming(response)
+        }))
+      }
+      const response = await handler(args)
+      if (['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'get_current_screen', 'read_log_stream'].includes(name) && args.platform !== 'ios') {
+        const item = response.content.find(item => item.type === 'text')
+        if (item?.text) {
+          try {
+            const payload = JSON.parse(item.text)
+            const device = payload.device ?? payload.evidence?.device
+            const id = device?.id ?? args.deviceId
+            const pause = id && device?.platform !== 'ios' ? debuggerSessions.paused(String(id)) : null
+            if (pause) item.text = JSON.stringify({ ...payload, debugger: pause })
+          } catch { /* Non-JSON observation */ }
+        }
+      }
+      return addTiming(response)
     } catch (error) {
       if (error instanceof TraceError) return { ...wrapResponse({ error: { tool: name, code: error.code, message: error.message } }), isError: true }
       console.error(`Error executing tool ${name}:`, error)

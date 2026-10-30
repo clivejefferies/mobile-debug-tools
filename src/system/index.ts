@@ -33,6 +33,7 @@ interface ToolEntry {
 }
 
 interface CapabilityEntry {
+  probeRequired?: string
   availability: boolean
   selectedProvider: string | null
   blockingFailure: DiagnosticFailure | null
@@ -41,7 +42,7 @@ interface CapabilityEntry {
 interface PlatformEntry {
   status: PlatformStatus
   tools: Record<string, ToolEntry>
-  providers: Record<string, { available: boolean; selected: boolean; tool: string | null }>
+  providers: Record<string, { available: boolean; selected: boolean; tool: string | null; probeRequired?: string }>
   capabilities: Record<string, CapabilityEntry>
   devices: Array<Record<string, unknown>>
   failures: DiagnosticFailure[]
@@ -289,7 +290,7 @@ function buildAndroidPlatform(android: Awaited<ReturnType<typeof checkAndroid>>,
     },
     providers: {
       adb: { available: adbAvailable, selected: true, tool: 'adb' },
-      jdwp: { available: adbAvailable && android.devices > 0, selected: false, tool: 'adb' }
+      jdwp: { available: false, selected: false, tool: 'adb', probeRequired: 'get_debugger_capabilities' }
     },
     capabilities: {
       device_discovery: {
@@ -323,9 +324,10 @@ function buildAndroidPlatform(android: Awaited<ReturnType<typeof checkAndroid>>,
         blockingFailure: logAvailable ? null : adbFailure ?? envFailure
       },
       debug: {
-        availability: adbAvailable && android.devices > 0,
-        selectedProvider: adbAvailable && android.devices > 0 ? 'JDWP' : null,
-        blockingFailure: adbAvailable && android.devices > 0 ? null : deviceFailure ?? adbFailure ?? envFailure
+        probeRequired: 'get_debugger_capabilities',
+        availability: false,
+        selectedProvider: null,
+        blockingFailure: deviceFailure ?? adbFailure ?? envFailure
       }
     },
     devices: deviceEntries,

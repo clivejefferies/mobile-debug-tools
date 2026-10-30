@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../debugger/guard.js'
 import { currentReadinessWait, observeReadinessWait, isDeviceUnavailable } from '../observe/readiness.js'
 import { readinessDelay } from '../observe/readiness-service.js'
 import { isConditionBlocked } from './conditional-action.js'
@@ -2349,13 +2350,13 @@ export class ToolsInteract {
                   break
                 }
               }
-            } catch (e) { console.error('Error scoring element:', e) }
+            } catch (e) { checkDebuggerGuard(); console.error('Error scoring element:', e) }
           }
           if (iterationImprovedBest) {
             bestIterationCandidates = iterationCandidates.slice()
           }
         }
-      } catch (e) { console.error('Error fetching UI tree:', e) }
+      } catch (e) { checkDebuggerGuard(); console.error('Error fetching UI tree:', e) }
       if (shouldStop || Date.now() > deadline) break
       await new Promise(r => setTimeout(r, 100))
     }
@@ -2443,7 +2444,7 @@ export class ToolsInteract {
           }
         }
       }
-    } catch (e) { console.error('Error resolving ancestor:', e) }
+    } catch (e) { checkDebuggerGuard(); console.error('Error resolving ancestor:', e) }
 
     if (!best) return { found: false, error: 'Element not found' }
 
@@ -2697,7 +2698,7 @@ export class ToolsInteract {
               matchedAt = null
             }
 
-          } catch (e) {
+          } catch (e) { checkDebuggerGuard();
             // Deadline expiry does not invalidate the last successfully observed state.
             if (e instanceof Error && e.message === 'ACTION_TIMEOUT') throw e
             if (readinessTracker && !String(e).includes('READINESS_')) readinessTracker.unavailable()
@@ -2737,7 +2738,7 @@ export class ToolsInteract {
         }
       }
 
-    } catch (err) {
+    } catch (err) { checkDebuggerGuard();
       if (!readinessTracker && err instanceof Error && err.message === 'ACTION_TIMEOUT') throw err
       if (readinessTracker && isDeviceUnavailable(err)) throw err
       const elapsed = Date.now() - overallStart
@@ -2805,9 +2806,9 @@ export class ToolsInteract {
             }
             lastFingerprint = confirmFp
             continue
-          } catch (e) { console.error('Error confirming fingerprint:', e); continue }
+          } catch (e) { checkDebuggerGuard(); console.error('Error confirming fingerprint:', e); continue }
         }
-      } catch (e) { console.error('Error getting screen fingerprint:', e) }
+      } catch (e) { checkDebuggerGuard(); console.error('Error getting screen fingerprint:', e) }
 
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
     }
@@ -2940,7 +2941,7 @@ export class ToolsInteract {
             candidateSinceMs = null
           }
         }
-      } catch (error) {
+      } catch (error) { checkDebuggerGuard();
         if (readinessTracker && !String(error).includes('READINESS_')) readinessTracker.unavailable()
         if (readinessTracker && isDeviceUnavailable(error)) throw error
         if (readinessTracker && String(error).includes('ACTION_TIMEOUT')) { readinessTracker.deadline(); break }
@@ -3533,7 +3534,7 @@ export class ToolsInteract {
         const msgs = ToolsInteract._logsToMessages(logsArr)
         baselineLastLine = msgs.length ? msgs[msgs.length - 1] : null
       }
-    } catch (err) {
+    } catch (err) { checkDebuggerGuard();
       try { console.warn('waitForUI: failed to get baseline data (non-fatal):', err instanceof Error ? err.message : String(err)) } catch { }
     }
 
@@ -3583,8 +3584,8 @@ export class ToolsInteract {
                   stableDuration = 0
                   lastObservedState = false
                 }
-              } catch (err) { console.error('waitForUI(ui) find error:', err) }
-            } catch (err) { console.error('waitForUI(ui) outer error:', err) }
+              } catch (err) { checkDebuggerGuard(); console.error('waitForUI(ui) find error:', err) }
+            } catch (err) { checkDebuggerGuard(); console.error('waitForUI(ui) outer error:', err) }
         } else if (type === 'log') {
           try {
             // Logs: presence semantics only (match 'present'). Stability not applicable (immediate)
@@ -3614,7 +3615,7 @@ export class ToolsInteract {
                 return { success: true, condition: 'present', query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: 0, matchedLog: { message: line }, matchSource: 'log-snapshot', timestamp: now2, type: 'log', observed_state: true }
               }
             }
-          } catch (err) { console.error('waitForUI(log) error:', err) }
+          } catch (err) { checkDebuggerGuard(); console.error('waitForUI(log) error:', err) }
         } else if (type === 'screen') {
           try {
             const fpRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
@@ -3636,7 +3637,7 @@ export class ToolsInteract {
                 lastObservedState = false
               }
             }
-          } catch (err) { console.error('waitForUI(screen) error:', err) }
+          } catch (err) { checkDebuggerGuard(); console.error('waitForUI(screen) error:', err) }
         } else if (type === 'idle') {
           try {
             const fpRes = await ToolsObserve.getScreenFingerprintHandler({ platform, deviceId }) as ScreenFingerprintResponse | null
@@ -3655,7 +3656,7 @@ export class ToolsInteract {
                 return { success: true, condition: 'present', query: q, poll_count: pollCount, duration_ms: now2 - start, stable_duration_ms: idleMs, matchSource: 'idle-stable', timestamp: now2, type: 'idle', observed_state: lastObservedState ?? null }
               }
             }
-          } catch (err) { console.error('waitForUI(idle) error:', err) }
+          } catch (err) { checkDebuggerGuard(); console.error('waitForUI(idle) error:', err) }
         }
 
       // Respect poll interval and avoid tight loop
@@ -3671,7 +3672,7 @@ export class ToolsInteract {
         // time ensures the latest exported ToolsObserve object is used.
         const Obs = await import('../observe/index.js')
         snapshot = await (Obs as any).ToolsObserve.captureDebugSnapshotHandler({ reason: `wait_for_ui timeout for ${type}`, includeLogs: true, platform, deviceId })
-      } catch (err) {
+      } catch (err) { checkDebuggerGuard();
         snapshot = { error: err instanceof Error ? err.message : String(err) }
       }
     }
