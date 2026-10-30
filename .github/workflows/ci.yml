@@ -21,6 +21,23 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+      - name: Set up debugger compilation JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Compile optional debugger worker
+        run: javac --release 17 --add-modules jdk.jdi -d "$RUNNER_TEMP/mobile-debug-jdi" worker/DebuggerWorker.java
+      - name: Check debugger package contents
+        run: |
+          npm pack --dry-run --json > "$RUNNER_TEMP/mobile-debug-package.json"
+          node --input-type=module - "$RUNNER_TEMP/mobile-debug-package.json" <<'JS'
+          import fs from 'node:fs'
+          const files = new Set(JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))[0].files.map(file => file.path))
+          for (const file of ['worker/DebuggerWorker.java', 'dist/debugger/worker.js', 'dist/server/debugger-schema.js']) {
+            if (!files.has(file)) throw new Error(`Missing debugger package file: ${file}`)
+          }
+          JS
       - name: Run unit tests
         run: npm test
 
@@ -47,6 +64,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install debugger fixture SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
       - name: Start Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -58,4 +78,5 @@ jobs:
       - name: Build and run Android integration tests
         env:
           ADB_TIMEOUT: 120000
+          MCP_DEBUGGER_DEVICE: emulator-5554
         run: npm run test:device

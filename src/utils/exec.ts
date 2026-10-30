@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../debugger/guard.js'
 import { remainingBudget } from './operation-budget.js'
 import { spawn } from 'child_process'
 
@@ -7,6 +8,7 @@ export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {
   const { env, cwd, shell } = opts
   const timeout = remainingBudget(opts.timeout ?? 0)
   return new Promise((resolve, reject) => {
+    checkDebuggerGuard()
     const child = spawn(cmd, args, { env: { ...process.env, ...(env || {}) }, cwd, shell })
     let stdout = ''
     let stderr = ''

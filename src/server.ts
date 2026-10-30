@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { debuggerSessions } from './debugger/sessions.js'
 import { systemTraces } from './observe/system-trace.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createServer } from './server-core.js'
@@ -21,7 +22,8 @@ async function shutdown() {
   const deadline = setTimeout(() => { console.error('System trace shutdown cleanup timed out; owned device captures remain duration-bounded.'); process.exit(1) }, 10000)
   let exitCode = 0
   try {
-    const remaining = await systemTraces.shutdown()
+    const [remaining, debuggers] = await Promise.all([systemTraces.shutdown(), debuggerSessions.shutdown()])
+    if (debuggers.length) { exitCode = 1; console.error('Debugger shutdown cleanup incomplete', debuggers.map(s => s.cleanup)) }
     if (remaining.length) {
       exitCode = 1
       console.error('System trace shutdown cleanup incomplete:', remaining.map(s => ({ trace_id: s.trace_id, device: s.device, cleanup: s.cleanup })))

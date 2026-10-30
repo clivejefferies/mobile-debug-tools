@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../debugger/guard.js'
 import { bindEvidenceDevice } from '../observe/evidence.js'
 import { retainConnectedDeviceSnapshots } from '../observe/snapshot-metadata.js'
 import { measure } from './timing.js'
@@ -56,6 +57,7 @@ export function withResolvedDevice<T>(device: DeviceInfo, operation: () => Promi
 }
 
 export async function resolveTargetDevice(opts: ResolveOptions): Promise<DeviceInfo> {
+  checkDebuggerGuard()
   const device = await resolveDevice(opts)
   bindEvidenceDevice(device)
   return device

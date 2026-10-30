@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../debugger/guard.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 export interface OperationBudget { deadline: number; dispatchStarted: boolean; parent?: OperationBudget }
@@ -36,6 +37,7 @@ export async function runWithSeparateBudget<T>(timeoutMs: number, operation: () 
   }
 }
 export function markDispatchStarted() {
+  checkDebuggerGuard(true)
   remainingBudget()
   let budget = budgets.getStore()
   while (budget) { budget.dispatchStarted = true; budget = budget.parent }

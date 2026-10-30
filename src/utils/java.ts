@@ -21,17 +21,18 @@ function javaVersionOf(javaBin: string): string | undefined {
   } catch (e: unknown) { console.debug('[javaVersionOf] java -version failed: ' + String(e)); return undefined }
 }
 
-export async function detectJavaHome(): Promise<string | undefined> {
+export async function detectJavaHome(options: { quiet?: boolean } = {}): Promise<string | undefined> {
+  const debug = (...args: unknown[]) => { if (!options.quiet) console.debug(...args) }
   try {
     // 1) Honor explicit ANDROID_STUDIO_JDK env (highest priority)
     const envStudio = process.env.ANDROID_STUDIO_JDK || process.env.ANDROID_STUDIO_JBR
     if (envStudio && existsSync(path.join(envStudio, 'bin', 'java'))) {
       const v = javaVersionOf(path.join(envStudio, 'bin', 'java'))
       if (isJavaVersionAcceptable(v)) {
-        console.debug('[java.detect] Using ANDROID_STUDIO_JDK from env:', envStudio)
+        debug('[java.detect] Using ANDROID_STUDIO_JDK from env:', envStudio)
         return envStudio
       }
-      console.debug('[java.detect] ANDROID_STUDIO_JDK present but java -version did not match expected versions')
+      debug('[java.detect] ANDROID_STUDIO_JDK present but java -version did not match expected versions')
     }
 
     // 2) Android Studio JBR candidates (prefer these over JAVA_HOME)
@@ -50,7 +51,7 @@ export async function detectJavaHome(): Promise<string | undefined> {
       if (existsSync(javaBin)) {
         const v = javaVersionOf(javaBin)
         if (isJavaVersionAcceptable(v)) {
-          console.debug('[java.detect] Found Android Studio JBR at:', p)
+          debug('[java.detect] Found Android Studio JBR at:', p)
           return p
         }
       }
@@ -62,12 +63,12 @@ export async function detectJavaHome(): Promise<string | undefined> {
         const javaBin = path.join(process.env.JAVA_HOME, 'bin', 'java')
         const v = javaVersionOf(javaBin)
         if (isJavaVersionAcceptable(v)) {
-          console.debug('[java.detect] Using JAVA_HOME from env:', process.env.JAVA_HOME)
+          debug('[java.detect] Using JAVA_HOME from env:', process.env.JAVA_HOME)
           return process.env.JAVA_HOME
         }
-        console.debug('[java.detect] Existing JAVA_HOME does not appear to be acceptable Java (17/21), will search')
+        debug('[java.detect] Existing JAVA_HOME does not appear to be acceptable Java (17/21), will search')
       } catch {
-        console.debug('[java.detect] Failed to validate existing JAVA_HOME, searching for JDK')
+        debug('[java.detect] Failed to validate existing JAVA_HOME, searching for JDK')
       }
     }
 
@@ -79,11 +80,11 @@ export async function detectJavaHome(): Promise<string | undefined> {
     try {
       const out17 = execSync('/usr/libexec/java_home -v 17', { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim()
       if (out17) return out17
-    } catch (e: unknown) { console.debug('[java.detect] /usr/libexec/java_home -v 17 failed: ' + String(e)) }
+    } catch (e: unknown) { debug('[java.detect] /usr/libexec/java_home -v 17 failed: ' + String(e)) }
     try {
       const out21 = execSync('/usr/libexec/java_home -v 21', { stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim()
       if (out21) return out21
-    } catch (e: unknown) { console.debug('[java.detect] /usr/libexec/java_home -v 21 failed: ' + String(e)) }
+    } catch (e: unknown) { debug('[java.detect] /usr/libexec/java_home -v 21 failed: ' + String(e)) }
 
     // 6) macOS common JDK locations
     try {
@@ -94,7 +95,7 @@ export async function detectJavaHome(): Promise<string | undefined> {
           return candidate
         }
       }
-    } catch (e: unknown) { console.debug('[java.detect] listing /Library/Java/JavaVirtualMachines failed: ' + String(e)) }
+    } catch (e: unknown) { debug('[java.detect] listing /Library/Java/JavaVirtualMachines failed: ' + String(e)) }
 
     // 7) Linux locations
     const linuxCandidates = [
@@ -106,10 +107,10 @@ export async function detectJavaHome(): Promise<string | undefined> {
       '/usr/lib/jvm/java-21-openjdk-amd64'
     ]
     for (const p of linuxCandidates) {
-      try { if (existsSync(p)) return p } catch (e: unknown) { console.debug(`[java.detect] checking linux candidate ${p} failed: ${String(e)}`) }
+      try { if (existsSync(p)) return p } catch (e: unknown) { debug(`[java.detect] checking linux candidate ${p} failed: ${String(e)}`) }
     }
   } catch (e: unknown) {
-    console.debug('[java.detect] error detecting java home:', e instanceof Error ? e.message : String(e))
+    debug('[java.detect] error detecting java home:', e instanceof Error ? e.message : String(e))
   }
   return undefined
 }

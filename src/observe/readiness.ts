@@ -1,9 +1,10 @@
+import { pausedReadiness } from '../debugger/guard.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { ReadinessSummary } from '../types.js'
 import { remainingBudget } from '../utils/operation-budget.js'
 import { computeSnapshotSignature, getSnapshotSessionId } from './snapshot-metadata.js'
 
-const baselineLimitations = ['NORMALIZED_UI_ONLY', 'FOREGROUND_APP_UNVERIFIED', 'UNRESPONSIVE_SIGNAL_UNSUPPORTED', 'DEBUGGER_SIGNAL_UNSUPPORTED']
+const baselineLimitations = ['NORMALIZED_UI_ONLY', 'FOREGROUND_APP_UNVERIFIED', 'UNRESPONSIVE_SIGNAL_UNSUPPORTED']
 const capabilities = { loading: true, transitioning: true, settled: true, unresponsive: false, debugger_paused: false }
 
 export function isDeviceUnavailable(error: unknown) {
@@ -13,18 +14,21 @@ export function isDeviceUnavailable(error: unknown) {
 export class ReadinessTracker {
   private signature: string | null = null
   private stableSince = 0
-  summary: ReadinessSummary = {
+  summary: ReadinessSummary
+
+  constructor(private platform: string, private deviceId: string, private stabilityMs = 500) {
+  this.summary = {
     state: 'unknown', scope: 'device_ui', basis: 'insufficient', captured_at_ms: null,
     sample_count: 0, stable_for_ms: 0, snapshot_session_id: null, snapshot_revision: null,
-    evidence: [], limitations: [...baselineLimitations, 'INSUFFICIENT_SAMPLES'], capabilities: { ...capabilities }
+    evidence: [], limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', 'INSUFFICIENT_SAMPLES'], capabilities: { ...capabilities, debugger_paused: this.platform === 'android' }
   }
 
-  constructor(private platform: string, private deviceId: string, private stabilityMs = 500) {}
+  }
 
   unavailable(code = 'OBSERVATION_FAILED'): ReadinessSummary {
     this.signature = null
     this.summary = { ...this.summary, state: 'unknown', basis: 'insufficient', stable_for_ms: 0,
-      sample_count: this.summary.sample_count + 1, limitations: [...baselineLimitations, code],
+      sample_count: this.summary.sample_count + 1, limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', code],
       evidence: [...this.summary.evidence, { code, source: 'ui_tree', captured_at_ms: null, snapshot_revision: null }].slice(-8) }
     return this.summary
   }
@@ -35,6 +39,8 @@ export class ReadinessTracker {
   }
 
   observe(tree: any, acquisitionStartedAtMs: number, now = performance.now()): ReadinessSummary {
+    const paused = this.platform === 'android' ? pausedReadiness(this.deviceId) : null
+    if (paused) { this.summary = paused; return this.summary }
     if (tree?.error) return this.unavailable('OBSERVATION_FAILED')
     if (!tree || tree.device?.platform !== this.platform || tree.device?.id !== this.deviceId ||
         tree.snapshot_session_id !== getSnapshotSessionId() || !Number.isSafeInteger(tree.snapshot_revision) || tree.snapshot_revision <= 0 ||
@@ -58,7 +64,7 @@ export class ReadinessTracker {
       captured_at_ms: tree.captured_at_ms, snapshot_session_id: tree.snapshot_session_id, snapshot_revision: tree.snapshot_revision,
       sample_count: this.summary.sample_count + 1, stable_for_ms: stableFor,
       evidence: [...this.summary.evidence, { code, source: 'ui_tree', captured_at_ms: tree.captured_at_ms, snapshot_revision: tree.snapshot_revision }].slice(-8),
-      limitations: [...baselineLimitations, ...(state === 'unknown' ? ['INSUFFICIENT_SAMPLES'] : [])], capabilities: { ...capabilities }
+      limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', ...(state === 'unknown' ? ['INSUFFICIENT_SAMPLES'] : [])], capabilities: { ...capabilities, debugger_paused: this.platform === 'android' }
     }
     return this.summary
   }

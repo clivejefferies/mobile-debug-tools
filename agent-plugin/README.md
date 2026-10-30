@@ -22,6 +22,10 @@ copies and configuration.
 The usage skill prefers screenshots for routine visual checks and reserves
 hierarchy reads for semantic selection and structured assertions. Assertion
 timeouts must cover a fresh tree read as well as the expected app transition.
+It also covers optional Android runtime debugging: capability checks, explicit
+process attach, source stops, bounded inspection, stepping and owned cleanup.
+Debugger guidance applies only when the connected server exposes those tools;
+updating the skill does not update the pinned server or installed plugin.
 
 If you already configured the MCP server directly in your agent client, disable
 that separate registration when enabling this plugin to avoid duplicate tools.

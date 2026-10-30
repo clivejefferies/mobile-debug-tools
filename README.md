@@ -16,6 +16,10 @@ with explicit action references, phase timestamps, and conservative freshness.
 Android [system traces](docs/tools/system-traces.md) can bracket existing journeys
 and return local Perfetto artifacts with explicit correlation metadata.
 
+Android [runtime debugging](docs/tools/debugger.md) supports explicit process attach,
+source breakpoints, bounded stacks/locals, stepping, resume and owned detach.
+JDK 17+ is optional and required only for debugger tools.
+
 ## Requirements
 
 - Node.js >= 18

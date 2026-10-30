@@ -16,7 +16,7 @@ export { wrapResponse, toolDefinitions, handleToolCall }
 
 export const serverInfo = {
   name: 'mobile-debug-mcp',
-  version: '0.33.0'
+  version: '0.34.0'
 }
 
 export function createServer() {
@@ -46,9 +46,9 @@ export function createServer() {
     tools: toolDefinitions
   }))
 
-  server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typeof CallToolRequestSchema>) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typeof CallToolRequestSchema>, extra) => {
     const { name, arguments: args } = request.params
-    return handleToolCall(name, args as Record<string, unknown>)
+    return handleToolCall(name, args as Record<string, unknown>, extra.signal)
   })
 
   return server

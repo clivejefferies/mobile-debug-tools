@@ -1,3 +1,4 @@
+import { pausedReadiness } from '../debugger/guard.js'
 import type { DeviceInfo } from '../types.js'
 import { resolveTargetDevice, withResolvedDevice } from '../utils/resolve-device.js'
 import { remainingBudget, runWithBudget } from '../utils/operation-budget.js'
@@ -24,6 +25,7 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
   let device: DeviceInfo | null = null
   let tracker = new ReadinessTracker(args.platform ?? 'android', args.deviceId ?? '')
   let failureCode: string | undefined
+  let debugPause: ReturnType<typeof pausedReadiness> = null
   await runWithBudget(args.timeoutMs ?? (wait ? 30000 : 15000), async () => {
     try {
       device = await resolve(args)
@@ -33,6 +35,8 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
         let count = 0
         while (wait || count < 2) {
           remainingBudget()
+          debugPause = device!.platform === 'android' ? pausedReadiness(device!.id) : null
+          if (debugPause) { failureCode = wait ? 'DEBUGGER_PAUSED' : undefined; return }
           const captureStarted = Date.now()
           try {
             const tree = await ToolsObserve.getUITreeHandler({ platform: device!.platform as 'android' | 'ios', deviceId: device!.id })
@@ -57,6 +61,7 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
       failureCode = !expired && (!device || isDeviceUnavailable(error)) ? 'DEVICE_UNAVAILABLE' : wait ? 'READINESS_TIMEOUT' : 'READINESS_UNAVAILABLE'
     }
   })
+  if (debugPause) return { success: !wait, device, readiness: debugPause, elapsed_ms: performance.now() - started, ...(wait ? { failure_code: 'DEBUGGER_PAUSED' } : {}) }
   const state = tracker.summary.state
   const success = !failureCode && (wait ? state === 'settled' : state !== 'unknown')
   return { success, device, readiness: tracker.summary, elapsed_ms: performance.now() - started,
