@@ -34,6 +34,7 @@ export const tapElementControlsSchema = z.object({
 
 export const journeySchema = z.object({
   platform: z.enum(['android', 'ios']), deviceId: z.string().min(1).optional(),
+  systemTraceId: z.string().uuid().optional(),
   responseMode: z.enum(['compact', 'debug']).default('compact'), captureOnFailure: z.boolean().default(false),
   defaults: z.object({ verificationMode: verificationMode.optional(), actionTimeoutMs: z.number().int().finite().optional(), verificationTimeoutMs: z.number().int().finite().optional() }).strict().optional(),
   steps: z.array(step).min(1).max(50)

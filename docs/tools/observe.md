@@ -13,6 +13,9 @@ They are **not** the primary success signal when an applicable `expect_*` tool e
 Covered observations support optional `actionRef` and return acquisition/freshness
 metadata; see [correlated evidence](evidence.md).
 
+Android performance investigations can use [system traces](system-traces.md)
+to bracket a journey and retrieve a local Perfetto artifact.
+
 ## get_logs
 
 Fetch recent logs as structured entries optimized for AI agents.

@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "build_sha256": "f59ec5112751295517ce3fd6fafe78e06ca009f30ecfcc560c872bfbf1cf86ee",
+  "runtime": "v23.11.0",
+  "server": {
+    "name": "mobile-debug-mcp",
+    "version": "0.33.0"
+  },
+  "device": "emulator-5554",
+  "osVersion": "16",
+  "starting_state": "System Settings fixture",
+  "journey": "start Settings, assert baseline Settings-owned resource visible in UI tree; explicit trace association",
+  "trace_id": "7a0bdca9-f64f-4c4f-b204-5c9b7527c2c6",
+  "correlation_id": "6622a71c-e556-4e27-b228-1eb0328f0637",
+  "phases": {
+    "capture_started_at_ms": 1793359970395,
+    "capture_completed_at_ms": 1793359976096
+  },
+  "artifact_bytes": 870332,
+  "content": {
+    "packets": 227,
+    "ftrace_bundles": 210,
+    "events": 19833,
+    "compact_sched_bundles": 210,
+    "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+  },
+  "durationContent": {
+    "packets": 51,
+    "ftrace_bundles": 35,
+    "events": 4596,
+    "compact_sched_bundles": 35,
+    "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+  },
+  "cancel": "PASS",
+  "expired_journey": "PASS",
+  "active_shutdown": "PASS",
+  "cleanup": "Device capture files removed; test host artifacts removed in finally. No settings or app data changed. Settings remains foreground."
+}

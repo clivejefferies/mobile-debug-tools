@@ -3,6 +3,7 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## Unreleased
+- Added optional bounded Android Perfetto capture with capability/start/status/stop/cancel tools, explicit journey trace linkage, local artifacts, process-ownership checks and retryable cleanup. iOS tracing and automatic trace analysis remain unsupported.
 - Made readiness unit-test polling time deterministic while retaining exact sample-count and timeout assertions, eliminating host timer-rounding flakes.
 - Isolated snapshot unit tests from physical device discovery and native handlers so they run without connected devices. Readiness deadline expiry now retains the last valid observation instead of intermittently resetting loading to unknown.
 

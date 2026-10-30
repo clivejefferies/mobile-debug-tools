@@ -13,6 +13,9 @@ A minimal, secure MCP server for AI-assisted mobile development. Build, install,
 Actions, screenshots, trees, and logs expose [correlated evidence](docs/tools/evidence.md)
 with explicit action references, phase timestamps, and conservative freshness.
 
+Android [system traces](docs/tools/system-traces.md) can bracket existing journeys
+and return local Perfetto artifacts with explicit correlation metadata.
+
 ## Requirements
 
 - Node.js >= 18

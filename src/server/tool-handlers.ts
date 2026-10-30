@@ -1,4 +1,6 @@
-import { withEvidence, currentEvidenceActionId, validateActionRef, markEvidenceVerification, refreshJourneyEvidence, completeJourneyVerification } from '../observe/evidence.js'
+import { systemTraces, TraceError } from '../observe/system-trace.js'
+import { systemTraceTools, traceTargetSchema, traceStartSchema, traceControlSchema } from './system-trace-schema.js'
+import { currentEvidenceCorrelationId, bindSystemTrace, withEvidence, currentEvidenceActionId, validateActionRef, markEvidenceVerification, refreshJourneyEvidence, completeJourneyVerification } from '../observe/evidence.js'
 import { measure, withTiming } from '../utils/timing.js'
 import { randomUUID } from 'node:crypto'
 import { runWithBudget } from '../utils/operation-budget.js'
@@ -40,6 +42,8 @@ import {
   wrapResponse,
   wrapToolError
 } from './common.js'
+
+const systemTraceToolNames = new Set(systemTraceTools.map(tool => tool.name))
 
 type PlatformArg = 'android' | 'ios'
 type ProjectTypeArg = 'native' | 'kmp' | 'react-native' | 'flutter'
@@ -86,7 +90,7 @@ function correlatedHandler(name: string, handler: ToolHandler, action = false, j
     const ref = validateActionRef(args.actionRef)
     const { result, evidence } = await withEvidence({ action, journey, ref }, async () => {
       try { return await handler(args) }
-      catch (error) { return wrapToolError(name, error) }
+      catch (error) { return error instanceof TraceError ? { ...wrapResponse({ error: { tool: name, code: error.code, message: error.message } }), isError: true } : wrapToolError(name, error) }
     })
     const item = result.content.find(item => item.type === 'text')
     if (item?.text) {
@@ -612,7 +616,11 @@ async function handleRunJourney(args: ToolCallArgs) {
   const steps = parsed.data.steps as Array<Record<string, any>>
   const device = await resolveTargetDevice({ platform, deviceId: parsed.data.deviceId })
   const deviceId = device.id
-  return withResolvedDevice(device, async () => {
+  const finishTrace = parsed.data.systemTraceId
+    ? await systemTraces.link(parsed.data.systemTraceId, device, currentEvidenceCorrelationId()!) : undefined
+  if (parsed.data.systemTraceId) bindSystemTrace(parsed.data.systemTraceId)
+  try {
+  return await withResolvedDevice(device, async () => {
   const started = performance.now()
   const results: any[] = []
   let stoppedAt: string | null = null
@@ -691,8 +699,9 @@ async function handleRunJourney(args: ToolCallArgs) {
     if (key !== 'total_ms' && typeof value === 'number') componentTiming[key] = (componentTiming[key] ?? 0) + value
   }
   refreshJourneyEvidence(results)
-  return wrapResponse({ success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, ...(failureSnapshot ? { failure_snapshot: failureSnapshot } : {}), timing: responseMode === 'compact' ? { total_ms: performance.now() - started } : { ...componentTiming, total_ms: performance.now() - started } }, responseMode === 'debug')
+  return wrapResponse({ ...(finishTrace ? { system_trace: await finishTrace() } : {}), success: stoppedAt === null, stopped_at_step_id: stoppedAt, steps: results, ...(failureSnapshot ? { failure_snapshot: failureSnapshot } : {}), timing: responseMode === 'compact' ? { total_ms: performance.now() - started } : { ...componentTiming, total_ms: performance.now() - started } }, responseMode === 'debug')
   })
+  } finally { await finishTrace?.() }
 }
 
 async function executeSwipe(args: ToolCallArgs) {
@@ -841,7 +850,33 @@ async function handleGetNetworkActivity(args: ToolCallArgs) {
   return wrapResponse(result)
 }
 
+async function handleSystemTrace(name: string, args: ToolCallArgs) {
+  const schema = name === 'start_system_trace' ? traceStartSchema : name === 'get_system_trace_capabilities' ? traceTargetSchema : traceControlSchema
+  const parsed = schema.safeParse(args)
+  if (!parsed.success) throw new TraceError('INVALID_ARGUMENT')
+  if (name === 'get_system_trace_capabilities' || name === 'start_system_trace') {
+    const target = parsed.data as { platform: PlatformArg; deviceId?: string; durationMs?: number }
+    if (target.platform !== 'android') {
+      if (name === 'start_system_trace') throw new TraceError('UNSUPPORTED_PLATFORM')
+      return wrapResponse({ supported: false, backend: 'perfetto', device: null, prerequisites: {}, reasons: ['UNSUPPORTED_PLATFORM'], enabled_sources: [], unavailable_categories: [], limitations: ['Android only'] })
+    }
+    let device
+    try { device = await resolveTargetDevice(target) }
+    catch {
+      if (name === 'start_system_trace') throw new TraceError('TRACE_UNSUPPORTED')
+      return wrapResponse({ supported: false, backend: 'perfetto', device: null, prerequisites: { device: false }, reasons: ['DEVICE_UNAVAILABLE'], enabled_sources: [], unavailable_categories: [], limitations: ['An authorised Android device is required'] })
+    }
+    if (name === 'get_system_trace_capabilities') return wrapResponse(await systemTraces.capabilities(device.id))
+    const result = await systemTraces.start(device.id, target.durationMs)
+    return { ...wrapResponse(result), ...(result.state === 'failed' ? { isError: true } : {}) }
+  }
+  const operation = name === 'stop_system_trace' ? 'stop' : name === 'cancel_system_trace' ? 'cancel' : 'status'
+  const result = await systemTraces.control((parsed.data as { traceId: string }).traceId, operation)
+  return { ...wrapResponse(result), ...(['failed', 'cancelled'].includes(result.state) ? { isError: true } : {}) }
+}
+
 export const toolHandlers: Record<string, ToolHandler> = {
+  ...Object.fromEntries(systemTraceTools.map(({ name }) => [name, (args: ToolCallArgs) => handleSystemTrace(name, args)])),
   get_app_readiness: async args => {
     const parsed = readinessSchema.safeParse(args)
     if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
@@ -913,9 +948,10 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}) {
   }
   return withTiming(measured, async () => {
     try {
-      validateExpectedState(name, args)
+      if (!systemTraceToolNames.has(name)) validateExpectedState(name, args)
       return addTiming(await handler(args))
     } catch (error) {
+      if (error instanceof TraceError) return { ...wrapResponse({ error: { tool: name, code: error.code, message: error.message } }), isError: true }
       console.error(`Error executing tool ${name}:`, error)
       return addTiming(wrapToolError(name, error))
     }

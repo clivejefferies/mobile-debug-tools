@@ -25,6 +25,7 @@ interface Acquisition {
   startSequence: number; endSequence: number; overlapping: boolean; reused: boolean
 }
 interface EvidenceContext {
+  systemTraceId?: string
   correlationId: string; action: ActionRecord | null; ref?: ActionRef
   device: EvidenceDevice | null; start: Stamp; end: Stamp | null; verification: Stamp | null
   observations: Acquisition[]; isAction: boolean; children: EvidenceContext[]
@@ -71,6 +72,12 @@ export function validateActionRef(value: unknown): ActionRef | undefined {
   const ref = value as ActionRef
   for (const v of [ref.sessionId, ref.actionId]) if (typeof v !== 'string' || v.length < 1 || v.length > 128) throw new Error('INVALID_ARGUMENT: invalid actionRef')
   return { sessionId: ref.sessionId, actionId: ref.actionId }
+}
+export function evidenceSessionId() { return sessionId }
+export function currentEvidenceCorrelationId() { return context.getStore()?.correlationId }
+export function bindSystemTrace(traceId: string) {
+  const current = context.getStore()
+  if (current) current.systemTraceId = traceId
 }
 export function currentEvidenceActionId() { return context.getStore()?.action?.id }
 export function bindEvidenceDevice(device: { platform: string; id: string }) {
@@ -210,7 +217,7 @@ function assemble(current: EvidenceContext) {
     dispatch_started_at_ms: action?.dispatchStart?.wall ?? null,
     dispatch_completed_at_ms: action?.dispatchEnd?.wall ?? null,
     verification_completed_at_ms: current.verification?.wall ?? action?.verification?.wall ?? null,
-    observations, trace_context: { supported: false, trace_id: null, markers: [] }
+    observations, trace_context: { supported: !!current.systemTraceId, trace_id: current.systemTraceId ?? null, markers: [] }
   }
 }
 export async function withEvidence<T>(options: { action?: boolean; journey?: boolean; ref?: ActionRef }, operation: () => Promise<T>): Promise<{ result: T; evidence: ReturnType<typeof assemble> }> {
@@ -219,7 +226,7 @@ export async function withEvidence<T>(options: { action?: boolean; journey?: boo
   const id = randomUUID()
   const record: ActionRecord | null = options.action ? { id, correlationId: parent?.correlationId ?? id, device: null,
     dispatchStart: null, dispatchEnd: null, verification: null, completed: null } : options.ref?.sessionId === sessionId ? active.get(options.ref.actionId) ?? history.get(options.ref.actionId) ?? null : null
-  const current: EvidenceContext = { correlationId: options.action ? record!.correlationId : options.journey ? id : randomUUID(),
+  const current: EvidenceContext = { systemTraceId: parent?.systemTraceId, correlationId: options.action ? record!.correlationId : options.journey ? id : randomUUID(),
     action: record, ref: options.ref, device: null, start: stamp(), end: null, verification: null, observations: [], children: [], isAction: !!options.action }
   if (options.action && record) active.set(id, record)
   if (parent && options.action) parent.children.push(current)

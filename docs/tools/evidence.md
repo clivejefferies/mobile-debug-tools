@@ -73,7 +73,10 @@ after it, or causality. No implicit action-window filtering is applied.
 
 Existing payloads, image blocks, and log blocks remain available. Snapshot evidence
 sits alongside `raw` and `semantic`. Android ADB and supported iOS simulators share
-this contract; existing provider limitations still apply. `trace_context` reports
-`{ "supported": false, "trace_id": null, "markers": [] }` for future trace linkage.
+this contract; existing provider limitations still apply. `trace_context` defaults
+to `{ "supported": false, "trace_id": null, "markers": [] }`. Journeys explicitly
+linked to an active Android [system trace](system-traces.md) and their steps expose
+`{ "supported": true, "trace_id": "…", "markers": [] }`; association does not align
+clocks or inject device markers.
 Correlation history stores identifiers, scope, timing, and ordering only, without
 captured content, arguments, persistence, or telemetry.

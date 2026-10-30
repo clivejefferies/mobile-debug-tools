@@ -8,7 +8,8 @@ This repository groups the MCP tools into four areas aligned with the codebase:
 - [system](system.md) — environment and health checks
 
 Correlation metadata and explicit action references are documented in
-[correlated evidence](evidence.md).
+[correlated evidence](evidence.md). Android performance capture is documented in
+[system traces](system-traces.md).
 
 ## Agent guidance
 
