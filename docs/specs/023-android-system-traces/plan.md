@@ -1,7 +1,9 @@
 # Plan: Android system traces
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Specification](spec.md)
+
 Authorised by [intent](intent.md) (“yes”) and [specification](spec.md)
-(“looks good”, followed by “great”), 2026-10-30 in this conversation.
+(“looks good”, followed by “great”), 2026-10-30 during design review.
 
 ## Implementation
 
@@ -43,9 +45,8 @@ installed/published package remain separate from emulator evidence.
 
 ## Results
 
-Implementation and focused review completed on 2026-10-30 on
-`codex/android-system-traces`, based on `a74238b`. Changes remain uncommitted;
-no push, publication or installed-package update was requested.
+Implementation and focused review completed on 2026-10-30, based on
+`a74238b`. The results below cover the local build, not a published package.
 
 - Local runtime: Node 23.11.0 / npm 10.9.2. CI's Node 18 runtime remains **unrun**
   locally; the final CI workflow was not invoked. Existing CI uses Node 18 and
@@ -97,9 +98,6 @@ no push, publication or installed-package update was requested.
   explicitly unsupported, with rejection tested. Installed/published-package and
   full trace-analysis verification remain **unrun**.
 
-Validation logs: `/tmp/mobile-debug-system-traces-verify.log`,
-`/tmp/mobile-debug-system-traces-device.log`, and
-`/tmp/mobile-debug-system-traces-focused-device.log`.
 Changed documentation links, evidence JSON and whitespace checks pass.
 
 ## Emulator recheck — 2026-10-30

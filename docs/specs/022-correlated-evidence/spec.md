@@ -1,9 +1,11 @@
 # Specification: correlated evidence
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Plan and verification](plan.md)
+
 Date: 2026-10-29. Status: approved.
 Source: [issue #66](https://github.com/clivejefferies/mobile-debug-tools/issues/66).
 [Intent](intent.md) approved by “yes”; this specification approved by the
-maintainer’s “approve” on 2026-10-29 in this conversation.
+maintainer’s “approve” on 2026-10-29 during design review.
 
 ## Scope and association
 

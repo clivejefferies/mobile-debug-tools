@@ -1,5 +1,7 @@
 # RFC 006 — Runtime Action Instrumentation & Binding Layer
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## 1. Summary
 
 This RFC defines how the execution model in RFC 005 is mapped onto the current runtime behaviour of the system.

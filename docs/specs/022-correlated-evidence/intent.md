@@ -1,6 +1,8 @@
 # Intent: correlated evidence
 
-Originator: repository maintainer (current conversation).
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Specification](spec.md) · [Plan and verification](plan.md)
+
+Originator: repository maintainer (design review).
 Date: 2026-10-29. Status: approved.
 Source: [issue #66](https://github.com/clivejefferies/mobile-debug-tools/issues/66), roadmap priority 3 of 9.
 
@@ -32,6 +34,4 @@ handling, building on existing helpers.
 
 ## Approval
 
-The maintainer’s “yes” on 2026-10-29 approved the complete linked intent in this
-conversation. This shorter version preserves that scope; specification approval
-remains pending.
+The maintainer’s “yes” on 2026-10-29 approved the complete linked intent during design review. See the linked specification for its separate approval record.

@@ -1,56 +1,68 @@
-# Mobile Debug Tools
+# Mobile Debug MCP
 [![npm version](https://img.shields.io/npm/v/mobile-debug-mcp.svg)](https://www.npmjs.com/package/mobile-debug-mcp)
 
-A minimal, secure MCP server for AI-assisted mobile development. Build, install, interact and inspect Android/iOS apps from an MCP-compatible client.
+Build, install, control, and inspect Android and iOS apps from an MCP-compatible
+client. Mobile Debug MCP connects your client to local device toolchains and
+provides UI actions, screenshots, logs, state assertions, and optional Android
+performance capture and runtime debugging.
 
-> **Support:**
-> * KMP
-> * Android
-> * iOS
-> * Flutter - not tested
-> * React native - not tested
+Android, iOS, and Kotlin Multiplatform projects are supported. Flutter and React
+Native have not been tested. Platform and device limitations are described in the
+[tool reference](docs/tools/TOOLS.md).
 
-Actions, screenshots, trees, and logs expose [correlated evidence](docs/tools/evidence.md)
-with explicit action references, phase timestamps, and conservative freshness.
+## Start here
 
-Android [system traces](docs/tools/system-traces.md) can bracket existing journeys
-and return local Perfetto artifacts with explicit correlation metadata.
-
-Android [runtime debugging](docs/tools/debugger.md) supports explicit process attach,
-source breakpoints, bounded stacks/locals, stepping, resume and owned detach.
-JDK 17+ is optional and required only for debugger tools.
+1. Check the [requirements](#requirements) and connect the server using
+   [MCP configuration](#mcp-configuration) or the [agent plugin](#agent-plugin).
+2. Follow [Getting started](#getting-started) to select a device, launch an
+   app, and verify a UI interaction.
+3. Use the [documentation guide](docs/README.md) to find troubleshooting,
+   individual tool contracts, and contribution guidance.
 
 ## Requirements
 
 - Node.js >= 18
 - [Android SDK](https://developer.android.com/studio) (adb) for Android support
-- Xcode command-line tools for iOS support
-- [idb](https://github.com/facebook/idb) for iOS device support
+- Xcode and its command-line tools on macOS for iOS support
+- [idb](https://github.com/facebook/idb) for iOS UI inspection and interaction
+- JDK 17+ for optional [Android runtime debugging](docs/tools/debugger.md)
 
-## Environment Setup
+## Environment setup
 
-The server discovers Android and iOS tools automatically from standard locations by default. Manual environment setup is still supported, but it should be treated as the fallback for non-standard installs, overrides, or reproducible pinned toolchains.
+The server discovers platform tools from standard locations and `PATH`. Leave
+path overrides unset for a standard installation. Use them for non-standard
+locations, multiple toolchains, or a pinned development environment.
 
-Use explicit paths when:
-- you have multiple SDKs installed
-- the tools live outside standard locations
-- you want deterministic setup across machines
-- automatic discovery does not find the expected binary
+| Variable | Purpose |
+| --- | --- |
+| `ADB_PATH` | Path to `adb`. |
+| `ANDROID_SDK_ROOT` or `ANDROID_HOME` | Android SDK root. |
+| `XCRUN_PATH` | Path to `xcrun`. |
+| `MCP_IDB_PATH` or `IDB_PATH` | Path to `idb`. |
+| `GRADLE_JAVA_HOME` or `JAVA_HOME` | Java home for Gradle-backed operations. |
 
-Leave the variables unset when:
-- the tools are already on `PATH`
-- the standard Android and Xcode locations are enough
+After connecting the client, call `get_system_status` to check discovery and
+prerequisites. See [environment diagnostics](docs/tools/system.md) if a toolchain
+or device is unavailable.
 
-Common environment variables:
-- `ADB_PATH`: explicit path to `adb`
-- `ANDROID_SDK_ROOT` or `ANDROID_HOME`: Android SDK root
-- `XCRUN_PATH`: explicit path to `xcrun`
-- `MCP_IDB_PATH` or `IDB_PATH`: explicit path to `idb`
-- `GRADLE_JAVA_HOME` or `JAVA_HOME`: Java home for Gradle-backed operations
+## MCP configuration
 
-For normal use, call `get_system_status` first. It reports the detected host, Android, and iOS toolchain state so the client can decide whether automatic discovery is sufficient or whether explicit overrides are needed.
+For a standard installation, add this stdio server to your client's MCP settings:
 
-## MCP Configuration
+```json
+{
+  "mcpServers": {
+    "mobile-debug": {
+      "command": "npx",
+      "args": ["--yes", "mobile-debug-mcp"]
+    }
+  }
+}
+```
+
+If your client uses separate fields, choose stdio, set the command to `npx`, and
+supply `--yes` and `mobile-debug-mcp` as arguments. The examples below add optional
+path overrides; replace the placeholder paths before using them.
 
 <details>
 
@@ -63,7 +75,7 @@ Recommended when you want Android only, or when you want to make the Android too
   "mcpServers": {
     "mobile-debug": {
       "command": "npx",
-      "args": ["--yes","mobile-debug-mcp","server"],
+      "args": ["--yes", "mobile-debug-mcp"],
       "env": {
         "ADB_PATH": "/path/to/adb",
         "ANDROID_SDK_ROOT": "/path/to/android/sdk",
@@ -89,7 +101,7 @@ Recommended when you want iOS simulator or device support, or when `idb` lives i
   "mcpServers": {
     "mobile-debug": {
       "command": "npx",
-      "args": ["--yes","mobile-debug-mcp","server"],
+      "args": ["--yes", "mobile-debug-mcp"],
       "env": {
         "XCRUN_PATH": "/usr/bin/xcrun",
         "MCP_IDB_PATH": "/path/to/idb",
@@ -104,32 +116,7 @@ For iOS-only setups, `ADB_PATH` and `ANDROID_SDK_ROOT` are not required unless y
 
 </details>
 
-<details>
-
-<summary>Codex</summary>
-
-Use STDIO
-
-command: npx
-
-args: 
-* --yes
-* mobile-debug-mcp
-
-environment variables:
-* ADB_PATH: /path/to/adb
-* XCRUN_PATH: /usr/bin/xcrun
-* IDB_PATH: /path/to/idb
-* MCP_IDB_PATH: /path/to/idb
-* ANDROID_SDK_ROOT: /path/to/android/sdk
-* GRADLE_JAVA_HOME: /path/to/jdk
-* JAVA_HOME: /path/to/jdk
-
-If you are unsure whether the environment is configured correctly, run `get_system_status` first. It reports the detected host, Android, and iOS toolchain state in a structured form.
-
-</details>
-
-## Agent Plugin
+## Agent plugin
 
 For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.md)
 package installs the MCP server configuration together with the existing usage
@@ -178,33 +165,117 @@ Node.js 18 or newer and the platform toolchains for your device. If you also
 registered the MCP server directly, disable that registration to avoid
 duplicate tools.
 
-## Usage 
+## Getting started
 
-Crash fixing:
-> I have a crash on the app, can you diagnose it, fix and validate using the mcp tools available
+This walkthrough takes you from a connected MCP client to a verified interaction
+with an installed app. Complete the [requirements and client
+configuration](#start-here) first. The examples use Android; use
+`"platform": "ios"` and a discovered simulator ID for supported iOS operations.
 
-Feature building:
-> Add a button, hook into the repository and confirm API request successful
+Tool names label MCP calls. Submit the JSON through your client's tool interface,
+or ask the client to perform the described step. These are not shell commands.
+Replace device IDs, app identifiers, and example UI labels with your own values.
 
-For actions that depend on a previously observed UI, use an optional
-`expectedState` from `get_ui_tree` on the same explicit device. The server checks
-a fresh snapshot immediately before input and returns `PRECONDITION_FAILED`
-with current UI evidence if the state changed. See
-[conditional actions](docs/tools/interact.md#conditional-actions) for supported
-tools, examples, and the limits of the check.
+### 1. Check the environment and select a device
 
-## Docs
+Call `get_system_status` with `{}`. Read the platform summary and resolve missing
+prerequisites before continuing. Then call `list_devices`:
 
-Use `get_app_readiness` to observe loading, transitioning, settled, or unknown UI
-state, and `wait_for_app_ready` for a bounded wait. Existing UI waits can opt into
-`requireReady: true`. Results include evidence and uncertainty; see
-[app readiness](docs/tools/observe.md#app-readiness) for limits and examples.
+```json
+{ "platform": "android" }
+```
 
-- Tools: [Tools](docs/tools/TOOLS.md) — full input/response examples
-- Changelog: [Changelog](docs/CHANGELOG.md)
-- Agents: [AGENTS.md](AGENTS.md) — cold-start guidance for autonomous agents entering the public repo
-- Skills: [.agents/skills/README.md](.agents/skills/README.md) — portable Markdown skill packages for agents such as Copilot, Codex, Claude, or custom systems
+Choose a connected device and pass its ID in subsequent calls. Explicit targeting
+keeps observations and actions on the same device, especially when several are
+connected. If discovery fails, see [environment diagnostics](docs/tools/system.md).
+
+### 2. Launch your app
+
+With the app already installed, call `start_app`:
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "appId": "com.example.app"
+}
+```
+
+If you need to build or install it first, follow [app management](docs/tools/manage.md).
+A successful launch reports execution, so inspect the resulting screen before
+assuming the app has reached the state you need.
+
+### 3. Inspect the screen
+
+Call `capture_screenshot` for a visual view, or `get_ui_tree` for element labels,
+identifiers, and exposed control state. Both accept:
+
+```json
+{ "platform": "android", "deviceId": "emulator-5554" }
+```
+
+Use a selector from the observed UI for the next action. Prefer a stable resource
+or accessibility identifier when available. For loading screens, see
+[app readiness](docs/tools/observe.md#app-readiness); a fresh capture may still show a
+transition.
+
+### 4. Act and verify the result
+
+For example, if the tree exposes a button labelled Settings, call `tap_element`:
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "selector": { "text": "Settings" }
+}
+```
+
+Then assert a visible element that identifies the destination. If your Settings
+screen contains an Account heading, call `expect_element_visible`:
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "selector": { "text": "Account" },
+  "timeout_ms": 15000
+}
+```
+
+Choose an assertion that represents your app's intended outcome. A delivered tap
+alone does not prove navigation succeeded. Use [UI waits](docs/tools/interact.md#wait_for_ui)
+when you need to resolve a target or synchronize before continuing, and
+[assertions](docs/tools/interact.md#expect_element_visible) to check the result.
+
+### When a step fails
+
+Read the tool's error and inspect the current UI before retrying an action with
+uncertain delivery. Refine an ambiguous selector or allow enough observation time
+for the device. If the UI does not explain the failure, collect
+[logs or a debug snapshot](docs/tools/observe.md). Use [evidence
+correlation](docs/tools/correlated-evidence.md) to associate those observations with a
+specific action.
+
+For setup problems, return to [environment diagnostics](docs/tools/system.md). For slow
+Android flows, see [system traces](docs/tools/system-traces.md); for paused runtime
+inspection, see [Android runtime debugging](docs/tools/debugger.md).
+
+### Next steps
+
+- [Interaction reference](docs/tools/interact.md): conditional actions, state assertions,
+  execution controls, and batched journeys.
+- [Observation reference](docs/tools/observe.md): readiness, log streams, and snapshots.
+- [Tool reference](docs/tools/TOOLS.md): all reference guides and shared principles.
+- [Contributing](CONTRIBUTING.md): change the server and run its checks.
+
+## Documentation
+
+- [Documentation guide](docs/README.md) — where to start and what to read next.
+- [Tool reference](docs/tools/TOOLS.md) — tool inputs, responses, and examples.
+- [Contributing](CONTRIBUTING.md) — local development and validation.
+- [Changelog](docs/CHANGELOG.md) — release history.
 
 ## License
 
-Apache-2.0
+[Apache-2.0](LICENSE)

@@ -1,12 +1,14 @@
 # RFC 014 — Actionability Resolution
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## Status
 
 Draft
 
 ---
 
-# 1. Summary
+## 1. Summary
 
 This RFC defines a deterministic model for resolving whether a UI element is actionable within mobile-debug-mcp.
 
@@ -20,7 +22,7 @@ It builds directly on:
 
 ---
 
-# 2. Relationship to Existing Resolution System (RFC 005 / RFC 007)
+## 2. Relationship to Existing Resolution System (RFC 005 / RFC 007)
 
 This RFC refines, but does not replace, the existing resolution pipeline defined in RFC 005 (Resolved Stage) and RFC 007 (Executable Target Selection).
 
@@ -34,7 +36,7 @@ RFC 014 MUST be applied AFTER RFC 005/007 resolution and BEFORE any interaction 
 
 ---
 
-# 3. Problem Statement
+## 3. Problem Statement
 
 Current interaction failures arise when actions are attempted on elements that are:
 
@@ -54,7 +56,7 @@ There is currently no single authoritative model defining when an element is saf
 
 ---
 
-# 4. Goals
+## 4. Goals
 
 The system should:
 
@@ -66,7 +68,7 @@ The system should:
 
 ---
 
-# 5. Non-Goals
+## 5. Non-Goals
 
 This RFC does NOT:
 
@@ -78,7 +80,7 @@ This RFC does NOT:
 
 ---
 
-# 6. Definition: Actionability
+## 6. Definition: Actionability
 
 An element is considered **actionable** if ALL of the following conditions are satisfied:
 
@@ -122,7 +124,7 @@ If identity cannot be resolved consistently across snapshots, the element MUST b
 
 ---
 
-# 7. Actionability Evaluation Model (Runtime Contract)
+## 7. Actionability Evaluation Model (Runtime Contract)
 
 Actionability is evaluated using runtime-provided fields from the resolved element and snapshot system.
 
@@ -222,7 +224,7 @@ Short-circuit evaluation is permitted for performance but MUST NOT change final 
 
 ---
 
-# 8. Resolution Lifecycle
+## 8. Resolution Lifecycle
 
 Actionability MUST be evaluated in the following sequence:
 
@@ -238,7 +240,7 @@ If any step fails, the element MUST be considered non-actionable.
 
 ---
 
-# 9. Interaction Guardrail
+## 9. Interaction Guardrail
 
 Actions MUST NOT be executed unless actionability resolution returns true.
 
@@ -250,7 +252,7 @@ If actionability is false:
 
 ---
 
-# 10. Failure Modes
+## 10. Failure Modes
 
 ## 10.1 Transient Non-Actionability
 
@@ -293,7 +295,7 @@ Mitigation:
 
 ---
 
-# 11. Platform Considerations
+## 11. Platform Considerations
 
 ## Android
 
@@ -307,7 +309,7 @@ Mitigation:
 
 ---
 
-# 12. Integration with RFC 013
+## 12. Integration with RFC 013
 
 Actionability Resolution depends on:
 
@@ -318,7 +320,7 @@ It MUST NOT evaluate elements from unstable snapshots.
 
 ---
 
-# 13. Telemetry
+## 13. Telemetry
 
 Systems SHOULD track:
 
@@ -329,7 +331,7 @@ Systems SHOULD track:
 
 ---
 
-# 14. Rollout Strategy
+## 14. Rollout Strategy
 
 ## Phase 1
 
@@ -347,7 +349,7 @@ The shipped interaction layer now applies iOS semantic tap eligibility in additi
 
 ---
 
-# 15. Dependencies
+## 15. Dependencies
 
 ## Depends On
 
@@ -357,7 +359,7 @@ The shipped interaction layer now applies iOS semantic tap eligibility in additi
 
 ---
 
-# 15.1 Acceptance Criteria
+## 15.1 Acceptance Criteria
 
 An implementation of RFC 014 is considered correct if:
 
@@ -368,7 +370,7 @@ An implementation of RFC 014 is considered correct if:
 - All failures produce a defined failure code
 - Actionability is only evaluated AFTER RFC 005/007 resolution
 
-# 16. Failure Codes (Actionability Gate)
+## 16. Failure Codes (Actionability Gate)
 
 ## Failure Code Derivation Matrix
 
@@ -387,7 +389,7 @@ These are the only supported actionability failure codes.
 
 Implementations SHOULD return the structured code together with a human-readable reason.
 
-# 17. Conclusion
+## 17. Conclusion
 
 Actionability Resolution provides the final gate before UI interaction execution.
 

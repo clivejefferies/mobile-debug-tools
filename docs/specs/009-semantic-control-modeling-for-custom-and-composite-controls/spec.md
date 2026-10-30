@@ -1,5 +1,7 @@
 # RFC 009 — Semantic Control Modeling for Custom and Composite Controls
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## 1. Summary
 
 This RFC defines a semantic control model for identifying, exposing, and interacting with custom and composite controls that are poorly represented through raw accessibility or platform UI trees.

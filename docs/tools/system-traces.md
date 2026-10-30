@@ -1,5 +1,7 @@
 # Android system traces
 
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
+
 Use system traces to collect scheduling and system annotations around a slow
 interaction. Capture is optional, device-wide and Android-only; it does not
 automatically diagnose performance problems. No root or Android CLI installation
@@ -27,7 +29,7 @@ cleanup reserves its slot until resolved. Terminal records with complete cleanup
 expire after 10 minutes or eviction beyond 100 records. Server restart invalidates
 IDs. Repeated terminal operations return the stored outcome.
 
-## Agent workflow and interpretation
+## Capture workflow
 
 Trace a reproducible slow or stalled interaction when existing UI timing/state
 and logs leave a performance question unresolved. Check tool discovery first:
@@ -124,3 +126,9 @@ shutdown attempts owned cleanup for up to 10 seconds. A server crash can leave
 a uniquely named bounded device file for manual removal; restart performs no
 broad cleanup sweep. Device suspend can extend Perfetto's own monotonic duration
 limit; the server timer bounds wall-clock lifetime while the server is running.
+
+## Related guides
+
+- [Interaction](interact.md#interaction-execution-controls-rfc-018): run the journey being measured.
+- [Evidence correlation](correlated-evidence.md): interpret action and observation timing.
+- [Android runtime debugger](debugger.md): inspect paused application state.

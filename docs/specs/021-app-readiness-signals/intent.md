@@ -1,6 +1,8 @@
 # Intent: app readiness signals
 
-Originator: repository maintainer (current conversation).
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Specification](spec.md) · [Plan and verification](plan.md)
+
+Originator: repository maintainer (design review).
 Date: 2026-10-29. Status: approved.
 Source: [GitHub issue #65: App readiness signals](https://github.com/clivejefferies/mobile-debug-tools/issues/65), roadmap priority 2 of 9.
 
@@ -37,4 +39,4 @@ unsupported signals, API placement, and how long observations remain current.
 ## Approval
 
 Approved on 2026-10-29 by the originator’s “yes” in direct response to the
-complete intent summary and linked artifact in this conversation.
+complete intent summary and linked artifact during design review.

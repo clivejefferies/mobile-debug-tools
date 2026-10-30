@@ -1,5 +1,7 @@
 # RFC 007 — Actionability Resolution and Executable Target Selection
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## 1. Summary
 
 This RFC defines how the system resolves which discovered UI element should receive an action before dispatch.

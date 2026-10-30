@@ -61,7 +61,9 @@ If the task is about **reviewing an RFC or spec draft**, load `.agents/skills/sp
 
 ### Repository docs
 
-- `README.md` — high-level repo overview and commands
+- [README.md](README.md) — project overview and setup
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development, validation, and documentation conventions
+- [Documentation index](docs/README.md) — user guides, designs, and benchmarks
 - `docs/specs/process.md` — required development workflow for all agents
 - `docs/tools/TOOLS.md` — tool documentation and contracts
 - `docs/CHANGELOG.md` — recent behavioral changes

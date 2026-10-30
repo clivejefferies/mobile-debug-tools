@@ -1,5 +1,7 @@
 # RFC 005 — Unified Action Execution and Verification Model
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## 1. Summary
 
 This RFC defines a unified execution and verification model for all agent-driven UI actions.

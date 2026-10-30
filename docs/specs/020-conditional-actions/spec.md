@@ -1,8 +1,10 @@
 # Spec 020: conditional actions
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Plan and verification](plan.md)
+
 Date: 2026-10-29.
 Status: approved — implementation authorised.
-Intent: [intent.md](intent.md), approved in the current conversation by the
+Intent: [intent.md](intent.md), approved during design review by the
 originator's “yes” in response to the captured intent.
 
 ## Outcome
@@ -296,6 +298,6 @@ separately. Record exact test routes and cleanup in the implementation plan.
 
 ## Approval
 
-Approved by the originator on 2026-10-29 in the current conversation: “yes”,
+Approved by the originator on 2026-10-29 during design review: “yes”,
 in direct response to the linked complete spec and the listed first-version
 scope. Implementation is authorised within that scope.

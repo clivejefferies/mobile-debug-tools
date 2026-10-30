@@ -1,5 +1,7 @@
 # UI tree observation performance
 
+[Benchmark index](../README.md) · [Documentation](../../README.md)
+
 Fixture SHA-256: be322549a4ba154c0b1c85876559157bb21a911673906d270a7ec26dc2fcfa89. Android 16, API 36. Three warm-ups and ten measured attempts per flow and mode. Failed attempts are visible in the JSON reports and excluded from percentiles.
 
 | Mode | Flow | p50 ms | p95 ms | Failures |
@@ -29,13 +31,12 @@ visible in the acquisition records. The candidate also lowers network p95 at
 both response delays. The fixture recorded no `VERIFICATION_UNAVAILABLE` in
 either mode, so this result does not establish its rate in other apps.
 
-`initial-baseline.json` preserves the standalone instrumentation-only capture
-made before the acquisition change. The paired `baseline.json`,
-`candidate.json`, and `comparison.json` use one APK SHA-256 and the same
-emulator settings. An earlier paired attempt is retained as
-`comparison-attempt-1.json`: one measured baseline 100 ms network read failed
-after a 181.97 s physical acquisition, and one candidate 1,500 ms warm-up
-failed before an observation event. That attempt failed the zero-failure gate.
-The unchanged repeat above had no failures. The cause of the first attempt's
-stalls was not established, so the repeat supports the latency result but does
-not prove the stall cannot recur. iOS latency was not measured.
+The paired [baseline](baseline.json), [candidate](candidate.json), and
+[complete comparison](comparison.json) use one APK SHA-256 and the same emulator
+settings. An [earlier paired attempt](comparison-attempt-1.json) recorded one
+measured baseline 100 ms network read failing after a 181.97 s physical
+acquisition and one candidate 1,500 ms warm-up failing before an observation
+event. That attempt failed the zero-failure gate. The unchanged repeat above had
+no failures. The cause of the first attempt's stalls was not established, so the
+repeat supports the latency result but does not prove the stall cannot recur.
+iOS latency was not measured.

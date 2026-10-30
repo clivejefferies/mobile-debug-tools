@@ -27,14 +27,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: Compile optional debugger worker
-        run: javac --release 17 --add-modules jdk.jdi -d "$RUNNER_TEMP/mobile-debug-jdi" worker/DebuggerWorker.java
+        run: javac --release 17 --add-modules jdk.jdi -d "$RUNNER_TEMP/mobile-debug-jdi" src/debugger/java/DebuggerWorker.java
       - name: Check debugger package contents
         run: |
           npm pack --dry-run --json > "$RUNNER_TEMP/mobile-debug-package.json"
           node --input-type=module - "$RUNNER_TEMP/mobile-debug-package.json" <<'JS'
           import fs from 'node:fs'
           const files = new Set(JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))[0].files.map(file => file.path))
-          for (const file of ['worker/DebuggerWorker.java', 'dist/debugger/worker.js', 'dist/server/debugger-schema.js']) {
+          for (const file of ['src/debugger/java/DebuggerWorker.java', 'dist/debugger/worker.js', 'dist/server/debugger-schema.js']) {
             if (!files.has(file)) throw new Error(`Missing debugger package file: ${file}`)
           }
           JS

@@ -1,23 +1,24 @@
-# Interact (UI actions, waits, and verification)
+# Interaction
 
-This document covers deterministic UI resolution, actions, waits, and outcome verification.
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
 
-## Verification pattern
+Use these tools to select UI targets, perform actions, wait for transitions, and
+verify the resulting state. Follow [Getting started](../../README.md#getting-started) for a
+complete example and [interaction principles](TOOLS.md#interaction-principles)
+for the distinction between execution, synchronization, and verification.
 
-For mutation actions, the intended agent loop is:
+## On this page
 
-**RESOLVE -> ACT -> WAIT (if needed) -> EXPECT**
+- Find a target: [find_element](#find_element), [wait_for_ui](#wait_for_ui).
+- Act on it: [basic input](#tap--swipe--type_text--press_back), [tap_element](#tap_element), [scroll_to_element](#scroll_to_element), [adjust_control](#adjust_control).
+- Wait for change: [screen changes](#wait_for_screen_change), [UI changes](#wait_for_ui_change), [readiness-aware waits](#readiness-aware-waits).
+- Verify the outcome: [screen](#expect_screen), [visible element](#expect_element_visible), [control state](#expect_state).
+- Control execution: [conditional actions](#conditional-actions), [verification modes and journeys](#interaction-execution-controls-rfc-018).
+- Investigate failures: [outcome classification and network activity](#classify_action_outcome--get_network_activity), [evidence correlation](correlated-evidence.md).
 
-Role split:
-
-- `wait_for_*` = resolution and synchronization
-- `expect_*` = final outcome verification
-
-Important:
-
-- `wait_for_*` tools must not be used as the final verification of action success when an applicable `expect_*` tool exists.
-- action tools report execution success, not outcome correctness.
-- `classify_action_outcome` should receive the runtime `action_type` when you want routing to distinguish local-state and side-effect actions.
+When classifying a result, pass the runtime `action_type` to
+`classify_action_outcome` so local-state changes and backend side effects can be
+distinguished.
 
 ## Conditional actions
 
@@ -125,7 +126,7 @@ Example response:
   "target": { "selector": { "x": 100, "y": 200 }, "resolved": null },
   "success": true,
   "trace": {
-    "action_id": "tap_element_1710000000002_3",
+    "action_id": "tap_1710000000000_1",
     "steps": [
       {
         "stage": "resolve",
@@ -292,6 +293,8 @@ Notes:
 - initial support is for slider-like controls that expose `value_range` or readable numeric value state
 - `expect_state` is the verification surface used to read back the resulting value
 - direct target placement is preferred; drag fallback is treated as degraded mode
+- `maxAttempts` defaults to 5; omitted tolerance is 0 for discrete controls, or
+  the larger of half a step and 1% of the range for continuous controls
 - the tool returns `target_state`, `actual_state`, `within_tolerance`, `converged`, `attempts`, and `adjustment_mode`
 
 Input example:
@@ -458,7 +461,10 @@ Notes:
 
 ## tap_element
 
-Tap a previously resolved UI element using its `elementId`.
+Tap a previously resolved `elementId`, or provide a `selector` to resolve and tap
+in one call. Supply exactly one of these targets. Selector calls can use
+`waitFor`; handle-based calls cannot. See [execution controls](#interaction-execution-controls-rfc-018)
+for lookup budgets and selector options.
 
 Input:
 
@@ -734,8 +740,25 @@ the journey; remaining steps report `not_run`. Journey responses default to comp
 `defaults` supplies execution controls; step verification overrides the default.
 `captureOnFailure: true` includes a screenshot-free failure snapshot in debug mode.
 
-See [RFC 018](../specs/018-interaction-latency-and-batched-journeys/spec.md) for
-contracts and the device acceptance criteria.
+Example `run_journey` request:
+
+```json
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "steps": [
+    { "id": "open-settings", "type": "tap", "selector": { "text": "Settings" } },
+    { "id": "verify-account", "type": "assert", "timeoutMs": 15000,
+      "assertion": { "kind": "element_visible", "selector": { "text": "Account" } } }
+  ]
+}
+```
+
+Replace the labels with elements from your own UI. Journey timeouts use camelCase
+(`timeoutMs`, `pollIntervalMs`), unlike standalone UI wait/assertion fields
+(`timeout_ms`, `poll_interval_ms`). See
+[RFC 018](../specs/018-interaction-latency-and-batched-journeys/spec.md) for design
+history and device acceptance criteria.
 
 ## Readiness-aware waits
 
@@ -768,4 +791,4 @@ for supported states and limits.
 ## Correlated evidence
 
 Actions and journeys expose identifiers and phase timestamps for linking later
-observations. See [correlated evidence](evidence.md) for scope and limitations.
+observations. See [evidence correlation](correlated-evidence.md) for scope and limitations.

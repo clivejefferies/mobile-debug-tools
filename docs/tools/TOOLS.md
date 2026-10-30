@@ -1,27 +1,41 @@
-# Tools index
+# Tool reference
 
-This repository groups the MCP tools into four areas aligned with the codebase:
+[Documentation](../README.md)
 
-- [manage](manage.md) — build, install, launch, restart, and device-management tools
-- [observe](observe.md) — screenshots, logs, UI trees, fingerprints, and debug snapshots
-- [interact](interact.md) — UI resolution, actions, waits, and deterministic verification
-- [system](system.md) — environment and health checks
+Start with [Getting started](../../README.md#getting-started) for a complete interaction.
+Use the guides below when you need a tool contract or a specific workflow.
 
-Correlation metadata and explicit action references are documented in
-[correlated evidence](evidence.md). Android performance capture is documented in
-[system traces](system-traces.md). Android bytecode debugging is documented in
-[runtime debugger](debugger.md).
+## Reference guides
 
-## Agent guidance
+- [App management](manage.md) — build, install, launch, restart, and device management.
+- [Observation](observe.md) — screenshots, logs, UI trees, fingerprints, debug snapshots, and app readiness.
+- [Interaction](interact.md) — UI resolution, actions, waits, and deterministic verification.
+- [Environment diagnostics](system.md) — toolchain discovery and health checks.
+- [Evidence correlation](correlated-evidence.md) — action references, capture timing, and freshness.
+- [Android system traces](system-traces.md) — performance capture and local Perfetto artifacts.
+- [Android runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.
 
-For interactive flows, the intended deterministic pattern is:
+## Interaction principles
 
-**RESOLVE -> ACT -> WAIT (if needed) -> EXPECT**
+Interactive flows follow a common sequence:
 
-- **wait_for_\*** tools are for resolution and synchronization
-- **expect_\*** tools are for final outcome verification
-- observation tools are supporting context, not primary success signals
+**RESOLVE → ACT → WAIT (if needed) → EXPECT**
 
-For environment-sensitive work, call `get_system_status` first so the client can rely on automatic discovery when it is available and fall back to explicit tool paths only when needed.
+- Resolution identifies the target before an action.
+- Actions report execution; successful dispatch alone does not establish the intended outcome.
+- `wait_for_*` tools resolve targets and synchronize with UI changes.
+- `expect_*` tools verify the final outcome using explicit assertions.
+- Observation tools provide evidence for targeting, assertions, and diagnosis; collecting evidence alone does not establish success.
+- `get_system_status` identifies available toolchains and missing prerequisites before environment-sensitive operations. Explicit tool paths override automatic discovery when needed.
 
-Use the linked documents below for per-tool inputs, outputs, and usage guidance.
+## Reading examples
+
+Inputs are MCP tool arguments, not shell commands. Replace example device IDs,
+app identifiers, and UI labels with values from your environment. Response
+examples show relevant fields and may omit optional metadata, execution traces,
+and [evidence correlation](correlated-evidence.md). Clients receive JSON in MCP
+text content blocks, with additional image blocks for screenshot tools.
+
+Parameter spelling varies by tool: for example, standalone UI waits use
+`timeout_ms`, while journeys and readiness tools use `timeoutMs`. Follow the
+individual tool's input contract rather than translating names between tools.

@@ -1,5 +1,7 @@
 # Spec 018 iOS device validation
 
+[Benchmark index](../README.md) · [Documentation](../../README.md)
+
 Validated on 27 September 2026 with the booted iPhone Air simulator (iOS 26.4.1).
 
 - `npm run test:device` passed all six Android and iOS screenshot, log, and UI-tree smoke checks.

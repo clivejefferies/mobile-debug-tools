@@ -1,6 +1,8 @@
 # Intent: Android runtime debugger
 
-Originator: clivejefferies, through GitHub roadmap issue #68 and the current conversation.
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Specification](spec.md) · [Plan and verification](plan.md)
+
+Originator: clivejefferies, through GitHub roadmap issue #68 and maintainer design review.
 Date: 2026-10-30. Status: approved.
 Source: [issue #68](https://github.com/clivejefferies/mobile-debug-tools/issues/68), roadmap priority 5 of 9.
 
@@ -36,5 +38,4 @@ concurrency, crash recovery, privacy, and runnable fixture coverage.
 ## Approval
 
 The user selected Android runtime debugger work with “ok, lets pick that up” and
-approved the complete captured intent with “yes” on 2026-10-30 in this
-conversation. Specification approval remains pending.
+approved the complete captured intent with “yes” on 2026-10-30 during design review. See the linked specification for its separate approval record.

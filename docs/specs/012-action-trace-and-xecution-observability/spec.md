@@ -1,7 +1,6 @@
-
-
-
 # RFC 012 — Action Trace and Execution Observability
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## 1. Summary
 

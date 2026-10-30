@@ -1,10 +1,12 @@
 # Specification 019 — UI-Tree Observation Performance
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## Status
 
 Implemented for Android with a paired emulator benchmark. iOS correctness has
 unit and simulator smoke coverage; iOS latency remains unmeasured. See
-`docs/benchmarks/ui-tree-performance/` for the initial baseline, paired reports,
+[benchmark guide](../../benchmarks/ui-tree-performance/README.md) for the paired reports,
 and the retained failed first comparison attempt.
 
 ## 1. Summary

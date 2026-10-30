@@ -28,7 +28,7 @@ export function nativeError(error: any, fallback: string): DebuggerError {
   return new DebuggerError(fallback)
 }
 export class DebuggerError extends Error { constructor(public code: string) { super(code) } }
-export const workerSource = fileURLToPath(new URL('../../worker/DebuggerWorker.java', import.meta.url))
+export const workerSource = fileURLToPath(new URL('../../src/debugger/java/DebuggerWorker.java', import.meta.url))
 let compiled: Promise<{ java: string; directory: string }> | undefined
 export async function prepareWorker() {
   compiled ??= (async () => {

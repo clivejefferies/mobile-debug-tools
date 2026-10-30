@@ -1,4 +1,12 @@
-# Correlated evidence
+# Evidence correlation
+
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
+
+Use evidence correlation to connect an action with later screenshots, UI trees,
+and logs, and to understand when those observations were captured. Association
+does not prove that the action caused an observed change.
+
+## Associate an observation with an action
 
 Covered actions (`start_app`, `restart_app`, `tap`, `tap_element`, `swipe`,
 `scroll_to_element`, `type_text`, `press_back`, `adjust_control`) return an

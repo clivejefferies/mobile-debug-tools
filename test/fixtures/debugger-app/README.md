@@ -1,5 +1,7 @@
 # Isolated Android debugger fixture
 
+[Contributing](../../../CONTRIBUTING.md) · [Documentation](../../../docs/README.md)
+
 Package `dev.mobiledebugmcp.debugfixture`, built with `android:debuggable=true`
 and Java source/line/local metadata. Calculate exposes `known=42`, an increment
 call for into/over/out stepping, and a visible `Result 43` after resume. Late class

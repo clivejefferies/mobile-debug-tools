@@ -1,6 +1,6 @@
-
-
 # RFC 013 — Wait and Synchronization Reliability
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## Status
 
@@ -8,7 +8,7 @@ Draft
 
 ---
 
-# 1. Summary
+## 1. Summary
 
 This RFC introduces deterministic synchronization primitives and snapshot freshness semantics for mobile-debug-mcp.
 
@@ -32,7 +32,7 @@ These capabilities are intended to improve reliability across:
 
 ---
 
-# Relationship to Existing Synchronization Contracts
+## Relationship to Existing Synchronization Contracts
 
 This RFC extends and clarifies the synchronization semantics introduced in RFC003 and the currently shipped synchronization tooling.
 
@@ -58,7 +58,7 @@ It does not invalidate existing synchronization tooling.
 
 ---
 
-# 2. Problem Statement
+## 2. Problem Statement
 
 Current interaction flows rely heavily on immediate post-action reasoning against potentially transient UI state.
 
@@ -93,7 +93,7 @@ This RFC introduces explicit synchronization semantics to address those gaps.
 
 ---
 
-# 3. Goals
+## 3. Goals
 
 The system should:
 
@@ -108,7 +108,7 @@ The system should:
 
 ---
 
-# 4. Non-Goals
+## 4. Non-Goals
 
 This RFC does not attempt to:
 
@@ -122,7 +122,7 @@ This RFC does not attempt to:
 
 ---
 
-# 5. Design Principles
+## 5. Design Principles
 
 ## 5.1 UI-First Synchronization
 
@@ -206,7 +206,7 @@ perform action
 
 ---
 
-# 6. Definitions
+## 6. Definitions
 
 ## Fresh
 
@@ -267,7 +267,7 @@ A synchronization state in which:
 
 ---
 
-# 7. Proposed Capabilities
+## 7. Proposed Capabilities
 
 ## 7.1 wait_for_ui_change
 
@@ -585,7 +585,7 @@ This capability therefore depends on the richer element identity RFC.
 
 ---
 
-# 8. Synchronization Lifecycle Model
+## 8. Synchronization Lifecycle Model
 
 Synchronization should follow a consistent lifecycle.
 
@@ -609,7 +609,7 @@ This lifecycle is intended to standardize synchronization expectations across to
 
 ---
 
-# 9. Agent Guidance and Guardrails
+## 9. Agent Guidance and Guardrails
 
 ## Preferred Flow
 
@@ -650,7 +650,7 @@ Retries should not replace synchronization primitives.
 
 ---
 
-# 10. Failure Modes
+## 10. Failure Modes
 
 ## Infinite Animations
 
@@ -714,7 +714,7 @@ Mitigation:
 
 ---
 
-# 11. Platform Considerations
+## 11. Platform Considerations
 
 ## Android Views
 
@@ -758,7 +758,7 @@ Stabilization windows are especially important.
 
 ---
 
-# 12. Telemetry and Metrics
+## 12. Telemetry and Metrics
 
 The implementation should track:
 
@@ -774,7 +774,7 @@ These metrics should be used to tune convergence heuristics.
 
 ---
 
-# 13. Rollout Strategy
+## 13. Rollout Strategy
 
 ## Phase 1
 
@@ -818,7 +818,7 @@ Introduce:
 
 ---
 
-# 14. Design Closure
+## 14. Design Closure
 
 This specification is fully defined and implementation-ready.
 
@@ -836,7 +836,7 @@ The following areas are fully specified:
 - diff semantics (structural + semantic accessibility only)
 - default synchronization scope (screen)
 
-# 15. Dependencies
+## 15. Dependencies
 
 ## Depends On
 
@@ -855,7 +855,7 @@ The following areas are fully specified:
 
 ---
 
-# 16. Conclusion
+## 16. Conclusion
 
 Reliable synchronization is foundational to deterministic mobile automation.
 

@@ -1,6 +1,12 @@
-# System (environment & health checks)
+# Environment diagnostics
 
-Tools that provide a lightweight view of the local mobile debugging environment and surface issues early so agents can decide whether to proceed.
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
+
+Check local toolchains and connected devices before building, installing, or
+interacting with an app. If discovery cannot find a tool, configure the relevant
+[path override](../../README.md#environment-setup), then check again. Once the
+required platform is available, continue with [device selection](manage.md#list_devices)
+or the [getting-started walkthrough](../../README.md#getting-started).
 
 ## get_system_status
 A fast, non-throwing healthcheck that inspects key dependencies and connections required for mobile debugging.
@@ -11,7 +17,7 @@ Input:
 {}
 ```
 
-Response (example):
+Response (selected fields):
 
 ```json
 {
@@ -63,13 +69,15 @@ Behavior notes:
 - Always returns structured JSON and never throws; any failures are surfaced in the `issues` array.
 - `status` gives a quick overall gate: `ready`, `degraded`, or `blocked`.
 - `summary.android`, `summary.ios`, and `summary.gradle` provide the fastest path to the actual blocker category.
-- Designed to be fast (<~1s probes where possible); startup callers may prefer a `fastMode` variant that only checks existence.
+- The public tool accepts an empty input object; it exposes no `fastMode` option.
+- Probes are best-effort and can take longer when native tooling is slow.
 - Useful to call at the start of an agent session to gate subsequent actions.
 
 Usage guidance:
 - Call before build/install flows to avoid wasted build attempts on misconfigured systems.
 - Call early in a session when device or toolchain availability is uncertain.
-- If `success: false`, attempt recovery steps or report issues to the user.
+- `success: false` can reflect issues on a platform you are not using. Inspect the
+  relevant platform status and blockers before deciding whether to proceed.
 
 Recommended setup patterns:
 - Default: let the server discover tools automatically from standard locations and call `get_system_status` first to confirm what is available.

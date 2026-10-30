@@ -1,7 +1,9 @@
 # Plan: correlated evidence
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Specification](spec.md)
+
 Authorisation: [intent](intent.md), then [spec](spec.md), explicitly approved by
-“yes” and “approve” respectively in this conversation on 2026-10-29.
+“yes” and “approve” respectively during design review on 2026-10-29.
 
 ## Implementation
 
@@ -42,8 +44,8 @@ Use fresh device discovery. Exercise disabled/partial snapshot and invalid
 reference without changing app data. Record pass/fail/blocked/unrun plus metadata
 in this directory; avoid saving screenshot/log contents. Restore changed settings,
 stop only owned streams, and remove temporary test data. No settings change is
-needed. Android log healthcheck was degraded: targeted read is the next check;
-if unavailable, record its concrete error and verify metadata failure behaviour.
+needed. The initial Android log healthcheck was degraded; the targeted read
+subsequently passed, as recorded below.
 iOS physical-device coverage is outside existing simulator support.
 
 ## Results
@@ -77,10 +79,8 @@ contains no capture content; later Modul8 testing below records selector limits.
 - Physical-device correlation, installed/published-package verification: **unrun**.
   No release or deployment was requested.
 
-Validation logs for this local run: `/tmp/mobile-debug-correlated-verify.log` and
-`/tmp/mobile-debug-correlated-device.log`. The `tsx` CLI requires local IPC blocked
-by the sandbox; required npm checks ran with approved escalation. Focused checks
-also passed via `node --import tsx` without that socket.
+Required npm checks passed with local IPC enabled. Focused checks also passed
+via `node --import tsx`.
 
 ## Modul8 follow-up verification — 2026-10-30
 
@@ -146,8 +146,7 @@ conditional dispatch guards intact. Preserve unrelated correlated-evidence work.
   Modul8 and semantically confirmed the original Subscription screen. No app data
   or device settings changed; temporary cleanup client removed.
 - Historical failures in `modul8-evidence.json` are retained as before-fix evidence;
-  this repair supersedes their unresolved-selector status. Validation logs:
-  `/tmp/mobile-debug-selector-fix-verify.log`, `/tmp/mobile-debug-selector-fix-device.log`.
+  this repair supersedes their unresolved-selector status.
 
 ## Remaining readiness test flake — 2026-10-30
 
@@ -166,6 +165,6 @@ restored in `finally`. No production timing or readiness behaviour changed.
 - Focused check: Node 23 pass; 25 separate Node 18.20.8 test-process runs pass.
 - Full Node 18 maintainer verification with unavailable native defaults: **pass**
   (65 unit files, lint, build, agent-plugin consistency). Changed whitespace and
-  local document links also pass; log: `/tmp/mobile-debug-readiness-clock-verify.log`.
+  local document links also pass.
 - Native device suite not repeated for this test-only change; prior runtime
-  device results remain applicable. GitHub CI requires pushing this local repair.
+  device results remain applicable. Hosted CI was not rerun for this repair at the time of this record.

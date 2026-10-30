@@ -1,7 +1,6 @@
-
-
-
 # RFC 008 — Adjustable Control Support and Semantic Value Manipulation
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## 1. Summary
 

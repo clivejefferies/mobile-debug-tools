@@ -1,16 +1,21 @@
-# Manage (build & device management)
+# App management
 
-This document covers tools that perform project builds, device selection, installation, and app lifecycle operations.
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
 
-For app launch and restart flows, agents should use:
+Use these tools to select a device, build and install an app, and control its
+lifecycle. For a first launch, follow [Getting started](../../README.md#getting-started).
 
-**ACT -> WAIT (if needed) -> EXPECT**
+After `start_app` or `restart_app`, [inspect the resulting UI](observe.md) and
+[assert the expected screen or element](interact.md#expect_screen). If the app
+is still loading, use a [readiness check](observe.md#app-readiness) or an
+appropriate [UI wait](interact.md#wait_for_ui) before continuing.
 
-For example:
+## On this page
 
-1. `start_app` or `restart_app`
-2. optional `wait_for_screen_change`
-3. `expect_screen` when the expected landing screen is known
+- [List devices](#list_devices).
+- [Build an app](#build_app).
+- [Install an existing artifact](#install_app).
+- [Launch, stop, restart, or reset an app](#start_app--terminate_app--restart_app--reset_app_data).
 
 ## list_devices
 Enumerate connected Android devices and iOS simulators.
@@ -51,50 +56,21 @@ Notes:
 - Requires `platform`, `projectType`, and `projectPath`.
 - Android builds prefer the project `gradlew` when present.
 - iOS builds honor environment-based Xcode destination and derived-data settings where configured.
-- Android setup typically needs `ADB_PATH` or `ANDROID_SDK_ROOT`/`ANDROID_HOME`, plus `GRADLE_JAVA_HOME` or `JAVA_HOME` for Gradle-backed builds.
+- Standard toolchains are discovered automatically. Use [path overrides](../../README.md#environment-setup) when discovery needs help. Gradle-backed builds require a suitable Java installation.
 - iOS setup typically needs `XCRUN_PATH` and `MCP_IDB_PATH` or `IDB_PATH` when `idb` is not on `PATH`.
 
 ---
 
-## build_and_install (buildAndInstallHandler)
-Orchestrates build then install and returns streamed NDJSON events plus a final result object.
-
-This is a documented repository helper, not part of the main public MCP tool list in `toolDefinitions`.
-
-Input:
-
-```json
-{ "projectPath": "/path/to/project", "platform": "android", "deviceId": "emulator-5554", "projectType": "kmp" }
-```
-
-NDJSON events (example stream):
-
-```json
-{"type":"build","status":"started","platform":"android"}
-{"type":"build","status":"finished","artifactPath":"/path/to/app.apk"}
-{"type":"install","status":"started","artifactPath":"/path/to/app.apk","deviceId":"emulator-5554"}
-{"type":"install","status":"finished","artifactPath":"/path/to/app.apk","device":{"platform":"android","id":"emulator-5554"}}
-```
-
-Final result:
-
-```json
-{ "success": true, "artifactPath": "/path/to/app.apk", "device": { "platform": "android", "id": "emulator-5554" }, "output": "Performing Streamed Install\nSuccess" }
-```
-
-Notes:
-- If `projectType` === `kmp`, the handler prefers Android by default. Set `platform` explicitly to override.
-- If `MCP_DISABLE_AUTODETECT=1`, callers MUST provide `platform` or `projectType`.
-
----
-
 ## install_app
-Install an app onto a connected device or simulator.
+Install a built artifact, or build and install from a project directory.
+`platform`, `projectType`, and `appPath` are required. `projectType` is one of
+`native`, `kmp`, `react-native`, or `flutter`; acceptance of a project type does
+not establish tested support for every framework.
 
 Input:
 
 ```json
-{ "platform": "android", "appPath": "/path/to/app.apk", "deviceId": "emulator-5554" }
+{ "platform": "android", "projectType": "native", "appPath": "/path/to/app.apk", "deviceId": "emulator-5554" }
 ```
 
 Response:
@@ -155,4 +131,9 @@ Notes:
 - Use `details.observed_app` as the quick decision signal for what the tool actually saw after launch.
 - Android launch feedback usually includes package/activity matching; iOS launch feedback includes launch output and PID when available.
 - When the landing screen is known, use `expect_screen` as the final verification step.
-- If launch timing is uncertain, insert `wait_for_screen_change` before `expect_screen`.
+- If launch timing is uncertain, use a UI wait or readiness check before the final assertion.
+
+`terminate_app`, `restart_app`, and `reset_app_data` also require `platform` and
+`appId`, with optional `deviceId`. Resetting app data removes application state;
+use it only when a clean app state is intended. Execution controls apply to
+`start_app` and `restart_app`; see [verification modes](interact.md#interaction-execution-controls-rfc-018).

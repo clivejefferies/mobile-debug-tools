@@ -1,5 +1,7 @@
 # Interaction latency benchmark
 
+[Benchmark index](../README.md) · [Documentation](../../README.md)
+
 Run after `npm run verify`:
 
 ```sh
@@ -24,3 +26,15 @@ See [iOS simulator validation](ios-validation.md) for the interaction checks.
 The process exits unsuccessfully on >10% full p95 regression or <30% light p50
 improvement. A failed run is reported and excluded from percentiles as the spec
 requires; inspect its selector and tool or step before accepting the result.
+
+## Recorded results
+
+- [Android measurements](final.md): latency summaries and acceptance gates.
+- [Raw Android report](final.json): requests, timing components, and per-run outcomes.
+- [iOS interaction validation](ios-validation.md): correctness checks, separate
+  from the Android latency measurements.
+
+The harness overwrites `final.md` and `final.json` when run. These checked-in
+results describe the recorded build and environment; they do not establish the
+performance of the current checkout. Review generated reports and preserve any
+unresolved limitations when recording a new run.

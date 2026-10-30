@@ -1,8 +1,10 @@
 # Specification: Android system traces
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Plan and verification](plan.md)
+
 Date: 2026-10-30. Status: approved.
 Source: [issue #67](https://github.com/clivejefferies/mobile-debug-tools/issues/67).
-[Intent](intent.md) approved by the maintainer’s “yes” in this conversation.
+[Intent](intent.md) approved by the maintainer’s “yes” during design review.
 Specification approved by “looks good” followed by “great” on 2026-10-30.
 
 ## Backend and boundaries

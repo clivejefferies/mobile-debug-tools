@@ -1,6 +1,8 @@
 # Intent: conditional actions
 
-Originator: repository maintainer (user in the current conversation).
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Specification](spec.md) · [Plan and verification](plan.md)
+
+Originator: repository maintainer (design review).
 Date: 2026-10-29.
 Status: approved.
 
@@ -9,7 +11,7 @@ Status: approved.
 “Conditional actions: Check expected state immediately before acting; stop and
 return fresh evidence if it changed.”
 
-Source: user request in the current conversation, following adoption of the
+Source: user request during design review, following adoption of the
 repository development process.
 
 ## Desired outcome
@@ -57,6 +59,6 @@ state observation, and Android/iOS adapters for supported actions.
 
 ## Approval
 
-Approved by the originator in the current conversation on 2026-10-29: “yes”,
+Approved by the originator during design review on 2026-10-29: “yes”,
 in direct response to the complete intent summary and linked artifact. Approval
 covers the captured intent; specification approval remains a separate gate.

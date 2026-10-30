@@ -1,6 +1,6 @@
-
-
 # RFC 010 — Verification Stabilization and Temporal Convergence
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## 1. Summary
 
