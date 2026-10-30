@@ -1,3 +1,4 @@
+import type { IOSBuildOptions } from './ios.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { resolveTargetDevice, listDevices } from '../utils/resolve-device.js'
@@ -11,9 +12,9 @@ import type { InstallAppResponse, StartAppResponse, TerminateAppResponse, Restar
 export { AndroidManage } from './android.js';
 export { iOSManage } from './ios.js';
 
-export async function detectProjectPlatform(projectPath: string): Promise<'ios'|'android'|'ambiguous'|'unknown'> {
+export async function detectProjectPlatform(projectPath: string): Promise<'ios' | 'android' | 'ambiguous' | 'unknown'> {
   // Recursively scan up to a limited depth for platform markers to avoid mis-detection
-  async function scan(dir: string, depth = 3): Promise<{ ios: boolean, android: boolean }>{
+  async function scan(dir: string, depth = 3): Promise<{ ios: boolean, android: boolean }> {
     const res = { ios: false, android: false }
     try {
       const ents = await fs.readdir(dir).catch(() => [])
@@ -28,15 +29,14 @@ export async function detectProjectPlatform(projectPath: string): Promise<'ios'|
         try {
           const full = path.join(dir, e)
           const st = await fs.stat(full).catch(() => null)
-          if (st && st.isDirectory()) {
-            const child = await scan(full, depth - 1)
-            if (child.ios) res.ios = true
-            if (child.android) res.android = true
-            if (res.ios && res.android) return res
-          }
-        } catch {}
+          if (!st || !st.isDirectory()) continue
+          const child = await scan(full, depth - 1)
+          if (child.ios) res.ios = true
+          if (child.android) res.android = true
+          if (res.ios && res.android) return res
+        } catch { }
       }
-    } catch {}
+    } catch { }
     return res
   }
 
@@ -78,7 +78,7 @@ export class ToolsManage {
   static async build_android({ projectPath, gradleTask, maxWorkers, gradleCache, forceClean }: { projectPath: string, gradleTask?: string, maxWorkers?: number, gradleCache?: boolean, forceClean?: boolean }) {
     const android = new AndroidManage()
     const task = gradleTask || 'assembleDebug'
-    return await (android as any).build(projectPath, {
+    return await android.build(projectPath, {
       variant: task,
       env: mergeDefinedEnv({
         MCP_GRADLE_TASK: task,
@@ -92,7 +92,7 @@ export class ToolsManage {
   static async build_ios({ projectPath, workspace: _workspace, project: _project, scheme: _scheme, destinationUDID, derivedDataPath, buildJobs, forceClean }: { projectPath: string, workspace?: string, project?: string, scheme?: string, destinationUDID?: string, derivedDataPath?: string, buildJobs?: number, forceClean?: boolean }) {
     const ios = new iOSManage()
 
-    const opts: any = {}
+    const opts: IOSBuildOptions = {}
     if (_workspace) opts.workspace = _workspace
     if (_project) opts.project = _project
     if (_scheme) opts.scheme = _scheme
@@ -103,7 +103,7 @@ export class ToolsManage {
     // prefer explicit xcodebuild path from env
     if (process.env.XCODEBUILD_PATH) opts.xcodeCmd = process.env.XCODEBUILD_PATH
 
-    return await (ios as any).build(projectPath, {
+    return await ios.build(projectPath, {
       ...opts,
       env: mergeDefinedEnv({
         MCP_DERIVED_DATA: derivedDataPath,
@@ -115,7 +115,7 @@ export class ToolsManage {
     })
   }
 
-  static async build_flutter({ projectPath, platform, buildMode, maxWorkers: _maxWorkers, forceClean: _forceClean }: { projectPath: string, platform?: 'android'|'ios', buildMode?: 'debug'|'release'|'profile', maxWorkers?: number, forceClean?: boolean }) {
+  static async build_flutter({ projectPath, platform, buildMode, maxWorkers: _maxWorkers, forceClean: _forceClean }: { projectPath: string, platform?: 'android' | 'ios', buildMode?: 'debug' | 'release' | 'profile', maxWorkers?: number, forceClean?: boolean }) {
     // Prefer using flutter CLI when available; otherwise delegate to native subproject builders
     const flutterCmd = process.env.FLUTTER_PATH || 'flutter'
     // silence unused params
@@ -131,10 +131,8 @@ export class ToolsManage {
           // Try to find built APK
           const apk = await findApk(path.join(projectPath))
           if (apk) return { artifactPath: apk, output: out }
-        } catch (err: any) {
-          const stdout = err && err.stdout ? String(err.stdout) : ''
-          const stderr = err && err.stderr ? String(err.stderr) : ''
-          throw new Error(`flutter build apk failed: ${stderr || stdout || err.message}`)
+        } catch (thrown: unknown) {
+          throw flutterBuildError(thrown, 'apk')
         }
       }
 
@@ -144,10 +142,8 @@ export class ToolsManage {
           const out = execSync(`${flutterCmd} build ios --${mode} --no-codesign`, { cwd: projectPath, encoding: 'utf8' })
           const app = await findAppBundle(path.join(projectPath))
           if (app) return { artifactPath: app, output: out }
-        } catch (err: any) {
-          const stdout = err && err.stdout ? String(err.stdout) : ''
-          const stderr = err && err.stderr ? String(err.stderr) : ''
-          throw new Error(`flutter build ios failed: ${stderr || stdout || err.message}`)
+        } catch (thrown: unknown) {
+          throw flutterBuildError(thrown, 'ios')
         }
       }
     } catch (e) {
@@ -156,38 +152,24 @@ export class ToolsManage {
       void e
     }
 
-    // Fallback: try native subproject builds
-    if (!platform || platform === 'android') {
-      const androidDir = path.join(projectPath, 'android')
-      const android = new AndroidManage()
-      const artifact = await (android as any).build(androidDir, _forceClean ? 'clean && assembleDebug' : 'assembleDebug')
-      return artifact
-    }
-    if (!platform || platform === 'ios') {
-      const iosDir = path.join(projectPath, 'ios')
-      const ios = new iOSManage()
-      const artifact = await (ios as any).build(iosDir)
-      return artifact
-    }
-
-    return { error: 'Unable to build flutter project' }
+    return buildFlutterNative(projectPath, platform, _forceClean)
   }
 
-  static async build_react_native({ projectPath, platform, variant, maxWorkers: _maxWorkers, forceClean: _forceClean }: { projectPath: string, platform?: 'android'|'ios', variant?: string, maxWorkers?: number, forceClean?: boolean }) {
+  static async build_react_native({ projectPath, platform, variant, maxWorkers: _maxWorkers, forceClean: _forceClean }: { projectPath: string, platform?: 'android' | 'ios', variant?: string, maxWorkers?: number, forceClean?: boolean }) {
     // silence unused params
     void _maxWorkers; void _forceClean;
     // React Native typically uses native subprojects. Delegate to Android/iOS builders.
     if (!platform || platform === 'android') {
       const androidDir = path.join(projectPath, 'android')
       const android = new AndroidManage()
-      const artifact = await (android as any).build(androidDir, variant || 'assembleDebug')
+      const artifact = await android.build(androidDir, variant || 'assembleDebug')
       return artifact
     }
     if (!platform || platform === 'ios') {
       const iosDir = path.join(projectPath, 'ios')
       // Recommend running `pod install` prior to building in CI; not performed automatically here
       const ios = new iOSManage()
-      const artifact = await (ios as any).build(iosDir)
+      const artifact = await ios.build(iosDir)
       return artifact
     }
     return { error: 'Unable to build react-native project' }
@@ -199,11 +181,11 @@ export class ToolsManage {
     const chosen = platform || 'android'
     if (chosen === 'android') {
       const android = new AndroidManage()
-      const artifact = await (android as any).build(projectPath, { variant })
+      const artifact = await android.build(projectPath, { variant })
       return artifact
     } else {
       const ios = new iOSManage()
-      const artifact = await (ios as any).build(projectPath, { variant })
+      const artifact = await ios.build(projectPath, { variant })
       return artifact
     }
   }
@@ -214,7 +196,7 @@ export class ToolsManage {
       throw new Error('Both platform and projectType parameters are required (platform: ios|android, projectType: native|kmp|react-native|flutter).')
     }
 
-    const chosenPlatform: 'android'|'ios' = platform
+    const chosenPlatform: 'android' | 'ios' = platform
 
     if (chosenPlatform === 'android') {
       const resolved = await resolveTargetDevice({ platform: 'android', deviceId })
@@ -271,7 +253,7 @@ export class ToolsManage {
 
   static async buildAndInstallHandler({ platform, projectPath, deviceId, timeout, projectType }: { platform: 'android' | 'ios', projectPath: string, deviceId?: string, timeout?: number, projectType: 'native' | 'kmp' | 'react-native' | 'flutter' }) {
     const events: string[] = []
-    const pushEvent = (obj: any) => events.push(JSON.stringify(obj))
+    const pushEvent = (obj: unknown) => events.push(JSON.stringify(obj))
     const effectiveTimeout = timeout ?? 180000 // reserved for future streaming/timeouts
     void effectiveTimeout
 
@@ -281,56 +263,19 @@ export class ToolsManage {
       return { ndjson: events.join('\n') + '\n', result: { success: false, error: 'Both platform and projectType parameters are required (platform: ios|android, projectType: native|kmp|react-native|flutter).' } }
     }
 
-    // determine platform if not provided by inspecting path or projectType hint
-    let chosenPlatform = platform
-    try {
-      if (!chosenPlatform) {
-        // If caller provided projectType, respect it as a hard override and map to platform
-        if (projectType) {
-          if (projectType === 'kmp' || projectType === 'react-native' || projectType === 'flutter') {
-            chosenPlatform = 'android'
-            pushEvent({ type: 'build', status: 'info', message: `projectType=${projectType} -> forcing android platform` })
-          } else if (projectType === 'native' || projectType === 'ios') {
-            chosenPlatform = 'ios'
-            pushEvent({ type: 'build', status: 'info', message: `projectType=${projectType} -> forcing ios platform` })
-          } else {
-            pushEvent({ type: 'build', status: 'failed', error: `Unknown projectType: ${projectType}` })
-            return { ndjson: events.join('\n') + '\n', result: { success: false, error: `Unknown projectType: ${projectType}` } }
-          }
-        } else {
-          // If autodetect is disabled, require explicit platform or projectType
-          if (process.env.MCP_DISABLE_AUTODETECT === '1') {
-            pushEvent({ type: 'build', status: 'failed', error: 'MCP_DISABLE_AUTODETECT=1 requires explicit platform or projectType' })
-            return { ndjson: events.join('\n') + '\n', result: { success: false, error: 'MCP_DISABLE_AUTODETECT=1 requires explicit platform or projectType (ios|android).' } }
-          }
-
-          const det = await detectProjectPlatform(projectPath)
-          if (det === 'ios' || det === 'android') {
-            chosenPlatform = det
-          } else if (det === 'ambiguous') {
-            pushEvent({ type: 'build', status: 'failed', error: 'Ambiguous project (contains both iOS and Android). Please provide platform: "ios" or "android".' })
-            return { ndjson: events.join('\n') + '\n', result: { success: false, error: 'Ambiguous project - please provide explicit platform parameter (ios|android).' } }
-          } else {
-            // Unknown project type - do not guess. Request explicit platform.
-            pushEvent({ type: 'build', status: 'failed', error: 'Unknown project type - unable to autodetect platform. Please provide platform or projectType.' })
-            return { ndjson: events.join('\n') + '\n', result: { success: false, error: 'Unknown project type - please provide platform or projectType (ios|android).' } }
-          }
-        }
-      }
-    } catch {
-      // detection failed; avoid guessing a platform
-    }
+    // Explicit platform/projectType were required above; no autodetection occurs.
+    const chosenPlatform = platform
 
     pushEvent({ type: 'build', status: 'started', platform: chosenPlatform })
 
-    let buildRes: any
+    let buildRes: { artifactPath?: string; error?: string; output?: string; diagnostics?: unknown }
     try {
-      buildRes = await ToolsManage.buildAppHandler({ platform: chosenPlatform as any, projectPath })
-      if (buildRes && (buildRes as any).error) {
-        pushEvent({ type: 'build', status: 'failed', error: (buildRes as any).error })
-        return { ndjson: events.join('\n') + '\n', result: { success: false, error: (buildRes as any).error } }
+      buildRes = await ToolsManage.buildAppHandler({ platform: chosenPlatform, projectPath })
+      if (buildRes && buildRes.error) {
+        pushEvent({ type: 'build', status: 'failed', error: buildRes.error })
+        return { ndjson: events.join('\n') + '\n', result: { success: false, error: buildRes.error } }
       }
-      pushEvent({ type: 'build', status: 'finished', artifactPath: (buildRes as any).artifactPath })
+      pushEvent({ type: 'build', status: 'finished', artifactPath: buildRes.artifactPath })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       pushEvent({ type: 'build', status: 'failed', error: msg })
@@ -338,11 +283,11 @@ export class ToolsManage {
     }
 
     // Install phase
-    const artifact = (buildRes as any).artifactPath || projectPath
+    const artifact = buildRes.artifactPath || projectPath
     pushEvent({ type: 'install', status: 'started', artifactPath: artifact, deviceId })
-    let installRes: any
+    let installRes: InstallAppResponse
     try {
-      installRes = await ToolsManage.installAppHandler({ platform: chosenPlatform as any, appPath: artifact, deviceId, projectType })
+      installRes = await ToolsManage.installAppHandler({ platform: chosenPlatform, appPath: artifact, deviceId, projectType })
       if (installRes && installRes.installed === true) {
         pushEvent({ type: 'install', status: 'finished', artifactPath: artifact, device: installRes.device })
         return { ndjson: events.join('\n') + '\n', result: { success: true, artifactPath: artifact, device: installRes.device, output: installRes.output } }
@@ -358,7 +303,32 @@ export class ToolsManage {
   }
 
   static async listDevicesHandler({ platform, appId }: { platform?: 'android' | 'ios', appId?: string }) {
-    const devices = await listDevices(platform as any, appId)
+    const devices = await listDevices(platform, appId)
     return { devices }
   }
+}
+
+async function buildFlutterNative(projectPath: string, platform?: 'android' | 'ios', _forceClean?: boolean) {
+  // Fallback: try native subproject builds
+  if (!platform || platform === 'android') {
+    const androidDir = path.join(projectPath, 'android')
+    const android = new AndroidManage()
+    const artifact = await android.build(androidDir, _forceClean ? 'clean && assembleDebug' : 'assembleDebug')
+    return artifact
+  }
+  if (!platform || platform === 'ios') {
+    const iosDir = path.join(projectPath, 'ios')
+    const ios = new iOSManage()
+    const artifact = await ios.build(iosDir)
+    return artifact
+  }
+
+  return { error: 'Unable to build flutter project' }
+}
+
+function flutterBuildError(thrown: unknown, kind: string): Error {
+  const err = thrown as { stdout?: unknown; stderr?: unknown; message?: string }
+  const stdout = err && err.stdout ? String(err.stdout) : ''
+  const stderr = err && err.stderr ? String(err.stderr) : ''
+  return new Error(`flutter build ${kind} failed: ${stderr || stdout || err.message}`)
 }

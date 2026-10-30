@@ -1,3 +1,5 @@
+import { parseWorkerMessage, type WorkerEvent, type WorkerReply } from './protocol.js'
+export type { WorkerEvent } from './protocol.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -21,10 +23,10 @@ export function debuggerRemaining(fallback: number) {
   return Math.min(fallback, remaining)
 }
 export function debuggerSignal() { return operations.getStore()?.signal }
-export function nativeError(error: any, fallback: string): DebuggerError {
+export function nativeError(error: unknown, fallback: string): DebuggerError {
   if (error instanceof DebuggerError) return error
   if (debuggerSignal()?.aborted) return new DebuggerError('DEBUGGER_CANCELLED')
-  if (error?.killed) return new DebuggerError('DEBUGGER_TIMEOUT')
+  if (typeof error === 'object' && error !== null && 'killed' in error && error.killed) return new DebuggerError('DEBUGGER_TIMEOUT')
   return new DebuggerError(fallback)
 }
 export class DebuggerError extends Error { constructor(public code: string) { super(code) } }
@@ -48,14 +50,13 @@ export async function prepareWorker() {
   })().catch(error => { compiled = undefined; throw error })
   return compiled
 }
-export type WorkerEvent = Record<string, any>
 export interface DebugWorker {
-  call(command: string, args?: Record<string, unknown>, timeout?: number): Promise<any>
+  call(command: string, args?: Record<string, unknown>, timeout?: number): Promise<WorkerReply>
   close(): Promise<void>
 }
 export class JdiWorker implements DebugWorker {
   private child: ChildProcessWithoutNullStreams
-  private pending = new Map<number, { resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>()
+  private pending = new Map<number, { resolve(value: WorkerReply): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>()
   private sequence = 0
   private dead = false
   private exited: Promise<void>
@@ -81,8 +82,8 @@ export class JdiWorker implements DebugWorker {
         const line = buffer.slice(0, end); buffer = buffer.slice(end + 1)
         try {
           if (Buffer.byteLength(line) > 1024 * 1024) throw new Error('IPC_LIMIT')
-          const msg = JSON.parse(line)
-          if (msg.event) onEvent(msg)
+          const msg = parseWorkerMessage(JSON.parse(line))
+          if (msg.kind === 'event') onEvent(msg.value)
           else {
             const request = this.pending.get(msg.id)
             if (!request) continue
@@ -94,7 +95,7 @@ export class JdiWorker implements DebugWorker {
       }
     })
   }
-  call(command: string, args: Record<string, unknown> = {}, timeout = 10000): Promise<any> {
+  call(command: string, args: Record<string, unknown> = {}, timeout = 10000): Promise<WorkerReply> {
     if (this.dead) return Promise.reject(new DebuggerError('DEBUGGER_WORKER_FAILED'))
     try { timeout = Math.min(timeout, debuggerRemaining(timeout)) } catch (e) { return Promise.reject(e) }
     const id = ++this.sequence

@@ -1,0 +1,3448 @@
+[
+  {
+    "name": "get_debugger_capabilities",
+    "description": "Probe optional Android JDK/JDWP prerequisites and matching running debuggable processes; does not attach.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "deviceId",
+        "appId"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "appId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][\\w]*(?:\\.[A-Za-z][\\w]*)+$"
+        },
+        "processId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "attach_debugger",
+    "description": "Attach an owned Android JDI session. Requires an explicit device and debuggable app; choose processId when ambiguous. Stops suspend all app threads. Auto-detach: 60s paused, 5m idle, 30m total.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "deviceId",
+        "appId"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "appId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z][\\w]*(?:\\.[A-Za-z][\\w]*)+$"
+        },
+        "processId": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_debugger_state",
+    "description": "Read debugger state, current stop and breakpoint/cleanup status.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "set_debugger_breakpoint",
+    "description": "Set an exact binary-class and executable-source-line breakpoint; unloaded classes remain pending. No silent line relocation.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "className",
+        "line"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "className": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*$"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "remove_debugger_breakpoint",
+    "description": "Remove an owned breakpoint; repeated removal succeeds.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "breakpointId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "breakpointId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wait_for_debugger_event",
+    "description": "Wait for bounded debugger events after a sequence cursor. Empty timeout does not affect execution; overflow is explicit.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "afterSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 1000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_debugger_stack",
+    "description": "Read bounded stack frames for a stopped thread; IDs expire on resume.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "stopId",
+        "threadId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stopId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "threadId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_debugger_locals",
+    "description": "Read at most 100 shallow locals. Sensitive values returned only on request; strings truncate at 256 characters. No evaluation or field traversal.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "stopId",
+        "frameId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stopId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "frameId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "step_debugger",
+    "description": "Acknowledge one-shot line stepping and resume. Wait for a subsequent stop event separately.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "stopId",
+        "threadId",
+        "kind"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stopId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "threadId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "into",
+            "over",
+            "out"
+          ]
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "resume_debugger",
+    "description": "Resume owned debugger suspension and immediately expire stopped references.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId",
+        "stopId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stopId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "detach_debugger",
+    "description": "Dispose the owned debugger connection, release owned suspension and remove its exact forward. Idempotent; retries incomplete cleanup.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "debugSessionId"
+      ],
+      "properties": {
+        "debugSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 30000,
+          "default": 10000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_system_trace_capabilities",
+    "description": "Probe Android Perfetto prerequisites without recording. Device-wide system tracing is optional; iOS is unsupported.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "start_system_trace",
+    "description": "Start bounded Android Perfetto recording, returning an owned trace_id. Run an existing journey with systemTraceId, then stop to retrieve a local artifact or cancel to discard. Device-wide traces may contain sensitive system annotations; no upload.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000,
+          "default": 30000
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_system_trace_status",
+    "description": "Reconcile an owned trace and retrieve its state; finalise duration-completed capture.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceId"
+      ],
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "stop_system_trace",
+    "description": "Stop owned capture gracefully and retrieve a local Perfetto artifact. Retry after a transfer/cleanup failure.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceId"
+      ],
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "cancel_system_trace",
+    "description": "Stop owned capture and discard partial files. Already completed local artifacts are retained.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceId"
+      ],
+      "properties": {
+        "traceId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_app_readiness",
+    "description": "Observe readiness with at most two fresh UI-tree samples. Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000,
+          "default": 15000
+        },
+        "stabilityMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 500
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wait_for_app_ready",
+    "description": "Wait within a single bounded budget for settled UI evidence. Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform"
+      ],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 60000,
+          "default": 30000
+        },
+        "stabilityMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "default": 500
+        },
+        "pollIntervalMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1000,
+          "default": 500
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "start_app",
+    "description": "Purpose:\nLaunch a mobile app on Android or iOS.\n\nInputs:\n- platform\n- appId\n- deviceId (optional)\n\nOutput Structure:\n - action_id, timestamp (ISO 8601), action_type\n - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n - source_module: runtime source of the action envelope\n - target.selector = { appId }\n- success = true when launch was dispatched successfully\n- failure_code/retryable when launch dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Define the expected landing screen when it is known\n2. Call start_app\n3. If needed, wait for transition using wait_for_*\n4. Verify with expect_screen\n5. If verification fails, retry once or capture a snapshot\n\nVerification Guidance:\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- expect_screen is the authoritative verification step when the landing screen is known\n- Do not treat timing or screen change alone as final verification\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → inspect snapshot/logs before retrying",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "appId": {
+          "type": "string",
+          "description": "Android package name or iOS bundle id"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "required": [
+        "platform",
+        "appId"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "terminate_app",
+    "description": "Terminate a mobile app on Android or iOS simulator",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "appId": {
+          "type": "string",
+          "description": "Android package name or iOS bundle id"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        }
+      },
+      "required": [
+        "platform",
+        "appId"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "restart_app",
+    "description": "Purpose:\nRestart a mobile app on Android or iOS.\n\nInputs:\n- platform\n- appId\n- deviceId (optional)\n\nOutput Structure:\n - action_id, timestamp (ISO 8601), action_type\n - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n - source_module: runtime source of the action envelope\n - target.selector = { appId }\n- success = true when the restart command completed\n- failure_code/retryable when restart dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Define the expected landing screen when it is known\n2. Call restart_app\n3. If needed, wait for transition using wait_for_*\n4. Verify with expect_screen\n5. If verification fails, retry once or capture a snapshot\n\nVerification Guidance:\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- expect_screen is the authoritative verification step when the reopened screen is known\n- Do not treat timing or screen change alone as final verification\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → inspect snapshot/logs before retrying",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "appId": {
+          "type": "string",
+          "description": "Android package name or iOS bundle id"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "required": [
+        "platform",
+        "appId"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "reset_app_data",
+    "description": "Reset app data (clear storage) for a mobile app on Android or iOS simulator",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "appId": {
+          "type": "string",
+          "description": "Android package name or iOS bundle id"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        }
+      },
+      "required": [
+        "platform",
+        "appId"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "install_app",
+    "description": "Install an app on Android or iOS. Accepts a built binary (apk/.ipa/.app) or a project directory to build then install. platform and projectType are required.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to install to (required)."
+        },
+        "projectType": {
+          "type": "string",
+          "enum": [
+            "native",
+            "kmp",
+            "react-native",
+            "flutter"
+          ],
+          "description": "Project type to guide build/install tool selection (required)."
+        },
+        "appPath": {
+          "type": "string",
+          "description": "Path to APK, .app, .ipa, or project directory"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        }
+      },
+      "required": [
+        "platform",
+        "projectType",
+        "appPath"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "build_app",
+    "description": "Build a project for Android or iOS and return the built artifact path. Does not install. platform and projectType are required.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to build for (required)."
+        },
+        "projectType": {
+          "type": "string",
+          "enum": [
+            "native",
+            "kmp",
+            "react-native",
+            "flutter"
+          ],
+          "description": "Project type to guide build tool selection (required)."
+        },
+        "projectPath": {
+          "type": "string",
+          "description": "Path to project directory (contains gradlew or xcodeproj/xcworkspace)"
+        },
+        "variant": {
+          "type": "string",
+          "description": "Optional build variant (e.g., Debug/Release)"
+        }
+      },
+      "required": [
+        "platform",
+        "projectType",
+        "projectPath"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_logs",
+    "description": "Get recent logs from Android or iOS simulator. Returns device metadata and structured logs suitable for AI consumption.\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "appId": {
+          "type": "string",
+          "description": "Filter by Android package name or iOS bundle id"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        },
+        "pid": {
+          "type": "number",
+          "description": "Filter by process id"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Filter by tag (Android) or subsystem/category (iOS)"
+        },
+        "level": {
+          "type": "string",
+          "description": "Log level filter (VERBOSE, DEBUG, INFO, WARN, ERROR)"
+        },
+        "contains": {
+          "type": "string",
+          "description": "Substring to match in log message"
+        },
+        "since_seconds": {
+          "type": "number",
+          "description": "Only return logs from the last N seconds"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Override default number of returned lines"
+        },
+        "lines": {
+          "type": "number",
+          "description": "Legacy - number of log lines (android only)"
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "list_devices",
+    "description": "List connected devices and their metadata (android + ios).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_system_status",
+    "description": "Quick healthcheck of local mobile debugging environment (adb, devices, logs, env, iOS).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "capture_screenshot",
+    "description": "Capture a screenshot from an Android device or iOS simulator. Returns device metadata and the screenshot image.\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "capture_debug_snapshot",
+    "description": "Capture a complete debug snapshot (raw observation layer plus optional derived semantic layer). Returns structured JSON with snapshot_revision, captured_at_ms, snapshot_delta, and loading_state when detectable.\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "description": "Optional reason for snapshot"
+        },
+        "includeLogs": {
+          "type": "boolean",
+          "description": "Whether to include logs",
+          "default": true
+        },
+        "includeScreenshot": {
+          "type": "boolean",
+          "description": "Whether to collect screenshot bytes",
+          "default": true
+        },
+        "logLines": {
+          "type": "number",
+          "description": "Maximum number of log lines to include",
+          "default": 200
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "appId": {
+          "type": "string",
+          "description": "Optional appId to scope logs (package/bundle id)"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Optional log stream session id to prefer"
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "start_log_stream",
+    "description": "Start streaming logs for a target application on Android or iOS. For Android this uses adb logcat --pid=<pid>; for iOS it streams `xcrun simctl spawn <device> log stream` with a predicate.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "default": "android"
+        },
+        "packageName": {
+          "type": "string",
+          "description": "Android package name or iOS bundle id"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "default": "error"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial (Android) or UDID (iOS). Defaults to connected/booted device."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Session identifier for the log stream"
+        }
+      },
+      "required": [
+        "packageName"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "read_log_stream",
+    "description": "Read accumulated log stream entries for the active session.\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "stop_log_stream",
+    "description": "Stop an active log stream for the session.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_ui_tree",
+    "description": "Get the current UI hierarchy from an Android device or iOS simulator. Returns a structured JSON representation of the screen content with snapshot metadata and incremental delta signals when available.\nSuccessful observations include snapshot_session_id and snapshot_revision for same-device conditional input. Compact errors preserve the error and cannot authorize an expectation.\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to get UI tree for"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial (Android) or UDID (iOS). Defaults to connected/booted device."
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "sinceSnapshotRevision": {
+          "type": "number",
+          "minimum": 1
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_current_screen",
+    "description": "Get the currently visible activity on an Android device. Returns package and activity name.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial (Android). Defaults to connected/booted device."
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_screen_fingerprint",
+    "description": "Generate a stable fingerprint representing the current visible screen (activity + visible UI elements).\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override (android|ios)"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device id/udid to target"
+        },
+        "actionRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sessionId",
+            "actionId"
+          ],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "actionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wait_for_screen_change",
+    "description": "Purpose:\nDetect that a screen transition has occurred by waiting for the current fingerprint to differ from a previous fingerprint.\n\nCapabilities:\n- Synchronization for uncertain navigation timing\n- Detection that something changed on screen\n\nConstraints:\n- Does not verify correctness of the resulting state\n- Must not be used alone to confirm action success when an applicable expect_* tool exists\n- For backend/API activity without a visible UI change, pass the runtime action_type into classify_action_outcome and collect network evidence only if the result remains ambiguous\n\nRecommended Usage:\n1. Capture or define the expected outcome\n2. Call an action tool\n3. Use wait_for_screen_change when transition timing is uncertain\n4. Follow with expect_screen when the expected destination is known",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override (android|ios)"
+        },
+        "previousFingerprint": {
+          "type": "string",
+          "description": "The fingerprint to compare against (required)"
+        },
+        "timeoutMs": {
+          "type": "number",
+          "description": "Timeout in ms to wait for change (default 5000)",
+          "default": 5000
+        },
+        "pollIntervalMs": {
+          "type": "number",
+          "description": "Polling interval in ms (default 300)",
+          "default": 300
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device id/udid to target"
+        }
+      },
+      "required": [
+        "previousFingerprint"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wait_for_ui_change",
+    "description": "Purpose:\nWait for a non-navigation UI mutation or in-place update to become stable.\n\nInputs:\n- expected_change (optional): hierarchy_diff, text_change, or state_change\n- timeout_ms (optional)\n- stability_window_ms (optional)\n- scope (optional): screen or subtree\n- target (optional): element_id when scope=subtree\n\nGuidance:\n- Prefer wait_for_screen_change for navigation transitions.\n- Prefer wait_for_ui_change for in-place mutations and non-navigation updates.\n- Use the returned snapshot_revision as the observed synchronization point when available.\n- Scoped waits return scope-aware stability metadata and a lightweight change summary.\n\nFailure Handling:\n- TIMEOUT means the UI did not change in a stable way within the allotted time.\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override (android|ios)"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device id/udid to target"
+        },
+        "expected_change": {
+          "type": "string",
+          "enum": [
+            "hierarchy_diff",
+            "text_change",
+            "state_change"
+          ],
+          "description": "Optional type of UI change to wait for"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "screen",
+            "subtree"
+          ],
+          "default": "screen",
+          "description": "Synchronization scope for the wait"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target element_id when scope is subtree"
+        },
+        "timeout_ms": {
+          "type": "number",
+          "description": "Timeout in ms to wait for change (default 60000)",
+          "default": 60000
+        },
+        "stability_window_ms": {
+          "type": "number",
+          "description": "How long the change must remain stable before success (default 300)",
+          "default": 300
+        },
+        "requireReady": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "expect_screen",
+    "description": "Purpose:\nDeterministically verify that the intended navigation outcome of an action has occurred.\n\nInputs:\n- fingerprint: preferred exact-match screen fingerprint\n- screen: exact semantic screen identifier when a fingerprint is not available\n\nOutput Structure:\n- success: true when the expected screen matches the observed screen\n- observed_screen: current fingerprint and screen identifier\n- expected_screen: the expected fingerprint and/or screen identifier\n- confidence: 1 for an exact match, otherwise 0\n\nRecommended Usage:\n1. Define the expected screen before executing the action\n2. Resolve the target element or screen state\n3. Call an action tool such as tap_element\n4. If needed, wait for transition using wait_for_*\n5. Call expect_screen as the final verification step\n6. If success=false, treat the outcome as unverified and follow the action tool retry guidance\n\nVerification Guidance:\n- Primary and authoritative verification tool for navigation outcomes\n- Prefer fingerprint whenever you have one\n- Use screen only as a fallback exact match against known identifiers\n- Works best when the expected screen identifier is known ahead of time\n- If the expected screen is not already known, capture or define it before executing the action\n\nConstraints:\n- Returns structured binary success/failure only\n- Must not rely on natural-language interpretation or reasoning\n\nFailure Handling:\n- success=false means the expected screen was not reached; retry or recover using the action tool's failure strategy",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override (android|ios)"
+        },
+        "fingerprint": {
+          "type": "string",
+          "description": "Expected screen fingerprint. Preferred verification mechanism."
+        },
+        "screen": {
+          "type": "string",
+          "description": "Expected exact screen identifier when no fingerprint is available."
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device id/udid to target"
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "expect_element_visible",
+    "description": "Purpose:\nDeterministically verify that the intended UI outcome of an action has occurred by confirming a target element is visible.\n\nInputs:\n- selector: required selector used to resolve the target element\n- element_id: optional previously resolved element identifier used only as context\n\nOutput Structure:\n- success: true when the element is visible\n- selector: selector used for verification\n- element_id: resolved element identifier when available\n- element: minimal resolved element info when visible\n- failure_code: TIMEOUT or UNKNOWN when verification fails\n- retryable: true when failure_code=TIMEOUT\n\nRecommended Usage:\n1. Define the expected element state before executing the action\n2. Resolve the target element or triggering control\n3. Call an action tool such as tap_element\n4. If needed, wait for UI availability using wait_for_*\n5. Call expect_element_visible as the final verification step\n6. If success=false, follow the action tool retry guidance\n\nVerification Guidance:\n- Primary and authoritative verification tool for expected element appearance or visibility\n- Use this when the screen should stay the same but the UI should reveal or update a specific element\n- selector is the primary input; element_id is an optional optimization only\n- The tool resolves the selector internally when needed\n\nConstraints:\n- Returns structured binary success/failure only\n- Must not rely on natural-language interpretation or reasoning\n\nFailure Handling:\n- TIMEOUT → retry verification once or retry the action after re-resolving\n- UNKNOWN → capture a snapshot and stop",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resource_id": {
+              "type": "string"
+            },
+            "accessibility_id": {
+              "type": "string"
+            },
+            "contains": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "element_id": {
+          "type": "string",
+          "description": "Optional previously resolved element identifier."
+        },
+        "timeout_ms": {
+          "type": "number",
+          "default": 5000
+        },
+        "poll_interval_ms": {
+          "type": "number",
+          "default": 300
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "expect_state",
+    "description": "Purpose:\nVerify a readable UI state property on the currently visible element.\n\nInputs:\n- selector or element_id\n- property\n- expected\n- platform/deviceId (optional)\n\nSupported properties:\n- checked, selected, focused, expanded, enabled, text_value, value, raw_value\n\nVerification Guidance:\n- Use this when the UI element is visible but its state must also be confirmed\n- Prefer the canonical property names above\n- The tool compares the normalized readable state and returns the observed value when available\n\nConstraints:\n- Returns structured success/failure only\n- Does not infer a state when the property is unavailable\n\nFailure Handling:\n- ELEMENT_NOT_FOUND → re-resolve the element or wait for UI stabilization\n- UNKNOWN → capture a snapshot and stop",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resource_id": {
+              "type": "string"
+            },
+            "accessibility_id": {
+              "type": "string"
+            },
+            "contains": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "element_id": {
+          "type": "string",
+          "description": "Optional previously resolved element identifier."
+        },
+        "property": {
+          "type": "string",
+          "description": "Readable state property to verify."
+        },
+        "expected": {
+          "description": "Expected normalized state value.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        }
+      },
+      "required": [
+        "property",
+        "expected"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "adjust_control",
+    "description": "Purpose:\nAdjust a numeric control value with verification.\n\nThis is the initial adjustable-control surface for slider-like controls and other controls that expose a numeric value or value_range.\n\nInputs:\n- exactly one of selector or element_id\n- property (defaults to \"value\")\n- targetValue\n- tolerance (optional; discrete default is 0, continuous default is max(step / 2, 1% of range) when omitted)\n- maxAttempts (optional; defaults to 5)\n- platform/deviceId (optional)\n\nOutput Structure:\n- action_id, timestamp (ISO 8601), action_type\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target_state / actual_state / within_tolerance / converged / attempts / adjustment_mode\n- target.selector = original selector or element handle\n- success = true when the control converges within tolerance\n\nVerification Guidance:\n- Prefer direct platform adjustment when the runtime exposes it; then verified increment/decrement actions; use coordinate fallback only as degraded mode\n- Use expect_state for the control value readback\n- Do not use derived semantic metadata as proof of success\n\nFailure Handling:\n- ELEMENT_NOT_FOUND → re-resolve the control\n- ELEMENT_NOT_INTERACTABLE → the control cannot be adjusted through the current runtime\n- CONTROL_CONVERGENCE_FAILED → the control did not converge within bounded retries or the requested value is out of range\n- UNKNOWN → capture a snapshot and stop",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resource_id": {
+              "type": "string"
+            },
+            "accessibility_id": {
+              "type": "string"
+            },
+            "contains": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "element_id": {
+          "type": "string",
+          "description": "Optional previously resolved element identifier."
+        },
+        "property": {
+          "type": "string",
+          "description": "Readable numeric state property to adjust.",
+          "default": "value"
+        },
+        "targetValue": {
+          "type": "number",
+          "description": "Target numeric value."
+        },
+        "tolerance": {
+          "type": "number",
+          "description": "Accepted numeric tolerance around the target value. Defaults are derived from the readable control domain."
+        },
+        "maxAttempts": {
+          "type": "number",
+          "description": "Maximum adjustment attempts.",
+          "default": 5
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        }
+      },
+      "required": [
+        "targetValue"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "selector"
+          ]
+        },
+        {
+          "required": [
+            "element_id"
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wait_for_ui",
+    "description": "Purpose:\nResolve elements and/or detect that a UI transition or availability condition has occurred.\n\nCapabilities:\n- Deterministic element resolution\n- Synchronization when element timing or availability is uncertain\n\nConstraints:\n- Does not verify correctness of the resulting state\n- Must not be used alone to confirm action success when an applicable expect_* tool exists\n\nRecommended Usage:\n1. Use wait_for_ui to resolve an element before acting or to wait for UI readiness\n2. Call the action tool\n3. If the expected outcome is known, follow with expect_* as final verification\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resource_id": {
+              "type": "string"
+            },
+            "accessibility_id": {
+              "type": "string"
+            },
+            "contains": {
+              "type": "boolean",
+              "description": "When true, perform substring matching",
+              "default": false
+            }
+          }
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "exists",
+            "not_exists",
+            "visible",
+            "clickable"
+          ],
+          "default": "exists"
+        },
+        "timeout_ms": {
+          "type": "number",
+          "default": 60000
+        },
+        "poll_interval_ms": {
+          "type": "number",
+          "default": 300
+        },
+        "match": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "number"
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "properties": {
+            "max_attempts": {
+              "type": "number",
+              "default": 1
+            },
+            "backoff_ms": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        },
+        "requireReady": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "find_element",
+    "description": "Find a UI element by semantic query (text, content-desc, resource-id, class).\n\nReturns the best match plus resolution metadata when available, including confidence, selection reason, and fallback alternates.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query (text or label)"
+        },
+        "exact": {
+          "type": "boolean",
+          "description": "Require exact match (true/false)",
+          "default": false
+        },
+        "timeoutMs": {
+          "type": "number",
+          "description": "Timeout in ms to keep searching",
+          "default": 3000
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Optional platform override"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Optional device serial/udid"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "tap",
+    "description": "Purpose:\nDispatch a tap at specific screen coordinates.\n\nInputs:\n- x, y coordinates\n- platform (optional)\n- deviceId (optional)\n\nOutput Structure:\n - action_id, timestamp (ISO 8601), action_type\n - lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n - source_module: runtime source of the action envelope\n - target.selector = { x, y }\n- success = true when the tap was dispatched\n- failure_code/retryable when dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Resolve coordinates deterministically\n2. Call tap\n3. If needed, wait for transition using wait_for_*\n4. Verify with expect_screen or expect_element_visible depending on the intended outcome\n\nVerification Guidance:\n- Prefer tap_element over tap when an element can be resolved\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Use expect_screen for navigation and expect_element_visible for local UI changes\n- Do not use wait_for_* alone as final verification when an applicable expect_* tool exists\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → capture a snapshot and stop\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to tap on"
+        },
+        "x": {
+          "type": "number",
+          "description": "X coordinate"
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial/UDID. Defaults to connected/booted device."
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        },
+        "expectedState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotSessionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000,
+              "default": 15000
+            }
+          },
+          "required": [
+            "snapshotSessionId",
+            "snapshotRevision"
+          ]
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "expectedState"
+            ]
+          },
+          "then": {
+            "required": [
+              "platform",
+              "deviceId"
+            ],
+            "properties": {
+              "platform": {
+                "enum": [
+                  "android",
+                  "ios"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "not": {
+                  "enum": [
+                    "booted",
+                    "default"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "tap_element",
+    "description": "Purpose:\nTap a previously resolved UI element using its elementId.\n\nInputs:\n- elementId: a resolved UI element identifier returned by wait_for_ui\n\nOutput Structure:\n- action_id: unique timestamp-based action identifier\n- timestamp: ISO 8601 timestamp for the action attempt\n- action_type: \"tap_element\"\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target.selector: original target handle ({ elementId })\n- target.resolved: minimal resolved element info used for the tap\n- success: true when the tap was dispatched\n- failure_code: present when success=false\n- retryable: present when failure_code exists\n- ui_fingerprint_before/ui_fingerprint_after: optional fingerprints captured around the action\n\nRecommended Usage:\n1. Resolve the target with wait_for_ui or another deterministic resolver\n2. Call tap_element\n3. If needed, wait for transition using wait_for_*\n4. Verify outcome using expect_*\n   - use expect_screen when navigation is expected\n   - use expect_element_visible when the UI change is local\n5. If verification fails, inspect failure_code and follow the retry strategy below\n\nVerification Guidance:\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Prefer expect_screen for navigation or modal transitions\n- Prefer expect_element_visible when the tap should reveal or update a specific element\n- wait_for_* may be used for resolution and synchronization, but not as the final verification step when an applicable expect_* tool exists\n- Do not treat tap_element.success as outcome success; it only means the tap was executed\n\nFailure Handling:\n- STALE_REFERENCE → re-resolve the element, then retry\n- ELEMENT_NOT_INTERACTABLE → wait or refine the target, then retry\n- UNKNOWN → capture a snapshot and stop\n\nThis tool reports execution success only. Verification must be done with a separate expect_* tool.\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "elementId": {
+          "type": "string",
+          "description": "A unique element identifier returned by wait_for_ui"
+        },
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resource_id": {
+              "type": "string"
+            },
+            "accessibility_id": {
+              "type": "string"
+            },
+            "contains": {
+              "type": "boolean"
+            }
+          }
+        },
+        "waitFor": {
+          "type": "object",
+          "properties": {
+            "condition": {
+              "type": "string",
+              "enum": [
+                "exists",
+                "visible",
+                "clickable"
+              ]
+            },
+            "timeoutMs": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 10000
+            },
+            "pollIntervalMs": {
+              "type": "number",
+              "minimum": 50,
+              "maximum": 1000
+            },
+            "match": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "expectedState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotSessionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000,
+              "default": 15000
+            }
+          },
+          "required": [
+            "snapshotSessionId",
+            "snapshotRevision"
+          ]
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "expectedState"
+            ]
+          },
+          "then": {
+            "required": [
+              "platform",
+              "deviceId"
+            ],
+            "properties": {
+              "platform": {
+                "enum": [
+                  "android",
+                  "ios"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "not": {
+                  "enum": [
+                    "booted",
+                    "default"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "elementId"
+          ],
+          "not": {
+            "required": [
+              "selector"
+            ]
+          }
+        },
+        {
+          "required": [
+            "selector"
+          ],
+          "not": {
+            "required": [
+              "elementId"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "swipe",
+    "description": "Purpose:\nDispatch a swipe gesture on Android or iOS.\n\nInputs:\n- start and end coordinates\n- duration\n- platform/deviceId (optional)\n\nOutput Structure:\n- action_id, timestamp (ISO 8601), action_type\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target.selector = { x1, y1, x2, y2, duration }\n- success = true when the swipe was dispatched\n- failure_code/retryable when dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Determine swipe coordinates\n2. Call swipe\n3. If needed, wait for transition using wait_for_*\n4. Verify with expect_screen or expect_element_visible when a deterministic outcome is expected\n\nVerification Guidance:\n- Swipe outcomes are less predictable; choose the most specific verifier available for the intended effect\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Do not use wait_for_* alone as final verification when an applicable expect_* tool exists\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → capture a snapshot and stop\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to swipe on (android or ios)"
+        },
+        "x1": {
+          "type": "number",
+          "description": "Start X coordinate"
+        },
+        "y1": {
+          "type": "number",
+          "description": "Start Y coordinate"
+        },
+        "x2": {
+          "type": "number",
+          "description": "End X coordinate"
+        },
+        "y2": {
+          "type": "number",
+          "description": "End Y coordinate"
+        },
+        "duration": {
+          "type": "number",
+          "description": "Duration in ms"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial/UDID. Defaults to connected/booted device."
+        },
+        "expectedState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotSessionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000,
+              "default": 15000
+            }
+          },
+          "required": [
+            "snapshotSessionId",
+            "snapshotRevision"
+          ]
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "required": [
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "duration"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "expectedState"
+            ]
+          },
+          "then": {
+            "required": [
+              "platform",
+              "deviceId"
+            ],
+            "properties": {
+              "platform": {
+                "enum": [
+                  "android",
+                  "ios"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "not": {
+                  "enum": [
+                    "booted",
+                    "default"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "scroll_to_element",
+    "description": "Purpose:\nScroll until a target element becomes visible.\n\nInputs:\n- platform\n- selector\n- direction, maxScrolls, scrollAmount, deviceId (optional)\n\nOutput Structure:\n- action_id, timestamp (ISO 8601), action_type\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target.selector = original selector\n- target.resolved = minimal resolved element info when found\n- success = true when scrolling produced a visible target element\n- failure_code/retryable when the target was not reached\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Resolve the target selector\n2. Call scroll_to_element\n3. If needed, wait for UI stabilization using wait_for_*\n4. Verify with expect_element_visible when the expected element visibility is known\n5. If success=false, follow failure handling before retrying\n\nVerification Guidance:\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Use expect_element_visible when you need an explicit post-scroll confirmation\n- Do not use wait_for_* alone as final verification when an applicable expect_* tool exists\n\nFailure Handling:\n- NAVIGATION_NO_CHANGE → adjust scroll direction or stop\n- TIMEOUT → retry with refined selector or larger scroll budget\n- UNKNOWN → capture a snapshot and stop",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to operate on (required)"
+        },
+        "selector": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "resourceId": {
+              "type": "string"
+            },
+            "contentDesc": {
+              "type": "string"
+            },
+            "className": {
+              "type": "string"
+            }
+          }
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "down",
+            "up"
+          ],
+          "default": "down"
+        },
+        "maxScrolls": {
+          "type": "number",
+          "default": 10
+        },
+        "scrollAmount": {
+          "type": "number",
+          "default": 0.7
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device UDID (iOS) or Serial (Android). Defaults to booted/connected."
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "required": [
+        "platform",
+        "selector"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "type_text",
+    "description": "Purpose:\nType text into the currently focused Android input field.\n\nInputs:\n- text\n- platform/deviceId (optional)\n\nOutput Structure:\n- action_id, timestamp (ISO 8601), action_type\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target.selector = { text }\n- success = true when text input was dispatched\n- failure_code/retryable when dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Resolve or focus the target input first\n2. Call type_text\n3. If needed, wait for UI stabilization using wait_for_*\n4. Verify with expect_element_visible or expect_screen, depending on the intended outcome\n\nVerification Guidance:\n- Prefer verifying the next expected element or screen state instead of inferring success from the text action alone\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Do not use wait_for_* alone as final verification when an applicable expect_* tool exists\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → re-focus the input or capture a snapshot\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android"
+          ],
+          "description": "Platform to type on (currently only android supported)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The text to type"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial/UDID. Defaults to connected/booted device."
+        },
+        "expectedState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotSessionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000,
+              "default": 15000
+            }
+          },
+          "required": [
+            "snapshotSessionId",
+            "snapshotRevision"
+          ]
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "expectedState"
+            ]
+          },
+          "then": {
+            "required": [
+              "platform",
+              "deviceId"
+            ],
+            "properties": {
+              "platform": {
+                "enum": [
+                  "android"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "not": {
+                  "enum": [
+                    "booted",
+                    "default"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "press_back",
+    "description": "Purpose:\nDispatch the Android Back action.\n\nInputs:\n- platform/deviceId (optional)\n\nOutput Structure:\n- action_id, timestamp (ISO 8601), action_type\n- lifecycle_state: post-dispatch lifecycle state (pending_verification or failed)\n- source_module: runtime source of the action envelope\n- target.selector = { key: \"back\" }\n- success = true when the back action was dispatched\n- failure_code/retryable when dispatch fails\n- ui_fingerprint_before/ui_fingerprint_after when available\n\nRecommended Usage:\n1. Call press_back\n2. If needed, wait for transition using wait_for_*\n3. Verify with expect_screen when a known destination is expected\n4. If verification fails, retry once or recover explicitly\n\nVerification Guidance:\n- Back outcomes can vary by screen, so verify against the intended destination when possible\n- Follow RESOLVE → ACT → WAIT (if needed) → EXPECT\n- Do not use wait_for_* alone as final verification when an applicable expect_* tool exists\n\nFailure Handling:\n- TIMEOUT → retry once\n- UNKNOWN → capture a snapshot and stop\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android"
+          ],
+          "description": "Platform (currently only android supported)"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial/UDID. Defaults to connected/booted device."
+        },
+        "expectedState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "snapshotSessionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "snapshotRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 60000,
+              "default": 15000
+            }
+          },
+          "required": [
+            "snapshotSessionId",
+            "snapshotRevision"
+          ]
+        },
+        "verificationMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "full"
+          ],
+          "default": "full"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "debug"
+        },
+        "actionTimeoutMs": {
+          "type": "integer",
+          "description": "Dispatch budget in milliseconds, clamped to 100–30000."
+        },
+        "verificationTimeoutMs": {
+          "type": "integer",
+          "description": "Light observation budget in milliseconds, clamped to 100–60000."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "expectedState"
+            ]
+          },
+          "then": {
+            "required": [
+              "platform",
+              "deviceId"
+            ],
+            "properties": {
+              "platform": {
+                "enum": [
+                  "android"
+                ]
+              },
+              "deviceId": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "not": {
+                  "enum": [
+                    "booted",
+                    "default"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "classify_action_outcome",
+    "description": "Classify the outcome of the most recent action into exactly one of: success, no_op, backend_failure, ui_failure, unknown.\n\nUse the runtime action result's `action_type` as `actionType` so the classifier can distinguish local-state actions from side-effect actions.\nUse this when the intended outcome is not already fully verified by the UI signal alone.\nFor backend/API activity, compare get_screen_fingerprint before and after the action and call get_network_activity immediately after the action if the outcome is still ambiguous.\n\nHOW TO GATHER INPUTS before calling:\n1. Call wait_for_screen_change or compare get_screen_fingerprint before/after — set uiChanged accordingly.\n2. If you checked for a specific element with wait_for_ui, set expectedElementVisible.\n3. Pass actionType from the action response when available.\n4. Only provide networkRequests if you already collected them or want to classify a side-effect action with backend evidence.\n\nRULES (applied in order — stop at first match):\n1. If uiChanged=true OR expectedElementVisible=true → outcome=success\n2. If actionType is missing → outcome=unknown\n3. If any request has status=failure or retryable → outcome=backend_failure\n4. If actionType maps to a local-state action → outcome=no_op; prefer state-based verification and avoid default network fallback\n5. If actionType maps to a side-effect action and no networkRequests were supplied → outcome=unknown\n6. If no requests returned → outcome=no_op\n7. If all requests succeeded → outcome=ui_failure\n8. Otherwise → outcome=unknown\n\nBEHAVIOUR after outcome:\n- success → continue\n- no_op → retry with richer state verification or re-resolve the element\n- backend_failure → stop and report the failing endpoint\n- ui_failure → stop and report failure\n- unknown → take one recovery step (e.g. capture_debug_snapshot), then stop",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "uiChanged": {
+          "type": "boolean",
+          "description": "true if the screen fingerprint or activity changed after the action. Use wait_for_screen_change or compare get_screen_fingerprint before and after."
+        },
+        "expectedElementVisible": {
+          "type": "boolean",
+          "description": "true if the element you expected to appear is now visible (from wait_for_ui). Omit if you did not check for a specific element."
+        },
+        "actionType": {
+          "type": "string",
+          "description": "The runtime action_type from the action response (for example tap, tap_element, swipe, type_text, press_back, start_app)."
+        },
+        "networkRequests": {
+          "type": "array",
+          "description": "Optional network evidence collected after the action. Use it when the expected outcome is backend/API activity or when the UI signal is ambiguous.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "endpoint": {
+                "type": "string",
+                "description": "Request endpoint or full URL"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "failure",
+                  "retryable"
+                ],
+                "description": "Outcome of the request"
+              }
+            },
+            "required": [
+              "endpoint",
+              "status"
+            ]
+          }
+        },
+        "hasLogErrors": {
+          "type": "boolean",
+          "description": "true if structured log errors were observed (e.g. from read_log_stream). Optional — include if you have already read logs."
+        }
+      },
+      "required": [
+        "uiChanged"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "run_journey",
+    "description": "Run an ordered, bounded sequence of start_app, tap, wait, and deterministic assertion steps against one device. Stops after the first failed step.\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence even in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "responseMode": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "debug"
+          ],
+          "default": "compact"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "const": "start_app"
+                  },
+                  "appId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "verificationMode": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "light",
+                      "full"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "appId"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "const": "tap"
+                  },
+                  "selector": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "resource_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "accessibility_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "contains": {
+                        "type": "boolean"
+                      }
+                    },
+                    "anyOf": [
+                      {
+                        "required": [
+                          "text"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "resource_id"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "accessibility_id"
+                        ]
+                      }
+                    ]
+                  },
+                  "elementId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "verificationMode": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "light",
+                      "full"
+                    ]
+                  },
+                  "expectedState": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "snapshotSessionId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "snapshotRevision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 60000,
+                        "default": 15000
+                      }
+                    },
+                    "required": [
+                      "snapshotSessionId",
+                      "snapshotRevision"
+                    ]
+                  },
+                  "waitFor": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "timeoutMs": {
+                        "type": "integer",
+                        "minimum": 100,
+                        "maximum": 10000
+                      },
+                      "pollIntervalMs": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 1000
+                      },
+                      "condition": {
+                        "enum": [
+                          "exists",
+                          "visible",
+                          "clickable"
+                        ]
+                      },
+                      "match": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        },
+                        "required": []
+                      }
+                    },
+                    "required": []
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ],
+                    "not": {
+                      "required": [
+                        "elementId"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "elementId"
+                    ],
+                    "not": {
+                      "required": [
+                        "selector"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "const": "wait"
+                  },
+                  "selector": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "resource_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "accessibility_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "contains": {
+                        "type": "boolean"
+                      }
+                    },
+                    "anyOf": [
+                      {
+                        "required": [
+                          "text"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "resource_id"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "accessibility_id"
+                        ]
+                      }
+                    ]
+                  },
+                  "condition": {
+                    "enum": [
+                      "exists",
+                      "not_exists",
+                      "visible",
+                      "clickable"
+                    ]
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 60000
+                  },
+                  "pollIntervalMs": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "selector"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "const": "assert"
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 60000
+                  },
+                  "pollIntervalMs": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 1000
+                  },
+                  "assertion": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "element_visible"
+                          },
+                          "selector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "resource_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "accessibility_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "contains": {
+                                "type": "boolean"
+                              }
+                            },
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "text"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "resource_id"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "accessibility_id"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "selector"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "element_absent"
+                          },
+                          "selector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "resource_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "accessibility_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "contains": {
+                                "type": "boolean"
+                              }
+                            },
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "text"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "resource_id"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "accessibility_id"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "selector"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "screen_fingerprint"
+                          },
+                          "fingerprint": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "fingerprint"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "state_equals"
+                          },
+                          "selector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "resource_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "accessibility_id": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "contains": {
+                                "type": "boolean"
+                              }
+                            },
+                            "anyOf": [
+                              {
+                                "required": [
+                                  "text"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "resource_id"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "accessibility_id"
+                                ]
+                              }
+                            ]
+                          },
+                          "elementId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "property": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "expected": {
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "property",
+                          "expected"
+                        ],
+                        "oneOf": [
+                          {
+                            "required": [
+                              "selector"
+                            ],
+                            "not": {
+                              "required": [
+                                "elementId"
+                              ]
+                            }
+                          },
+                          {
+                            "required": [
+                              "elementId"
+                            ],
+                            "not": {
+                              "required": [
+                                "selector"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "assertion"
+                ]
+              }
+            ]
+          }
+        },
+        "systemTraceId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Explicit active same-device system trace. Invalid references prevent all journey input. Capture lifetime is controlled separately."
+        },
+        "captureOnFailure": {
+          "type": "boolean",
+          "default": false
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "verificationMode": {
+              "type": "string",
+              "enum": [
+                "none",
+                "light",
+                "full"
+              ]
+            },
+            "actionTimeoutMs": {
+              "type": "integer"
+            },
+            "verificationTimeoutMs": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "required": [
+        "platform",
+        "steps"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "get_network_activity",
+    "description": "Returns structured network events captured from platform logs since the last action.\n\nCall this immediately after an action when you want backend evidence for a side-effect flow, only if the result is still ambiguous.\nDo not call more than once per action.\n\nEvents are filtered to significant (non-background) requests only.\nEach event includes endpoint, method, statusCode, networkError, status, and durationMs.\n\nstatus values:\n- success: HTTP 2xx or request detected with no error signal\n- failure: HTTP 4xx\n- retryable: HTTP 5xx, network error (timeout, dns_error, tls_error, etc.)\n\nReturns { requests: [], count: 0 } when no credible network signals are found.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ],
+          "description": "Platform to read network logs from"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device Serial (Android) or UDID (iOS). Defaults to connected/booted device."
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "allOf": [
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ]
+    }
+  }
+]

@@ -9,22 +9,21 @@ async function exists(p: string) {
 }
 
 async function findFirst(root: string, patterns: string[], maxDepth = 4): Promise<string | null> {
-  const queue: Array<{dir:string, depth:number}> = [{dir: root, depth:0}]
+  const queue: Array<{ dir: string, depth: number }> = [{ dir: root, depth: 0 }]
   while (queue.length) {
-    const {dir, depth} = queue.shift()!
+    const { dir, depth } = queue.shift()!
     try {
       console.error('DEBUG findFirst: reading dir', dir, 'depth', depth)
       const ents: fs.Dirent[] = await fs.promises.readdir(dir, { withFileTypes: true })
-      console.error('DEBUG findFirst: entries', ents.map(e=>e.name))
+      console.error('DEBUG findFirst: entries', ents.map(e => e.name))
       for (const e of ents) {
         const full = path.join(dir, e.name)
-        for (const p of patterns) {
-          if (e.name.endsWith(p)) {
-            console.error('DEBUG findFirst: matched', full)
-            return full
-          }
+        const matched = patterns.some(pattern => e.name.endsWith(pattern))
+        if (matched) {
+          console.error('DEBUG findFirst: matched', full)
+          return full
         }
-        if (e.isDirectory() && depth < maxDepth) queue.push({dir: full, depth: depth+1})
+        if (e.isDirectory() && depth < maxDepth) queue.push({ dir: full, depth: depth + 1 })
       }
     } catch (err) {
       console.error('DEBUG findFirst: read failed for', dir, err)
@@ -46,18 +45,7 @@ function startCompanionIfNeeded(companionPath: string | null, udid: string | nul
 }
 
 async function main() {
-  const args = process.argv.slice(2)
-  let projectArg: string | undefined
-  let udid: string | undefined
-  let startCompanion = false
-  let kmpBuild: any = null
-  for (let i=0;i<args.length;i++) {
-    const a = args[i]
-    if (a === '--project' && args[i+1]) { projectArg = args[i+1]; i++ }
-    else if (a === '--udid' && args[i+1]) { udid = args[i+1]; i++ }
-    else if (a === '--start-companion') startCompanion = true
-    else if (!projectArg) projectArg = a
-  }
+  const { projectArg, udid, startCompanion, kmpBuild } = argumentsForPreflight(process.argv.slice(2))
 
   const cwd = process.cwd()
   const projectRoot = projectArg ? path.resolve(projectArg) : cwd
@@ -98,13 +86,10 @@ async function main() {
   const companionPath = commandWhich('idb_companion')
   const companionAvailable = !!companionPath
 
-  const suggestions: string[] = []
-  if (!projectFile) suggestions.push('Provide correct project path or ensure .xcodeproj/.xcworkspace exists in project dir')
-  if (!kmpFramework) suggestions.push('Run KMP Gradle task to produce Shared.framework before xcodebuild (e.g., :shared:embedAndSignAppleFrameworkForXcode)')
-  if (!idbAvailable) suggestions.push('Ensure idb is in PATH or set MCP_IDB_PATH / IDB_PATH')
-  if (!companionAvailable) suggestions.push('Install idb_companion and ensure it is in PATH')
+  const suggestions = preflightSuggestions(projectFile, kmpFramework, idbAvailable, companionAvailable)
 
-  const result: any = {
+  const companionInfo: { cmd: string | null; installed: boolean; start?: ReturnType<typeof startCompanionIfNeeded> } = { cmd: companionPath, installed: companionAvailable }
+  const result = {
     ok: !!projectFile && !!idbAvailable,
     project: {
       root: projectRoot,
@@ -120,10 +105,7 @@ async function main() {
       cmd: idbPath,
       installed: idbAvailable
     },
-    idb_companion: {
-      cmd: companionPath,
-      installed: companionAvailable
-    },
+    idb_companion: companionInfo,
     suggestions
   }
 
@@ -142,3 +124,29 @@ main().catch(e => {
   console.log(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }, null, 2))
   process.exit(2)
 })
+
+function argumentsForPreflight(args: string[]) {
+  let projectArg: string | undefined
+  let udid: string | undefined
+  let startCompanion = false
+  const kmpBuild = null
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]
+    if (a === '--project' && args[i + 1]) { projectArg = args[i + 1]; i++ }
+    else if (a === '--udid' && args[i + 1]) { udid = args[i + 1]; i++ }
+    else if (a === '--start-companion') startCompanion = true
+    else if (!projectArg) projectArg = a
+  }
+
+  return { projectArg, udid, startCompanion, kmpBuild }
+}
+
+function preflightSuggestions(projectFile: string | null, kmpFramework: string | null, idbAvailable: boolean, companionAvailable: boolean) {
+  const suggestions: string[] = []
+  if (!projectFile) suggestions.push('Provide correct project path or ensure .xcodeproj/.xcworkspace exists in project dir')
+  if (!kmpFramework) suggestions.push('Run KMP Gradle task to produce Shared.framework before xcodebuild (e.g., :shared:embedAndSignAppleFrameworkForXcode)')
+  if (!idbAvailable) suggestions.push('Ensure idb is in PATH or set MCP_IDB_PATH / IDB_PATH')
+  if (!companionAvailable) suggestions.push('Install idb_companion and ensure it is in PATH')
+
+  return suggestions
+}

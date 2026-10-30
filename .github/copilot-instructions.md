@@ -10,6 +10,9 @@ index](../docs/README.md) links to current tool contracts and historical designs
 Load the applicable [repository skill](../.agents/skills/README.md) before test
 authoring, native tooling work, or specification review.
 
+Follow the [module ownership and quality rules](../docs/code-structure.md) when
+changing dependencies or extracting services.
+
 Follow existing platform adapters, subprocess helpers, error handling, and MCP
 response conventions. Inspect the relevant implementation and tests rather than
 assuming all tools share one response shape or execution strategy.

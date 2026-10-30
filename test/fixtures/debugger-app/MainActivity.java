@@ -23,7 +23,28 @@ public class MainActivity extends Activity {
       try { Class.forName("dev.mobiledebugmcp.debugfixture.NoLocals").getDeclaredMethod("work").invoke(null); }
       catch (Exception e) { status.setText("Metadata failed"); }
     }); layout.addView(noLocals);
+    addLevelControl(layout);
     setContentView(layout);
+  }
+  void addLevelControl(LinearLayout layout) {
+    TextView level = new TextView(this);
+    level.setGravity(android.view.Gravity.CENTER);
+    level.setText("25 %"); layout.addView(level);
+    android.widget.SeekBar slider = new android.widget.SeekBar(this);
+    slider.setMax(100); slider.setProgress(25);
+    slider.setContentDescription("Fixture level");
+    slider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+      public void onProgressChanged(android.widget.SeekBar view, int progress, boolean fromUser) { level.setText(progress + " %"); }
+      public void onStartTrackingTouch(android.widget.SeekBar view) {}
+      public void onStopTrackingTouch(android.widget.SeekBar view) {}
+    });
+    layout.addView(slider);
+    LinearLayout range = new LinearLayout(this);
+    TextView minimum = new TextView(this); minimum.setText("0 %");
+    TextView maximum = new TextView(this); maximum.setText("100 %"); maximum.setGravity(android.view.Gravity.RIGHT);
+    range.addView(minimum, new LinearLayout.LayoutParams(0, 80, 1));
+    range.addView(maximum, new LinearLayout.LayoutParams(0, 80, 1));
+    layout.addView(range);
   }
   void calculate(int seed) {
     int known = seed + 35;

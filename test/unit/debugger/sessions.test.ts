@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { DebuggerSessions, debuggerExpiry } from '../../../src/debugger/sessions.js'
 import { DebuggerError, type WorkerEvent } from '../../../src/debugger/worker.js'
 import type { DebugNative, DebugTarget } from '../../../src/debugger/android.js'
-import { debuggerContracts, debuggerTools } from '../../../src/server/debugger-schema.js'
+import { debuggerContracts, debuggerTools } from '../../../src/server/schemas/debugger-schema.js'
 assert.equal(debuggerExpiry(0, 0, 0, 59999), null)
 assert.equal(debuggerExpiry(0, 60000, 0, 60000), 'pause_limit', 'polling cannot extend pause expiry')
 assert.equal(debuggerExpiry(0, 0, undefined, 300000), 'idle_limit')

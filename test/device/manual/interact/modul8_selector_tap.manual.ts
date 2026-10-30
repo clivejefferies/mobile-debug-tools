@@ -11,7 +11,7 @@ async function run() {
   const transport = new StdioClientTransport({ command: process.execPath, args: ['dist/server.js'], stderr: 'pipe' })
   const target = { platform: 'android', deviceId: 'emulator-5554' }
   const report: any = { verified_on: new Date().toISOString(), device: target, package: 'com.ideamechanics.modul8.dev',
-    source: 'rebuilt local MCP stdio server', build_sha256: createHash('sha256').update(readFileSync('dist/server/tool-handlers.js')).digest('hex'),
+    source: 'rebuilt local MCP stdio server', build_sha256: createHash('sha256').update(readFileSync('dist/server/handlers/tool-handlers.js')).digest('hex'),
     steps: [], status: 'UNRUN', cleanup: 'UNRUN' }
   const call = async (name: string, args: Record<string, unknown>) => {
     const response: any = await client.callTool({ name, arguments: { ...target, ...args } }, undefined, { timeout: 120000 })

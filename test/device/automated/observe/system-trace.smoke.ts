@@ -82,7 +82,7 @@ async function run() {
     const absent = await execCmd(getAdbCmd(), ['-s', device.id, 'shell', 'test', '!', '-e', remote], { timeout: 10000 })
     assert.equal(absent.exitCode, 0, `Shutdown must stop and remove its owned device capture: ${shutdownTrace.trace_id}; ${shutdownDiagnostics}; ${absent.stderr}`)
     const buildHash = createHash('sha256')
-    for (const file of ['dist/server.js', 'dist/observe/system-trace.js', 'dist/observe/system-trace-android.js', 'dist/server/tool-handlers.js', 'dist/observe/evidence.js']) buildHash.update(await fs.readFile(file))
+    for (const file of ['dist/server.js', 'dist/observe/system-trace.js', 'dist/observe/system-trace-android.js', 'dist/server/handlers/tool-handlers.js', 'dist/observe/evidence.js']) buildHash.update(await fs.readFile(file))
     const report = { status: 'PASS', build_sha256: buildHash.digest('hex'), runtime: process.version, server: client.getServerVersion(), device: device.id, osVersion: device.osVersion,
       starting_state: 'System Settings fixture', journey: 'start Settings, assert baseline Settings-owned resource visible in UI tree; explicit trace association',
       trace_id: start.trace_id, correlation_id: journey.evidence.correlation_id, phases: {

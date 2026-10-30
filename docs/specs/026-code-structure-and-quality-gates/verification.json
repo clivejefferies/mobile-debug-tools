@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-30",
+  "status": "verified checkpoint; full refactoring scope remains in progress",
+  "node": "v23.11.0",
+  "maintainer": {
+    "command": "npm run verify",
+    "status": "pass",
+    "unit_files": 78
+  },
+  "device_suite": {
+    "command": "MCP_DEBUGGER_DEVICE=emulator-5554 npm run test:device",
+    "status": "pass",
+    "records": [
+      {
+        "status": "PASS",
+        "build_sha256": "b43dc571fa4ad37bfa5a77af61425286d47cd4f0b738c3cb7e013d2c4cf01d9a",
+        "device": "emulator-5554",
+        "api": "36",
+        "runtime": "v23.11.0",
+        "transport": "MCP stdio",
+        "extended": false
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "android",
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "startingApp": "com.android.settings",
+        "actionId": "77b18501-7594-4ff7-ab67-53c8a91b75e4",
+        "phases": {
+          "dispatchStarted": 1793379545096,
+          "dispatchCompleted": 1793379545495,
+          "screenshotStarted": 1793379545858,
+          "screenshotCompleted": 1793379546511
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "ios",
+        "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+        "osVersion": "iOS 26.4",
+        "startingApp": "com.apple.Preferences",
+        "actionId": "75efedc5-eb5c-45e3-8b4e-5c1e5dcb6d6d",
+        "phases": {
+          "dispatchStarted": 1793379554471,
+          "dispatchCompleted": 1793379554924,
+          "screenshotStarted": 1793379555463,
+          "screenshotCompleted": 1793379555970
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "build_sha256": "370254feb4bc933c650c00625e0ca2a1ec32567ea35190098710a16c50e9c4c5",
+        "runtime": "v23.11.0",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "starting_state": "System Settings fixture",
+        "journey": "start Settings, assert baseline Settings-owned resource visible in UI tree; explicit trace association",
+        "trace_id": "69cec918-2d8c-4241-8192-1e15d937300d",
+        "correlation_id": "e096888b-fd9d-4385-bcbc-acefc56f717a",
+        "phases": {
+          "capture_started_at_ms": 1793379585269,
+          "capture_completed_at_ms": 1793379591151
+        },
+        "artifact_bytes": 1103332,
+        "content": {
+          "packets": 240,
+          "ftrace_bundles": 223,
+          "events": 25402,
+          "compact_sched_bundles": 223,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "durationContent": {
+          "packets": 55,
+          "ftrace_bundles": 39,
+          "events": 2884,
+          "compact_sched_bundles": 39,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "cancel": "PASS",
+        "expired_journey": "PASS",
+        "active_shutdown": "PASS",
+        "cleanup": "Device capture files removed; test host artifacts removed in finally. No settings or app data changed. Settings remains foreground."
+      }
+    ]
+  },
+  "java_compile": {
+    "status": "pass",
+    "command": "javac --release 17 --add-modules jdk.jdi",
+    "host_java_major": 23
+  },
+  "package": {
+    "status": "pass",
+    "command": "npm pack --dry-run --json",
+    "required_files": [
+      "src/debugger/java/DebuggerWorker.java",
+      "dist/debugger/worker.js",
+      "dist/debugger/protocol.js",
+      "dist/runtime/action-results.js",
+      "dist/server/definitions/input.js",
+      "dist/server/debugger-schema.js"
+    ]
+  },
+  "unrun": [
+    "Node 18 locally; existing CI job retains Node 18",
+    "Hosted CI",
+    "Android physical-device debugger journey",
+    "Real-device adjustable-control journey (no adjustable-control fixture in the current device suite)",
+    "Extended 60-second debugger expiry run",
+    "JDK 17 runtime execution (Java 17 release compilation passed)"
+  ]
+}

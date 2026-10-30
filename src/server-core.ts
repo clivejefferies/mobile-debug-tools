@@ -10,7 +10,7 @@ import {
 
 import { wrapResponse } from './server/common.js'
 import { toolDefinitions } from './server/tool-definitions.js'
-import { handleToolCall } from './server/tool-handlers.js'
+import { handleToolCall } from './server/handlers/tool-handlers.js'
 
 export { wrapResponse, toolDefinitions, handleToolCall }
 

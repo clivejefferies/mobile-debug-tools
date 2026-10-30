@@ -17,29 +17,32 @@
     "test:integration": "npm run test:device",
     "test:device": "npm run build && tsx test/device/index.ts",
     "test": "npm run test:unit",
-    "lint": "eslint src test --quiet",
-    "lint:fix": "eslint src test --fix",
+    "lint": "eslint src test --quiet && npm run check:quality && npm run check:architecture",
+    "lint:fix": "eslint src test --fix && npm run check:quality && npm run check:architecture",
     "sync:agent-plugin": "node scripts/agent-plugin.mjs --sync",
+    "check:quality": "node scripts/code-quality.mjs",
+    "check:architecture": "node scripts/check-architecture.mjs",
     "check:agent-plugin": "node scripts/agent-plugin.mjs --check",
     "verify": "npm run lint && npm run build && npm run test:unit && npm run check:agent-plugin"
   },
-
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "fast-xml-parser": "^5.5.1",
-    "zod": "^3.22.4",
-    "sharp": "^0.32.1"
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^25.4.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
+    "archunit": "2.5.4",
     "eslint": "^9.39.4",
     "eslint-plugin-unused-imports": "^4.4.1",
-    "tsx": "^4.21.0",
+    "minimist": "^1.2.8",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

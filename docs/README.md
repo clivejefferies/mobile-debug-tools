@@ -22,6 +22,7 @@ installation, and client configuration.
 ## Contributing
 
 - [Contribution guide](../CONTRIBUTING.md): local setup, validation, and documentation conventions.
+- [Code structure and quality checks](code-structure.md): module ownership, enforced limits, and existing debt.
 - [Development process](specs/process.md): maintenance and feature workflows.
 - [Agent entrypoint](../AGENTS.md) and [repository skills](../.agents/skills/README.md).
 

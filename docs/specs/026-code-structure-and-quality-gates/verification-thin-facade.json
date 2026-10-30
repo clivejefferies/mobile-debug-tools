@@ -1,0 +1,154 @@
+{
+  "date": "2026-10-30",
+  "scope": "ToolsInteract thin-facade continuation",
+  "status": "pass",
+  "class_budget": {
+    "class": "ToolsInteract",
+    "counted_lines": 189,
+    "maximum": 300,
+    "physical_file_lines": 267,
+    "legacy_exceptions": 0,
+    "refactored_interaction_modules_without_exceptions": 41
+  },
+  "maintainer": {
+    "command": "npm run verify",
+    "status": "pass",
+    "unit_files": 81,
+    "node": "v23.11.0"
+  },
+  "device": {
+    "command": "MCP_DEBUGGER_DEVICE=emulator-5554 npm run test:device",
+    "status": "pass",
+    "device_files": 10,
+    "records": [
+      {
+        "status": "PASS",
+        "build_sha256": "3a6b4e2f1e806c2d98968e63595dba9f5f23a1fe32a86943f208143c75fb8924",
+        "device": "emulator-5554",
+        "api": "36",
+        "runtime": "v23.11.0",
+        "transport": "MCP stdio",
+        "extended": false
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "device": "emulator-5554",
+        "api": "36",
+        "runtime": "v23.11.0",
+        "journey": "clickable wait, resolved-handle tap, visible assertion, selector journey and stable enabled-state assertion",
+        "evidence": "Result 43 and enabled=true established by fresh hierarchy assertions",
+        "cleanup": "Owned fixture removed in finally; no other app data or device settings changed"
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "android",
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "startingApp": "com.android.settings",
+        "actionId": "11ac289e-7cad-4703-9244-a857de31999d",
+        "phases": {
+          "dispatchStarted": 1793385281935,
+          "dispatchCompleted": 1793385282207,
+          "screenshotStarted": 1793385282799,
+          "screenshotCompleted": 1793385283084
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "ios",
+        "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+        "osVersion": "iOS 26.4",
+        "startingApp": "com.apple.Preferences",
+        "actionId": "d4c7ae0a-dda5-4606-a9bf-46356b9f378a",
+        "phases": {
+          "dispatchStarted": 1793385290788,
+          "dispatchCompleted": 1793385291152,
+          "screenshotStarted": 1793385291585,
+          "screenshotCompleted": 1793385292091
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "build_sha256": "370254feb4bc933c650c00625e0ca2a1ec32567ea35190098710a16c50e9c4c5",
+        "runtime": "v23.11.0",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "starting_state": "System Settings fixture",
+        "journey": "start Settings, assert baseline Settings-owned resource visible in UI tree; explicit trace association",
+        "trace_id": "92d9e705-4655-4797-97c2-dbbbe0a89ab0",
+        "correlation_id": "f762ca72-67b8-4314-8af0-7a3f5c59c3fe",
+        "phases": {
+          "capture_started_at_ms": 1793385324309,
+          "capture_completed_at_ms": 1793385331115
+        },
+        "artifact_bytes": 1102735,
+        "content": {
+          "packets": 252,
+          "ftrace_bundles": 234,
+          "events": 24912,
+          "compact_sched_bundles": 234,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "durationContent": {
+          "packets": 47,
+          "ftrace_bundles": 31,
+          "events": 2790,
+          "compact_sched_bundles": 31,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "cancel": "PASS",
+        "expired_journey": "PASS",
+        "active_shutdown": "PASS",
+        "cleanup": "Device capture files removed; test host artifacts removed in finally. No settings or app data changed. Settings remains foreground."
+      }
+    ]
+  },
+  "contract": {
+    "status": "pass",
+    "tool_definitions": 52,
+    "comparison": "Complete pre-refactoring definition fixture, including schemas/defaults/descriptions/order"
+  },
+  "quality": {
+    "status": "pass",
+    "legacy_exceptions_remaining_elsewhere": 162,
+    "regression": "Refactored interaction modules must meet defaults even if a legacy allowance is added"
+  },
+  "package": {
+    "command": "npm pack --dry-run --json",
+    "status": "pass"
+  },
+  "unrun": [
+    "Hosted CI and local Node 18 runtime",
+    "Physical-device interaction journey",
+    "Interactive iOS navigation/state journey (iOS observation and correlation suite passed)",
+    "Native adjustable-control convergence fixture (unit and injected-strategy coverage passed)"
+  ]
+}

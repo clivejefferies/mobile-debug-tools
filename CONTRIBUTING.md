@@ -7,7 +7,7 @@ approval. Automated contributors also start with [AGENTS.md](AGENTS.md).
 
 ## Local development
 
-Use Node.js 18 or newer and npm. Platform tooling is needed only for the mobile
+Use Node.js 22 or newer and npm. Platform tooling is needed only for the mobile
 operations you exercise; see [requirements and setup](README.md#requirements).
 
 ```sh
@@ -44,6 +44,15 @@ changing tests, and the [MCP builder skill](.agents/skills/mcp-builder/SKILL.md)
 for installation or native toolchain work. Automated unit tests belong in
 `test/unit/`, automated device tests in `test/device/automated/`, and manual
 helpers in `test/device/manual/`.
+
+## Code structure
+
+Follow the [code structure and quality checks](docs/code-structure.md) for module
+ownership, enforced limits, and review of legacy exceptions. `npm run lint`
+includes ESLint, structural/type limits and ArchUnitTS dependency checks; CI runs
+the same checks. To diagnose a failure, run `npm run check:quality` or
+`npm run check:architecture` separately. Change a rule or reviewed exception only
+with the corresponding design rationale, rather than suppressing the failure.
 
 ## Documentation conventions
 

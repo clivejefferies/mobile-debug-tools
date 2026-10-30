@@ -7,7 +7,7 @@ function which(cmd: string): string | null {
   try {
     const r = spawnSync('command', ['-v', cmd], { stdio: ['ignore', 'pipe', 'ignore'] })
     if (r && r.status === 0 && r.stdout) return r.stdout.toString().trim()
-  } catch {}
+  } catch { }
   try {
     return execSync(`which ${cmd}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
   } catch {
@@ -15,7 +15,7 @@ function which(cmd: string): string | null {
   }
 }
 
-function print(...args: any[]) {
+function print(...args: unknown[]) {
   console.log(...args)
 }
 
@@ -25,7 +25,7 @@ async function runInstaller() {
     const runner = which('npx') ? 'npx' : which('tsx') ? 'tsx' : null
     if (runner) {
       const args = runner === 'npx' ? ['tsx', './src/utils/cli/idb/install-idb.ts'] : ['./src/utils/cli/idb/install-idb.ts']
-      const res = spawnSync(runner, args, { stdio: 'inherit' as any })
+      const res = spawnSync(runner, args, { stdio: 'inherit' })
       return typeof res.status === 'number' ? res.status === 0 : false
     }
 
@@ -60,7 +60,7 @@ try {
     }
     const companion = which('idb_companion')
     print('which idb_companion:', companion)
-    if (companion) try { print('idb_companion --version:', execSync('idb_companion --version', { stdio: ['ignore','pipe','ignore'] }).toString().trim()) } catch (e) { print('idb_companion --version: (failed)', e instanceof Error ? e.message : String(e)) }
+    if (companion) try { print('idb_companion --version:', execSync('idb_companion --version', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()) } catch (e) { print('idb_companion --version: (failed)', e instanceof Error ? e.message : String(e)) }
     process.exit(0)
   }
 

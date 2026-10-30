@@ -34,7 +34,8 @@ export class AndroidDebugNative implements DebugNative {
     // `adb jdwp` is a subscription, not a one-shot command. Bound the sample.
     let jdwpOutput: string
     try { jdwpOutput = (await exec(resolveAdbCmd(), ['-s', device, 'jdwp'], { timeout: debuggerRemaining(500), signal: debuggerSignal(), maxBuffer: 1024 * 1024 })).stdout }
-    catch (e: any) {
+    catch (error: unknown) {
+      const e = error as { killed?: boolean; stderr?: string; stdout?: string }
       if (debuggerSignal()?.aborted) throw new DebuggerError('DEBUGGER_CANCELLED')
       debuggerRemaining(1)
       if (!e.killed || e.stderr?.trim()) throw nativeError(e, 'DEVICE_UNAVAILABLE')

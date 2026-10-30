@@ -11,7 +11,7 @@ A new test in this repo is high quality when it does most of the following:
 
 ## Determinism
 
-- does not depend on arbitrary timing unless the behavior is inherently time-based
+- uses injected clocks for timing-dependent services so deadlines and stability can be asserted without real sleeps
 - restores mocks, env vars, and monkeypatches in `finally`
 - avoids leaking state into later tests
 - runs reliably in an isolated subprocess
@@ -27,6 +27,7 @@ A new test in this repo is high quality when it does most of the following:
 - reuses existing helpers, fake-binary patterns, or test seams
 - keeps fixtures as small as possible
 - makes the failure obvious from the assertion message or output
+- uses deliberately broken fixtures for architecture rules, including relevant import forms; an empty or unresolved graph must not count as a pass
 - stays focused on one behavior cluster instead of becoming a broad scenario script
 
 ## Completion bar

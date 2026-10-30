@@ -42,7 +42,7 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
             const tree = await ToolsObserve.getUITreeHandler({ platform: device!.platform as 'android' | 'ios', deviceId: device!.id })
             remainingBudget()
             tracker.observe(tree, captureStarted)
-            if (isDeviceUnavailable((tree as any)?.error)) { failureCode = 'DEVICE_UNAVAILABLE'; return }
+            if (isDeviceUnavailable(tree?.error)) { failureCode = 'DEVICE_UNAVAILABLE'; return }
           } catch (error) {
             if (/ACTION_TIMEOUT/.test(String(error))) throw error
             tracker.unavailable()
@@ -64,8 +64,10 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
   if (debugPause) return { success: !wait, device, readiness: debugPause, elapsed_ms: performance.now() - started, ...(wait ? { failure_code: 'DEBUGGER_PAUSED' } : {}) }
   const state = tracker.summary.state
   const success = !failureCode && (wait ? state === 'settled' : state !== 'unknown')
-  return { success, device, readiness: tracker.summary, elapsed_ms: performance.now() - started,
-    ...(!success ? { failure_code: failureCode ?? (wait ? 'READINESS_TIMEOUT' : 'READINESS_UNAVAILABLE') } : {}) }
+  return {
+    success, device, readiness: tracker.summary, elapsed_ms: performance.now() - started,
+    ...(!success ? { failure_code: failureCode ?? (wait ? 'READINESS_TIMEOUT' : 'READINESS_UNAVAILABLE') } : {})
+  }
 }
 
 export async function withReadyWait<T extends object | undefined, F extends object>(target: Target, timeoutMs: number, operation: (device: DeviceInfo) => Promise<T>, failure: (code: string, elapsedMs: number, samples: number) => F) {

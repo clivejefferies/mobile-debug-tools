@@ -38,7 +38,10 @@ function normalizeBounds(bounds: unknown): [number, number, number, number] | nu
   return normalized as [number, number, number, number]
 }
 
-function stableElementSignature(element: UIElement) {
+type SignatureElement = Partial<Pick<UIElement, 'text' | 'contentDescription' | 'resourceId' | 'stable_id' | 'role' | 'test_tag' | 'selector' | 'clickable' | 'enabled' | 'visible' | 'state'>> & { bounds?: number[] | null; type?: string | null }
+export interface SnapshotSignatureInput { elements?: SignatureElement[]; screen?: unknown; resolution?: unknown; error?: unknown }
+
+function stableElementSignature(element: SignatureElement) {
   return {
     text: normalize(element.text),
     contentDescription: normalize(element.contentDescription),
@@ -115,7 +118,7 @@ function summarizeSnapshotDelta(previous: SnapshotState | undefined, currentElem
   }
 }
 
-export function computeSnapshotSignature(tree: Pick<GetUITreeResponse, 'elements' | 'screen' | 'resolution' | 'error'> | null | undefined): string | null {
+export function computeSnapshotSignature(tree: SnapshotSignatureInput | null | undefined): string | null {
   if (!tree || tree.error) return null
 
   const payload = {
@@ -162,34 +165,10 @@ export function deriveSnapshotMetadata(
   const existing = snapshotStateByDevice.get(deviceKey)
   const previous = existing && Date.now() - existing.updatedAt <= 10 * 60 * 1000 ? existing : undefined
   if (!previous && existing) snapshotStateByDevice.delete(deviceKey)
-  const hasValidTree = !!tree && !tree.error
-  const records = hasValidTree ? buildElementRecords(tree) : null
-  const currentElementSignatures = records?.signatures ?? previous?.elementSignatures ?? new Map<string, string>()
-  const currentElements = records?.elementsByIdentity ?? previous?.elements ?? new Map<string, UIElement>()
+  const { hasValidTree, currentElementSignatures, currentElements } = snapshotRecords(tree, previous)
 
   const revision = previous && (signature === null || previous.signature === signature) ? previous.revision : nextRevision++
-  const history = previous?.history ?? new Map<number, Map<string, UIElement>>()
-  const historyTimes = previous?.historyTimes ?? new Map<number, number>()
-  const oversized = previous?.oversized ?? new Map<number, number>()
-  if (hasValidTree) {
-    history.set(revision, currentElements)
-    historyTimes.set(revision, Date.now())
-    if ((tree.elements?.length ?? 0) > 500) oversized.set(revision, (tree.elements?.length ?? 0) - 500)
-  }
-  for (const [id, timestamp] of historyTimes) {
-    if (Date.now() - timestamp > 10 * 60 * 1000) {
-      history.delete(id)
-      historyTimes.delete(id)
-      oversized.delete(id)
-    }
-  }
-  while (history.size > 8) {
-    const oldest = history.keys().next().value
-    if (oldest === undefined) break
-    history.delete(oldest)
-    historyTimes.delete(oldest)
-    oversized.delete(oldest)
-  }
+  const { history, historyTimes, oversized } = retainHistory(previous, revision, currentElements, tree, hasValidTree)
 
   snapshotStateByDevice.set(deviceKey, {
     revision,
@@ -226,19 +205,20 @@ export function getStateDelta(deviceKey: string, baseRevision: number, currentRe
   }
   let index = 0
   for (const [identity, element] of base) {
-    if (!current.has(identity)) removed.push({ stable_id: element.stable_id ?? undefined, resourceId: element.resourceId ?? undefined, contentDescription: element.contentDescription ?? undefined, text: element.text ?? undefined, index })
+    if (!current.has(identity)) removed.push(removedElement(element, index))
     index++
   }
   const all = added.length + changed.length + removed.length
   const limit = 200
+  const truncated = all > limit || state.oversized.has(baseRevision) || state.oversized.has(currentRevision)
   return {
     base_snapshot_revision: baseRevision,
     snapshot_revision: currentRevision,
     added: added.slice(0, limit),
     changed: changed.slice(0, Math.max(0, limit - added.length)),
     removed: removed.slice(0, Math.max(0, limit - added.length - changed.length)),
-    truncated: all > limit || state.oversized.has(baseRevision) || state.oversized.has(currentRevision),
-    ...((all > limit || state.oversized.has(baseRevision) || state.oversized.has(currentRevision))
+    truncated,
+    ...((truncated)
       ? { omitted_changes: Math.max(all - limit, state.oversized.get(baseRevision) ?? 0, state.oversized.get(currentRevision) ?? 0) } : {})
   }
 }
@@ -261,4 +241,44 @@ export function clearDeviceSnapshots(deviceKey: string) {
 export function resetSnapshotMetadataForTests() {
   snapshotStateByDevice.clear()
   nextRevision = 1
+}
+
+function retainHistory(previous: SnapshotState | undefined, revision: number, currentElements: Map<string, UIElement>, tree: Parameters<typeof deriveSnapshotMetadata>[1], hasValidTree: boolean) {
+  const history = previous?.history ?? new Map<number, Map<string, UIElement>>()
+  const historyTimes = previous?.historyTimes ?? new Map<number, number>()
+  const oversized = previous?.oversized ?? new Map<number, number>()
+  if (hasValidTree) {
+    history.set(revision, currentElements)
+    historyTimes.set(revision, Date.now())
+    if ((tree!.elements?.length ?? 0) > 500) oversized.set(revision, (tree!.elements?.length ?? 0) - 500)
+  }
+  for (const [id, timestamp] of historyTimes) {
+    if (Date.now() - timestamp > 10 * 60 * 1000) {
+      history.delete(id)
+      historyTimes.delete(id)
+      oversized.delete(id)
+    }
+  }
+  while (history.size > 8) {
+    const oldest = history.keys().next().value
+    if (oldest === undefined) break
+    history.delete(oldest)
+    historyTimes.delete(oldest)
+    oversized.delete(oldest)
+  }
+
+  return { history, historyTimes, oversized }
+}
+
+function snapshotRecords(tree: Parameters<typeof deriveSnapshotMetadata>[1], previous: SnapshotState | undefined) {
+  const hasValidTree = !!tree && !tree.error
+  const records = hasValidTree ? buildElementRecords(tree) : null
+  const currentElementSignatures = records?.signatures ?? previous?.elementSignatures ?? new Map<string, string>()
+  const currentElements = records?.elementsByIdentity ?? previous?.elements ?? new Map<string, UIElement>()
+
+  return { hasValidTree, currentElementSignatures, currentElements }
+}
+
+function removedElement(element: UIElement, index: number) {
+  return { stable_id: element.stable_id ?? undefined, resourceId: element.resourceId ?? undefined, contentDescription: element.contentDescription ?? undefined, text: element.text ?? undefined, index }
 }

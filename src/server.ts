@@ -38,7 +38,7 @@ process.on('SIGINT', () => { void shutdown() })
 process.on('SIGTERM', () => { void shutdown() })
 
 async function main() {
-  await (server as any).connect(transport)
+  await server.connect(transport)
 }
 
 main().catch((error) => {

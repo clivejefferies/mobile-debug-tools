@@ -5,7 +5,7 @@ import {
   classifyStatus,
   _setTimestampsForTests,
   ToolsNetwork
-} from '../../../src/network/index.js'
+} from '../../../src/observe/network/index.js'
 
 function run() {
 

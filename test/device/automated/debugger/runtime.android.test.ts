@@ -27,7 +27,7 @@ if (!process.env.MCP_DEBUGGER_DEVICE) {
       else hash.update(file).update(await readFile(file))
     }
   }
-  await fingerprint('dist'); await fingerprint('worker')
+  await fingerprint('dist'); await fingerprint('src/debugger/java')
   const buildHash = hash.digest('hex')
   const fixture = buildDebuggerFixture()
   const source = await readFile(new URL('../../../fixtures/debugger-app/MainActivity.java', import.meta.url), 'utf8')

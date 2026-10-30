@@ -1,6 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { DebuggerError } from './worker.js'
-let pauseProvider: (device: string) => any = () => null
+interface PauseEvidence {
+  debug_session_id: string
+  captured_at_ms: number
+  target: unknown
+}
+let pauseProvider: (device: string) => PauseEvidence | null = () => null
 export function registerDebuggerPauseProvider(provider: typeof pauseProvider) { pauseProvider = provider }
 const context = new AsyncLocalStorage<{ platform: string; device: string; dispatched: boolean }>()
 export function withDebuggerGuard<T>(platform: string, device: string, operation: () => Promise<T>) {

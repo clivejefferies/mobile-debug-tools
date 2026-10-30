@@ -1,6 +1,9 @@
 # Diagnostics schema
 
-This document defines the JSON shapes that mcp-builder actions return when collecting diagnostics. Agents and tooling should rely on these keys.
+Use this suggested format when reporting a build or toolchain investigation.
+It is not a public MCP response schema or a claim that every adapter returns
+these fields. Preserve the actual tool response and label supplemental diagnostics
+separately; see the [management contracts](../../../../docs/tools/manage.md).
 
 Top-level diagnostic object
 {
