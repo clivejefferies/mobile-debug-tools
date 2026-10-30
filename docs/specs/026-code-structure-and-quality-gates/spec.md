@@ -129,3 +129,10 @@ without describing the entire repository as fully refactored.
 
 The maintainer accepted this specification with “ok, lets do it” on 2026-10-30.
 Implementation is authorised within this scope; see the [plan](plan.md).
+
+## Subsequent maintainer decision — architectural checks
+
+On 2026-10-30 the maintainer approved trying ArchUnitTS with “ok, lets try it”.
+This explicitly extends the original dependency constraint to permit the pinned
+`archunit` development dependency. Its checks complement the existing structural
+limits and preserve the existing test runner and production dependencies.

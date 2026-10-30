@@ -1,43 +1,44 @@
-# Build flags and runtime configuration
+# Build configuration
 
-Purpose: describe the flags, environment variables and spawn-environment handling that agents should use when orchestrating Android and iOS builds for this repo.
+Use the existing platform adapters rather than constructing a second build path.
+The owning implementation is the source of truth for accepted overrides.
 
-Common env variables
-- MCP_GRADLE_RETRIES (default: 1) — number of retry attempts on watchdog kills for Gradle
-- MCP_GRADLE_TIMEOUT_MS (default: 300000) — gradle watch/duration timeout
-- MCP_XCODEBUILD_RETRIES, MCP_XCODEBUILD_TIMEOUT_MS — similar for xcodebuild
-- MCP_PREFERS_JBR — prefer Android Studio JBR for JAVA_HOME
-- MCP_DERIVED_DATA, MCP_XCODE_RESULTBUNDLE_PATH — override DerivedData/result bundle locations
+## Android
 
-Android (Gradle)
-- Use the Gradle wrapper if present: `./gradlew assemble<Variant>` (e.g., assembleDebug). Prefer wrapper to ensure consistent Gradle version.
-- Prepare spawn env by prepending javaBin and platform-tools dir to PATH and set GRADLE_JAVA_HOME and `-Dorg.gradle.java.home` when necessary.
-- If wrapper exists, ensure `chmod +x ./gradlew` before spawn.
-- Recommended flags:
-  - `--no-daemon` sometimes helpful in CI, but wrap with existing project conventions.
-  - Set `org.gradle.jvmargs` via env or gradle.properties only if needed.
-- Timeouts & watchdog:
-  - Use a watchdog timeout (MCP_GRADLE_TIMEOUT_MS) and retry (MCP_GRADLE_RETRIES) if killed by watchdog. Record stdout/stderr for each attempt.
+[prepareGradle()](../../../../src/utils/android/utils.ts) selects the project
+wrapper when present and prepares Java and platform-tools in the child environment.
+[AndroidManage](../../../../src/manage/android.ts) executes that command.
 
-iOS (xcodebuild)
-- Use `xcodebuild -workspace <ws> -scheme <scheme> -configuration Debug -sdk iphonesimulator build` for simulator builds.
-- Provide `-derivedDataPath` and `-resultBundlePath` to isolate builds and produce diagnostics. Default result bundle path should be unique per run to avoid collisions.
-- Recommended flags: `-parallelizeTargets -jobs <N>` where N is from MCP_XCODE_JOBS or sensible default (4).
-- When a destination UDID is available, always pass `-destination "platform=iOS Simulator,id=<UDID>"` to avoid ambiguous device selection.
-- Timeouts & retries: respect MCP_XCODEBUILD_TIMEOUT_MS and MCP_XCODEBUILD_RETRIES; capture stdout/stderr and save logs under build-results.
+| Setting | Current use |
+| --- | --- |
+| `MCP_GRADLE_TASK` | Gradle task; defaults to `assembleDebug` |
+| `MCP_GRADLE_WORKERS`, then `MCP_BUILD_JOBS` | Supplies `--max-workers` |
+| `MCP_GRADLE_CACHE=0` | Disables Gradle caching |
+| `ANDROID_STUDIO_JDK`, `ANDROID_STUDIO_JBR`, `JAVA_HOME` | Java selection; see [toolchain details](toolchain-details.md) |
 
-Install-time behavior
-- Android: prefer `adb install -r <apk>` for fast installs. If output contains spurious lines (e.g., "Performing Streamed Install" followed by "Success"), parse to extract final status. On failure try `adb push` to `/data/local/tmp` + `pm install -r <remote>` as a fallback collect push/install diagnostics.
-- iOS: prefer `xcrun simctl install <device> <app>` for simulator. On failure attempt idb install if idb exists: `idb install <ipa|app> --udid <udid>` and record its stdout/stderr.
+The current Android build adapter does not implement `MCP_GRADLE_RETRIES` or
+`MCP_GRADLE_TIMEOUT_MS`. Do not assume iOS watchdog controls apply to Gradle.
 
-Diagnostics capture
-- Save stdout/stderr, exitCode and environment snapshot for each command. Persist logs under workspace/build-results or a temp dir provided by the caller.
-- For builds, also capture produced artifact paths to return to caller.
+## iOS
 
-Examples
-- Gradle invocation (pseudo):
-  spawnOpts.env.PATH = `${javaBin}:${platformTools}:${process.env.PATH}`
-  spawn('./gradlew', ['assembleDebug'], { cwd: projectRoot, env: spawnOpts.env })
+[iOSManage](../../../../src/manage/ios.ts) discovers the workspace/project and
+scheme, then supplies simulator destination, derived-data and result-bundle paths.
 
-- xcodebuild invocation (pseudo):
-  xcodebuild -workspace MyApp.xcworkspace -scheme MyApp -configuration Debug -sdk iphonesimulator -derivedDataPath /tmp/derived -resultBundlePath /tmp/Result-123.xcresult -parallelizeTargets -jobs 4 build
+| Setting | Current use |
+| --- | --- |
+| `XCODEBUILD_PATH` | Build executable; defaults to `xcodebuild` |
+| `MCP_XCODE_DESTINATION_UDID`, then `MCP_XCODE_DESTINATION` | Simulator destination when not supplied in options |
+| `MCP_DERIVED_DATA` | Derived-data path when not supplied in options |
+| `MCP_XCODE_RESULTBUNDLE_PATH` | Result bundle; otherwise generated uniquely per run |
+| `MCP_XCODE_JOBS` | Build parallelism; defaults to 4 unless supplied in options |
+| `MCP_FORCE_CLEAN=1` | Requests clean unless explicitly supplied in options |
+| `MCP_XCODEBUILD_TIMEOUT` | Watchdog duration in milliseconds; defaults to 180000 |
+| `MCP_XCODEBUILD_RETRIES` | Watchdog retries; current parsing falls back to 1 |
+
+## Installation and diagnostics
+
+Preserve adapter-specific install fallbacks and errors. Use the
+[management reference](../../../../docs/tools/manage.md) for public tool contracts.
+Record exact commands, output, exit status and artifact paths when investigating
+failures; see [diagnostics](diagnostics-schema.md). Keep environment snapshots
+limited to relevant variables and redact secrets.

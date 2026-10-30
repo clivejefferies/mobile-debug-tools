@@ -243,7 +243,7 @@ export async function withEvidence<T>(options: { action?: boolean; journey?: boo
   }
 }
 
-export function refreshJourneyEvidence(steps: Array<{ result?: { evidence?: unknown } }>) {
+export function refreshJourneyEvidence(steps: Array<{ result?: { evidence?: unknown } | null }>) {
   const current = context.getStore()
   if (!current) return
   for (const step of steps) {

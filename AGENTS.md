@@ -21,12 +21,18 @@ instructions take precedence.
 Primary areas:
 
 - `src/server.ts` — runtime entrypoint
-- `src/server-core.ts` — tool registration and dispatch logic
+- `src/server-core.ts` and `src/server/` — MCP registration, capability handlers, schemas and definitions
 - `src/interact/` — tap, swipe, typing, waits, and interaction helpers
 - `src/observe/` — logs, screenshots, UI tree, fingerprints, snapshots
 - `src/manage/` — build, install, start, terminate, restart, reset-app-data
 - `src/system/` — environment and toolchain health checks
+- `src/debugger/` — debugger sessions, protocol and Java worker
 - `src/utils/` — shared helpers and platform-specific utility code
+- `src/contracts/` — shared input shapes and validation
+- `src/runtime/` — action results, traces and injectable clocks
+
+See [code structure and quality checks](docs/code-structure.md) for interaction
+subfolders, module ownership, dependency rules and enforced limits.
 
 ## First things an agent should know
 
@@ -93,7 +99,8 @@ This file is intentionally short. Keep task-specific guidance in `.agents/skills
 
 - `npm run test:unit` runs every automated unit test under `test/unit/...`
 - `npm run test:device` runs the automated device smoke checks under `test/device/automated/...`
-- `npm run verify` runs the default maintainer verification sequence: lint, build, unit tests, and agent-plugin consistency checks
+- `npm run lint` runs ESLint, structural/type limits and ArchUnitTS dependency checks
+- `npm run verify` runs lint, build, unit tests, and agent-plugin consistency checks
 - Manual and debug-oriented device scripts live under `test/device/manual/...` and are not part of the default test commands
 
 ## Utility Scripts

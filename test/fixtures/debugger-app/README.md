@@ -28,3 +28,7 @@ It also runs in `npm run test:device` when `MCP_INTERACTION_DEVICE` or
 `MCP_DEBUGGER_DEVICE` selects a device. Fixture journeys run sequentially and
 remove their own package and temporary build outputs. This check does not attach
 a debugger or modify another app's data.
+
+The interaction journey also exercises a labelled native SeekBar. It adjusts
+from 25 toward 75, checks convergence within tolerance, and confirms the displayed
+value with a fresh hierarchy assertion. The same fixture cleanup applies.

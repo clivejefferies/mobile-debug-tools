@@ -38,10 +38,17 @@ if (!deviceId) {
       { id: 'visible-result', type: 'assert', timeoutMs: 20000, assertion: { kind: 'element_visible', selector: { text: 'Result 43' } } }
     ], defaults: { actionTimeoutMs: 30000 } })
     assert.equal(journey.success, true, JSON.stringify(journey))
+    const adjusted = await call('adjust_control', { ...target, selector: { accessibility_id: 'Fixture level' },
+      property: 'value', targetValue: 75, tolerance: 5, maxAttempts: 5 })
+    assert.equal(adjusted.success, true, JSON.stringify(adjusted))
+    assert.equal(adjusted.converged, true, JSON.stringify(adjusted))
+    assert(Math.abs(adjusted.actual_state.value - 75) <= 5, JSON.stringify(adjusted))
+    const level = await call('expect_element_visible', { ...target, selector: { text: `${adjusted.actual_state.value} %` }, timeout_ms: 20000 })
+    assert.equal(level.success, true, JSON.stringify(level))
     console.log(JSON.stringify({ status: 'PASS', server: client.getServerVersion(), device: deviceId,
       api: adb('shell', 'getprop', 'ro.build.version.sdk').trim(), runtime: process.version,
-      journey: 'clickable wait, resolved-handle tap, visible assertion, selector journey and stable enabled-state assertion',
-      evidence: 'Result 43 and enabled=true established by fresh hierarchy assertions', cleanup: 'Owned fixture removed in finally; no other app data or device settings changed' }))
+      journey: 'clickable wait, resolved-handle tap, visible assertion, selector journey and stable enabled-state assertion and labelled SeekBar convergence',
+      evidence: 'Result 43, enabled=true and adjusted slider label established by fresh hierarchy assertions', cleanup: 'Owned fixture removed in finally; no other app data or device settings changed' }))
   } finally {
     await client.close()
     try { adb('uninstall', debuggerAppId) } finally { await rm(fixture.directory, { recursive: true, force: true }) }

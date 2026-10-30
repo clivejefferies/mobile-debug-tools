@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { adjustControl } from '../../../src/interact/adjustment.js'
-import type { AdjustmentDependencies } from '../../../src/interact/adjustment-context.js'
+import { adjustControl } from '../../../src/interact/adjustment/adjustment.js'
+import type { AdjustmentDependencies } from '../../../src/interact/adjustment/adjustment-context.js'
 import type { ActionTargetResolved, DeviceInfo } from '../../../src/types.js'
 import type { UiElement } from '../../../src/interact/model.js'
 

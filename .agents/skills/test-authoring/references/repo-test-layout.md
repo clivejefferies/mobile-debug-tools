@@ -15,11 +15,13 @@ Best for:
 - response-shape validation
 - shared utility behavior
 - deterministic edge cases
+- injected-clock polling and stabilization checks (`test/unit/interact/`)
+- structural and architectural negative controls (`test/unit/quality/`)
 
 ## Automated device smoke tests
 
 - Location: `test/device/automated/...`
-- Naming: usually `*.smoke.ts` or `*.integration.ts`
+- Naming: `*.smoke.ts`, `*.integration.ts`, or `*.test.ts` as supported by the device runner
 - Execution: `npm run test:device`
 - Runner behavior: `test/device/index.ts` runs only the automated subtree
 

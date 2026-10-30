@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import type { ExpectStateResponse } from '../../../src/types.js'
-import { verifyAdjustment, type AdjustmentVerificationInput } from '../../../src/interact/adjustment-verification.js'
+import { verifyAdjustment, type AdjustmentVerificationInput } from '../../../src/interact/adjustment/adjustment-verification.js'
 
 const input: AdjustmentVerificationInput = {
   labeled: false, currentEl: { state: { value: 10 } },

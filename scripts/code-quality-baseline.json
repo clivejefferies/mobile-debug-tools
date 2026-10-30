@@ -560,206 +560,24 @@
     "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
   },
   {
-    "file": "src/server/debugger-handlers.ts",
+    "file": "src/server/handlers/debugger-handlers.ts",
     "rule": "explicit-any",
     "symbol": "<module>/handleDebugger",
     "value": 2,
     "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
   },
   {
-    "file": "src/server/debugger-schema.ts",
+    "file": "src/server/schemas/debugger-schema.ts",
     "rule": "explicit-any",
     "symbol": "<module>/jsonField/map:argument0:1e66dab6d61d",
     "value": 1,
     "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
   },
   {
-    "file": "src/server/debugger-schema.ts",
+    "file": "src/server/schemas/debugger-schema.ts",
     "rule": "explicit-any",
     "symbol": "<module>/jsonField",
     "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/compactAction",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
-    "value": 2,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleInstallApp",
-    "value": 2,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleCaptureScreenshot",
-    "value": 7,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executeTap",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executeTapElement",
-    "value": 4,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/payloadOf/find:argument0:484f746b75d9",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/expectElementAbsent",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/expectFingerprint",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleRunJourney",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
-    "value": 2,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22/withObservationContext:argument1:4f8fe91d0ebf/runWithBudget:argument1:d748ec6a30a3",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22/withObservationContext:argument1:b2cbcf616137",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executeSwipe",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executeScrollToElement",
-    "value": 6,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executeTypeText",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "explicit-any",
-    "symbol": "<module>/executePressBack",
-    "value": 1,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines-per-function",
-    "symbol": "<module>/actionHandler",
-    "value": 91,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines-per-function",
-    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9",
-    "value": 89,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines-per-function",
-    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
-    "value": 86,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "complexity",
-    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
-    "value": 69,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines",
-    "symbol": "<module>",
-    "value": 957,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines-per-function",
-    "symbol": "<module>/handleRunJourney",
-    "value": 100,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-lines-per-function",
-    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
-    "value": 87,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "complexity",
-    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
-    "value": 70,
-    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
-  },
-  {
-    "file": "src/server/tool-handlers.ts",
-    "rule": "max-depth",
-    "symbol": "<module>/handleToolCall/withTiming:argument1:3540a40b3ec0",
-    "value": 5,
     "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
   },
   {

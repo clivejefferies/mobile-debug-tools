@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { _matchesSelector, _resolveActionableAncestor, _normalizeBounds } from '../../../src/interact/element-helpers.js'
-import { _readNumericControlRange, _quantizeTargetValue } from '../../../src/interact/control-values.js'
+import { _matchesSelector, _resolveActionableAncestor, _normalizeBounds } from '../../../src/interact/targeting/element-helpers.js'
+import { _readNumericControlRange, _quantizeTargetValue } from '../../../src/interact/adjustment/control-values.js'
 
 assert(_matchesSelector({ text: 'Save', resourceId: 'app:id/save' }, { text: 'save', resource_id: 'app:id/save' }))
 assert(!_matchesSelector({ text: 'Save', resourceId: 'app:id/other' }, { text: 'save', resource_id: 'app:id/save' }), 'all supplied selector fields constrain selection')

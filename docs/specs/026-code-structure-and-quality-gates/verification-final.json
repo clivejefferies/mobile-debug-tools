@@ -1,0 +1,200 @@
+{
+  "date": "2026-10-30",
+  "scope": "Spec 026 final server/contracts/clock continuation and approved architectural-check extension",
+  "status": "pass",
+  "maintainer": {
+    "command": "PATH=/tmp/mobile-debug-node18/node_modules/node/bin:$PATH npm run verify",
+    "status": "pass",
+    "node": "v18.20.8",
+    "unit_files": 83
+  },
+  "device": {
+    "command": "MCP_INTERACTION_DEVICE=emulator-5554 MCP_DEBUGGER_DEVICE=emulator-5554 ADB_PATH=/Users/clivejefferies/Library/Android/sdk/platform-tools/adb npm run test:device",
+    "status": "pass",
+    "node": "v23.11.0",
+    "device_files": 10,
+    "records": [
+      {
+        "status": "PASS",
+        "build_sha256": "2791c7ff502e7e60c9e053307ffb8afe3ad100afcbb4a7e68df5c85efa8d3041",
+        "device": "emulator-5554",
+        "api": "36",
+        "runtime": "v23.11.0",
+        "transport": "MCP stdio",
+        "extended": false
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "device": "emulator-5554",
+        "api": "36",
+        "runtime": "v23.11.0",
+        "journey": "clickable wait, resolved-handle tap, visible assertion, selector journey and stable enabled-state assertion and labelled SeekBar convergence",
+        "evidence": "Result 43, enabled=true and adjusted slider label established by fresh hierarchy assertions",
+        "cleanup": "Owned fixture removed in finally; no other app data or device settings changed",
+        "build_sha256": "2791c7ff502e7e60c9e053307ffb8afe3ad100afcbb4a7e68df5c85efa8d3041"
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "android",
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "startingApp": "com.android.settings",
+        "actionId": "7f4de94a-1b4b-4da5-9abb-4ba60c379bfd",
+        "phases": {
+          "dispatchStarted": 1793393215121,
+          "dispatchCompleted": 1793393215463,
+          "screenshotStarted": 1793393216323,
+          "screenshotCompleted": 1793393216648
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "platform": "ios",
+        "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+        "osVersion": "iOS 26.4",
+        "startingApp": "com.apple.Preferences",
+        "actionId": "25de0b20-a80b-4b8d-bc2b-80e5fa468698",
+        "phases": {
+          "dispatchStarted": 1793393224322,
+          "dispatchCompleted": 1793393224681,
+          "screenshotStarted": 1793393225133,
+          "screenshotCompleted": 1793393225638
+        },
+        "screenshot": "captured",
+        "logs": "captured",
+        "uiTree": "captured",
+        "disabledComponents": "omitted",
+        "foreignReference": "unavailable",
+        "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+      },
+      {
+        "status": "PASS",
+        "build_sha256": "39f8d1143f53a0c84330e8c204835b38f2fd337d2e949cca50344f94654ff063",
+        "runtime": "v23.11.0",
+        "server": {
+          "name": "mobile-debug-mcp",
+          "version": "0.34.0"
+        },
+        "device": "emulator-5554",
+        "osVersion": "16",
+        "starting_state": "System Settings fixture",
+        "journey": "start Settings, assert baseline Settings-owned resource visible in UI tree; explicit trace association",
+        "trace_id": "827af8fb-4f35-4571-bdf0-1d69a2c02df8",
+        "correlation_id": "a5633929-8d66-4f65-8634-f6ffc2fd1704",
+        "phases": {
+          "capture_started_at_ms": 1793393260410,
+          "capture_completed_at_ms": 1793393266930
+        },
+        "artifact_bytes": 1115506,
+        "content": {
+          "packets": 249,
+          "ftrace_bundles": 232,
+          "events": 26658,
+          "compact_sched_bundles": 232,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "durationContent": {
+          "packets": 52,
+          "ftrace_bundles": 36,
+          "events": 2849,
+          "compact_sched_bundles": 36,
+          "validation": "local protobuf structure, trace config duration and timestamped ftrace/compact scheduler content; not full Perfetto analysis"
+        },
+        "cancel": "PASS",
+        "expired_journey": "PASS",
+        "active_shutdown": "PASS",
+        "cleanup": "Device capture files removed; test host artifacts removed in finally. No settings or app data changed. Settings remains foreground."
+      }
+    ]
+  },
+  "contracts": {
+    "status": "pass",
+    "tool_definitions": 52,
+    "comparison": "Complete captured public fixture: names, schemas, defaults, descriptions and registration order"
+  },
+  "quality": {
+    "status": "pass",
+    "legacy_allowances_remaining": 136,
+    "server_handler_physical_lines": 159,
+    "new_server_and_interaction_exceptions": 0,
+    "architecture_rules": 4,
+    "architecture_dependency_edges": 549,
+    "runtime_cycles": 0
+  },
+  "deterministic_timing": {
+    "status": "pass",
+    "coverage": [
+      "stable UI wait",
+      "retry/backoff and inclusive deadlines",
+      "screen fingerprint confirmation",
+      "search expiry",
+      "state assertion stability and trace timestamps"
+    ],
+    "global_timer_replacement": false
+  },
+  "review": {
+    "status": "pass",
+    "notes": [
+      "Capability extraction preserves central registration and handler/test seams.",
+      "Removed 26 obsolete server debt allowances without transferring them.",
+      "Preserved legacy input permissiveness and exact execution-control clamping/error semantics.",
+      "Corrected and regression-tested the extraction of device-resolution errors into the existing MCP error envelope.",
+      "Production readiness delays and native input adapters remain in use."
+    ]
+  },
+  "java": {
+    "status": "pass",
+    "command": "javac --release 17 --add-modules jdk.jdi -d /tmp/mobile-debug-spec026-java17 src/debugger/java/DebuggerWorker.java",
+    "local_java": "23",
+    "production_worker_source_changed": false
+  },
+  "package": {
+    "status": "pass",
+    "command": "npm pack --dry-run --json",
+    "compiled_modules": 121,
+    "worker_source_included": true,
+    "installed_or_published_package_tested": false
+  },
+  "unrun": [
+    {
+      "check": "Hosted CI",
+      "reason": "Local verification ran on the CI Node 18 target; no commit or push was requested."
+    },
+    {
+      "check": "Physical-device interaction/debugger journeys",
+      "reason": "The isolated native fixture journeys target emulator-5554; general observation wrappers can select connected devices automatically."
+    },
+    {
+      "check": "Interactive iOS navigation/state and adjustable-control journeys",
+      "reason": "No isolated iOS interaction fixture is provided; iOS screenshot/log/tree and correlated-evidence checks are covered separately."
+    },
+    {
+      "check": "Optional 60-second debugger expiry device extension",
+      "reason": "Default debugger journey ran without the opt-in extension; deterministic expiry coverage passed."
+    },
+    {
+      "check": "JDK 17 runtime execution",
+      "reason": "The worker was compiled with --release 17 on Java 23; native fixture execution uses the configured Android Studio JBR."
+    }
+  ],
+  "build_sha256": "2791c7ff502e7e60c9e053307ffb8afe3ad100afcbb4a7e68df5c85efa8d3041",
+  "build_fingerprint_scope": "All files under dist/ and src/debugger/java/, sorted recursively, hashing each repository-relative path and file bytes."
+}

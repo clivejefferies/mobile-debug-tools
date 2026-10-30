@@ -38,6 +38,10 @@ try {
   assert.equal(journey.steps[1].success, false)
   assert.equal(journey.steps[1].result.failure_code, 'DEBUGGER_PAUSED')
   assert.equal(calls, 2, 'no action queued or retried after pause')
+  _setDeviceListersForTests({ listAndroidDevices: async () => { throw new Error('resolution unavailable') } })
+  const failedResolution = payload(await handleToolCall('tap', { platform: 'android', deviceId: 'fixture', x: 1, y: 1 }))
+  assert.equal(failedResolution.error.tool, 'tap')
+  assert.match(failedResolution.error.message, /resolution unavailable/, 'resolution errors retain the MCP error envelope')
   console.log('PASS debugger readiness without UI acquisition, device scoping, dispatch guard, mid-journey pause preservation')
 } finally {
   debuggerSessions.paused = originalPause; debuggerSessions.hasActiveSessions = originalActive

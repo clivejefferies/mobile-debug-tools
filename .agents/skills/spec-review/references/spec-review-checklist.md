@@ -11,3 +11,10 @@ Ask these questions while reviewing a spec for implementation and execution read
 7. Does it match existing code paths and public tool surfaces?
 8. Can each open concern be classified as a spec issue, execution gap, or implementation issue?
 9. Is the spec ready to execute and implement without further interpretation?
+
+For structural refactors, also compare the proposed ownership and dependency
+directions against [the architecture rules](../../../../docs/code-structure.md).
+Check that new contracts are shared across schemas, validation and types, that
+timing-sensitive services have suitable clock/delay seams, and that compatibility
+checks protect public definitions and error behaviour. Passing size limits alone
+does not establish cohesive responsibilities.

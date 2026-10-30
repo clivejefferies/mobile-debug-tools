@@ -1,0 +1,50 @@
+import { verificationModeSchema, responseModeSchema, verificationModeJson } from '../../contracts/execution-controls.js'
+import { waitForSchema as waitFor, targetFields as target, exactlyOneTarget, targetJson, oneTargetJson } from '../../contracts/target.js'
+export { tapElementControlsSchema } from '../../contracts/target.js'
+import { selectorSchema as selector, selectorJson } from '../../contracts/selector.js'
+import { z } from 'zod'
+import { expectedStateSchema, expectedStateJson } from './condition-schema.js'
+
+const verificationMode = verificationModeSchema
+const timeoutMs = z.number().int().min(100).max(60000).optional()
+const pollIntervalMs = z.number().int().min(50).max(1000).optional()
+const assertion = z.union([
+  z.object({ kind: z.literal('element_visible'), selector }).strict(),
+  z.object({ kind: z.literal('element_absent'), selector }).strict(),
+  z.object({ kind: z.literal('screen_fingerprint'), fingerprint: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('state_equals'), property: z.string().min(1), expected: z.union([z.boolean(), z.number().finite(), z.string()]), ...target }).strict().refine(exactlyOneTarget)
+])
+const id = z.string().min(1)
+const step = z.union([
+  z.object({ id, type: z.literal('start_app'), appId: z.string().min(1), verificationMode: verificationMode.optional() }).strict(),
+  z.object({ id, type: z.literal('tap'), ...target, waitFor: waitFor.optional(), verificationMode: verificationMode.optional(), expectedState: expectedStateSchema.optional() }).strict().refine(exactlyOneTarget),
+  z.object({ id, type: z.literal('wait'), selector, condition: z.enum(['exists', 'not_exists', 'visible', 'clickable']).optional(), timeoutMs, pollIntervalMs }).strict(),
+  z.object({ id, type: z.literal('assert'), assertion, timeoutMs, pollIntervalMs }).strict()
+])
+
+export const journeySchema = z.object({
+  platform: z.enum(['android', 'ios']), deviceId: z.string().min(1).optional(),
+  systemTraceId: z.string().uuid().optional(),
+  responseMode: responseModeSchema.default('compact'), captureOnFailure: z.boolean().default(false),
+  defaults: z.object({ verificationMode: verificationMode.optional(), actionTimeoutMs: z.number().int().finite().optional(), verificationTimeoutMs: z.number().int().finite().optional() }).strict().optional(),
+  steps: z.array(step).min(1).max(50)
+}).strict().refine(value => new Set(value.steps.map(step => step.id)).size === value.steps.length, 'Step IDs must be unique')
+
+const intervalJson = { timeoutMs: { type: 'integer', minimum: 100, maximum: 60000 }, pollIntervalMs: { type: 'integer', minimum: 50, maximum: 1000 } }
+const modeJson = verificationModeJson
+const objectJson = (properties: Record<string, unknown>, required: string[], extra = {}) => ({ type: 'object', additionalProperties: false, properties, required, ...extra })
+export const journeyStepsJson = {
+  type: 'array', minItems: 1, maxItems: 50, items: { oneOf: [
+    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'start_app' }, appId: { type: 'string', minLength: 1 }, verificationMode: modeJson }, ['id', 'type', 'appId']),
+    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'tap' }, ...targetJson, verificationMode: modeJson, expectedState: expectedStateJson,
+      waitFor: objectJson({ ...intervalJson, timeoutMs: { type: 'integer', minimum: 100, maximum: 10000 }, condition: { enum: ['exists', 'visible', 'clickable'] }, match: objectJson({ index: { type: 'integer', minimum: 0 } }, []) }, [])
+    }, ['id', 'type'], { oneOf: oneTargetJson }),
+    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'wait' }, selector: selectorJson, condition: { enum: ['exists', 'not_exists', 'visible', 'clickable'] }, ...intervalJson }, ['id', 'type', 'selector']),
+    objectJson({ id: { type: 'string', minLength: 1 }, type: { const: 'assert' }, ...intervalJson, assertion: { oneOf: [
+      objectJson({ kind: { const: 'element_visible' }, selector: selectorJson }, ['kind', 'selector']),
+      objectJson({ kind: { const: 'element_absent' }, selector: selectorJson }, ['kind', 'selector']),
+      objectJson({ kind: { const: 'screen_fingerprint' }, fingerprint: { type: 'string', minLength: 1 } }, ['kind', 'fingerprint']),
+      objectJson({ kind: { const: 'state_equals' }, ...targetJson, property: { type: 'string', minLength: 1 }, expected: { type: ['boolean', 'number', 'string'] } }, ['kind', 'property', 'expected'], { oneOf: oneTargetJson })
+    ] } }, ['id', 'type', 'assertion'])
+  ] }
+}

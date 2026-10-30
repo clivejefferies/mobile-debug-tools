@@ -1,7 +1,7 @@
 # Test Authoring skill
 
 name: test-authoring
-version: 0.1.0
+version: 0.1.1
 summary: Reusable guidance for adding or updating tests in this repository without tying the workflow to a single agent product.
 
 # Purpose
@@ -27,10 +27,11 @@ Activate when an agent needs to:
 2. Follow the repository's current automated test style: self-running `tsx` scripts with explicit assertions and non-zero exit on failure.
 3. Put automated unit tests under `test/unit/...`; the unit runner automatically executes every `*.test.ts` file there.
 4. Put automated device smoke tests under `test/device/automated/...`; put human-invoked helpers under `test/device/manual/...`.
-5. Reuse existing mocking seams and test hooks before creating new ones.
+5. Prefer the extracted services’ typed dependencies and injectable [clocks](../../../src/runtime/clock.ts) over replacing static methods or process-global timers. Reuse existing test seams before adding hooks.
 6. When testing user-facing tools, protect **response shape**, required fields, and documented defaults.
 7. Keep tests deterministic: isolate process-global mocks, prefer fake binaries or injected helpers over shared mutable module state.
-8. Validate with the repository commands that already exist instead of inventing new runners.
+8. Run `npm run verify` for code/test changes and applicable native checks under the [shared process](../../../docs/specs/process.md#5-verify-and-report).
+9. Follow the [structure and architecture rules](../../../docs/code-structure.md). Keep guardrail failure cases under `test/unit/quality/` and preserve the complete public tool-definition compatibility fixture.
 
 # Inputs & outputs
 - choose-test-type(input: { changedPaths[], behaviorType, requiresRealDevice?: boolean }) -> { recommendedType: 'unit'|'device-automated'|'device-manual', rationale, targetPath }
@@ -49,9 +50,9 @@ Activate when an agent needs to:
 - Load detailed references only when deciding placement, matching existing style, or validating new tests.
 
 # References
-- `references/repo-test-layout.md` — where tests belong and what each tree means
-- `references/test-authoring-workflow.md` — step-by-step workflow for creating or changing tests
-- `references/test-quality-checklist.md` — what a good test in this repo should prove before it is considered done
+- [references/repo-test-layout.md](references/repo-test-layout.md) — where tests belong and what each tree means
+- [references/test-authoring-workflow.md](references/test-authoring-workflow.md) — step-by-step workflow for creating or changing tests
+- [references/test-quality-checklist.md](references/test-quality-checklist.md) — what a good test in this repo should prove before it is considered done
 
 # License
 Same as repository (Apache-2.0).

@@ -1,3 +1,4 @@
+import { systemClock, type Clock } from '../runtime/clock.js'
 import type { ActionTrace, TraceStep } from '../types.js'
 import { createTraceStep, nextActionId } from '../runtime/action-results.js'
 
@@ -13,8 +14,8 @@ export function buildObservationTrace({
   success: boolean
   attempts: number
   metadata?: Record<string, unknown>
-}): ActionTrace {
-  const now = Date.now()
+}, clock: Clock = systemClock): ActionTrace {
+  const now = clock.now()
   const actionId = nextActionId(actionType, now)
   const steps: TraceStep[] = [
     createTraceStep({

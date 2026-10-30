@@ -49,7 +49,10 @@ helpers in `test/device/manual/`.
 
 Follow the [code structure and quality checks](docs/code-structure.md) for module
 ownership, enforced limits, and review of legacy exceptions. `npm run lint`
-includes the structural gate; CI runs the same checks.
+includes ESLint, structural/type limits and ArchUnitTS dependency checks; CI runs
+the same checks. To diagnose a failure, run `npm run check:quality` or
+`npm run check:architecture` separately. Change a rule or reviewed exception only
+with the corresponding design rationale, rather than suppressing the failure.
 
 ## Documentation conventions
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { waitForUICore } from '../../../src/interact/legacy-wait.js'
-import type { LegacyWaitDependencies } from '../../../src/interact/legacy-wait-state.js'
+import { waitForUICore } from '../../../src/interact/waits/legacy-wait.js'
+import type { LegacyWaitDependencies } from '../../../src/interact/waits/legacy-wait-state.js'
 
 const calls: string[] = []
 const deps: LegacyWaitDependencies = {

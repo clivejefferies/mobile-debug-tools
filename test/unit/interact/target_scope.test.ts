@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { ResolvedElements } from '../../../src/interact/resolved-elements.js'
-import { findScopedElement, resolveUiChangeScope } from '../../../src/interact/target-scope.js'
+import { ResolvedElements } from '../../../src/interact/targeting/resolved-elements.js'
+import { findScopedElement, resolveUiChangeScope } from '../../../src/interact/targeting/target-scope.js'
 import type { ResolvedUiElementContext } from '../../../src/interact/model.js'
 
 const store = new ResolvedElements(2)

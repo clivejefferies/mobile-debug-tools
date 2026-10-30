@@ -10,6 +10,12 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Split server handlers by capability, share target/execution-control contracts, and inject clocks into interaction polling services while preserving tool contracts. Added deterministic timing tests and an Android labelled-slider convergence journey.
+
+- Added ArchUnitTS architecture checks to lint and CI for shared contracts, server boundaries, pure interaction calculations and runtime dependency cycles. Negative controls cover NodeNext resolution, aliases, dynamic imports and re-exports.
+
+- Group interaction services by adjustment, targeting, waits and assertions; separate server schemas and handlers, and place log-derived network observations under `observe/network`. Tool contracts and behaviour are unchanged.
+
 - Reduced `ToolsInteract` to a typed composition facade within the enforced class budget. Extracted adjustment, candidate resolution, synchronization and assertion services without new legacy exceptions, and added an isolated Android interaction journey plus a permanent default-budget regression check.
 
 - Added code-quality gates to lint and CI for source/class/function size, complexity, nesting, explicit `any`, and interaction/runtime import boundaries. Legacy exceptions have per-symbol ceilings that cannot grow unnoticed.

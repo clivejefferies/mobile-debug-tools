@@ -2,9 +2,11 @@
 
 [Intent](intent.md) · [Specification](spec.md) · [Verification metadata](verification.json)
 
-Status: in progress — the ToolsInteract facade criterion is complete and verified;
-server handler decomposition and remaining contract/timing consolidation are pending. The maintainer approved the specification
-with “ok, lets do it” on 2026-10-30.
+Status: complete — implementation and required local verification passed.
+Additional environment coverage remains explicitly unrun below.
+The maintainer approved the specification with “ok, lets do it” on 2026-10-30,
+and subsequently requested the folder cleanup and ArchUnitTS trial.
+
 
 ## Implementation
 
@@ -20,10 +22,18 @@ with “ok, lets do it” on 2026-10-30.
 - [x] Complete the thin `ToolsInteract` facade: adjustment, resolution, polling,
   assertion and legacy wait orchestration now live in typed services meeting
   default limits without legacy exceptions. Existing handler/test seams remain.
-- [ ] Complete clock/delay dependency consolidation across the services; existing
-  timer semantics and clock-based regression coverage remain intact.
+- [x] Consolidate clock/delay dependencies across interaction polling services;
+  production timer and readiness-budget semantics remain intact, with deterministic
+  injected-clock coverage for stability, retries, deadlines and trace timestamps.
 - [x] Split typed tool definitions by capability and retain exact registration order.
-- [ ] Split the remaining server handler orchestration by capability.
+- [x] Split server handler orchestration by capability and separate action
+  dispatch, conditional rejection, verification, evidence and journey phases.
+- [x] Share target-selection and execution-control contracts across TypeScript,
+  runtime validation and public schemas without changing permissive legacy parsing.
+- [x] Organise interaction helpers by responsibility and place network
+  observations under `observe/network/`.
+- [x] Add the explicitly approved ArchUnitTS development checks, including
+  negative controls for dynamic imports, re-exports, aliases and runtime cycles.
 - [x] Type debugger session/event/result boundaries, validate worker messages and
   separate command targeting, execution and error recovery. The refactored
   session manager meets default limits without exceptions.
@@ -113,12 +123,64 @@ mock/native-adapter and injected-strategy tests establish those covered contract
 not device outcomes. Hosted CI, local Node 18 and physical-device journeys remain
 separate from the passing local/emulator checks.
 
-## Remaining work in the broader specification
+## Final implementation continuation — 2026-10-30
 
-Server handler orchestration still needs capability-based decomposition. Further
-contract and clock/delay consolidation and unrelated legacy debt remain outside
-this completed facade criterion. Do not describe the entire repository or the
-whole specification as fully refactored.
+The central server handler is now a 159-line registration/dispatch module.
+Capability handlers cover management, observations, interactions, input, journeys
+and diagnostics. Action execution separates budgeted delivery, conditional
+rejection, result normalization, verification and serialization. Journey execution
+separates assertions, step dispatch, shared light-verification evidence, compact
+results and final response construction. These modules meet default quality limits
+without exceptions; 26 obsolete server allowances were removed, leaving 136
+reviewed legacy allowances elsewhere.
 
-No commit, push, release or publication was performed. Earlier unrelated edits
-and user removals were preserved.
+Target fields, mutually exclusive target validation, wait controls and execution
+modes now have shared contracts. Existing legacy argument readers and control
+clamping/error semantics are retained. The complete 52-tool compatibility fixture
+still passes. Interaction services receive optional clocks; default composition
+uses the existing wall clock and delays, including readiness-aware budget delays.
+No process-global clock replacement is required by the new timing tests.
+
+The Android fixture now contains a labelled SeekBar, closing the adjustable-control
+convergence coverage gap. The updated journey has passed convergence and a fresh
+hierarchy assertion for the displayed value. Final checks and their results
+are recorded in [final verification metadata](verification-final.json).
+
+Earlier verification tables and metadata are dated checkpoints; they do not
+represent the final source layout or coverage. No commit, push, release or
+publication was performed. Existing unrelated edits and user removals were
+preserved.
+
+### Final verification results
+
+| Check | Result |
+| --- | --- |
+| `npm run verify` on Node 18.20.8 | **Pass**: lint, structural and architecture gates, build, 83 unit files and plugin consistency |
+| `npm run test:device` on Node 23.11.0 | **Pass**: all 10 device files; Android debugger, selector/wait/assertion/adjustment journeys, Android/iOS observation and correlation, Android Perfetto |
+| Public contract fixture | **Pass**: all 52 definitions unchanged |
+| Worker Java compilation | **Pass**: `javac --release 17 --add-modules jdk.jdi` on Java 23 |
+| Package dry run | **Pass**: all 121 compiled TypeScript modules and Java worker source included |
+| Documentation and whitespace | **Pass**: relative links/anchors, metadata JSON and diff checks |
+
+The final complete dist/Java build fingerprint is
+`2791c7ff502e7e60c9e053307ffb8afe3ad100afcbb4a7e68df5c85efa8d3041`.
+Trace-specific fingerprints cover a different subset of modules and are retained
+in the metadata as separate records. The Android interaction fixture starts at
+25 and verifies adjustment toward 75 within tolerance 5, followed by a fresh
+hierarchy assertion of the displayed value. Both fixture journeys remove their
+owned app/build data; Perfetto removes owned traces and host artifacts. System
+Settings remains foreground after observation checks without settings changes.
+
+Review identified and corrected an asynchronous error-handling difference while
+extracting debugger guards. A regression test now verifies that device-resolution
+failures retain the existing MCP error envelope. The final full Node 18 and native
+runs were repeated after that correction; the fingerprint above matches the final
+build.
+
+Hosted CI, physical-device interaction/debugger journeys, interactive iOS
+navigation/state/adjustment, the optional extended debugger expiry device journey,
+and execution under a JDK 17 runtime remain **unrun**. The metadata records the
+scope and reason for each. These are additional environment coverage limits,
+not passing device evidence or remaining implementation tasks. Local Node 18 and
+Android adjustable-control convergence are now verified, superseding those
+unrun entries in earlier checkpoints.

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { compareReadableState } from '../../../src/interact/state-comparison.js'
+import { compareReadableState } from '../../../src/interact/assertions/state-comparison.js'
 
 assert.equal(compareReadableState('checked', true, { checked: true }).success, true)
 const invalidBoolean = compareReadableState('checked', 'true', { checked: true })

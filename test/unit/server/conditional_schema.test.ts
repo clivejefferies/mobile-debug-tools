@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv'
 import { toolDefinitions } from '../../../src/server/tool-definitions.js'
-import { conditionalTools, validateExpectedState } from '../../../src/server/condition-schema.js'
-import { journeySchema } from '../../../src/server/journey-schema.js'
+import { conditionalTools, validateExpectedState } from '../../../src/server/schemas/condition-schema.js'
+import { journeySchema } from '../../../src/server/schemas/journey-schema.js'
 
 const provider = new AjvJsonSchemaValidator()
 const expectedState = { snapshotSessionId: 'session-fixture', snapshotRevision: 1 }

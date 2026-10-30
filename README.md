@@ -12,12 +12,16 @@ Native have not been tested. Platform and device limitations are described in th
 
 ## Start here
 
-1. Check the [requirements](#requirements) and connect the server using
-   [MCP configuration](#mcp-configuration) or the [agent plugin](#agent-plugin).
-2. Follow [Getting started](#getting-started) to select a device, launch an
-   app, and verify a UI interaction.
-3. Use the [documentation guide](docs/README.md) to find troubleshooting,
-   individual tool contracts, and contribution guidance.
+Choose how to connect:
+
+1. **[Agent plugin](#agent-plugin) — preferred.** Installs the server configuration
+   and usage skill together for supported agent clients.
+2. **[Direct MCP configuration](#mcp-configuration).** Connect the published server
+   to another MCP-compatible client.
+3. **[Manual setup](#manual-setup).** Build and run a local source checkout.
+
+Check the [requirements](#requirements) for your platform, then follow
+[Getting started](#getting-started) to select a device and verify an interaction.
 
 ## Requirements
 
@@ -44,6 +48,55 @@ locations, multiple toolchains, or a pinned development environment.
 After connecting the client, call `get_system_status` to check discovery and
 prerequisites. See [environment diagnostics](docs/tools/system.md) if a toolchain
 or device is unavailable.
+
+## Agent plugin
+
+The preferred setup for supported agent clients is the
+[agent plugin](agent-plugin/README.md). It installs the MCP server configuration
+and usage skill together. Choose your client below.
+
+<details>
+
+<summary>Codex plugin</summary>
+
+Install the plugin from this repository's marketplace:
+
+```bash
+codex plugin marketplace add clivejefferies/mobile-debug-tools
+codex plugin add mobile-debug-tools@mobile-debug-tools
+```
+
+</details>
+
+<details>
+
+<summary>Claude Code plugin</summary>
+
+Install the plugin from this repository's marketplace:
+
+```bash
+claude plugin marketplace add clivejefferies/mobile-debug-tools
+claude plugin install mobile-debug-tools@mobile-debug-tools
+```
+
+</details>
+
+<details>
+
+<summary>Cursor plugin</summary>
+
+The repository includes a [Cursor marketplace](.cursor-plugin/marketplace.json).
+Teams and Enterprise admins can import the repository in Dashboard → Plugins & MCPs → Team
+Marketplaces. To test it locally, copy [agent-plugin](agent-plugin/) into
+`~/.cursor/plugins/local/mobile-debug-tools`, then reload Cursor.
+
+</details>
+
+Start a new chat or session after installation so the client loads the skill
+and MCP tools. Each plugin launches the published npm package locally and needs
+Node.js 18 or newer and the platform toolchains for your device. If you also
+registered the MCP server directly, disable that registration to avoid
+duplicate tools.
 
 ## MCP configuration
 
@@ -116,54 +169,25 @@ For iOS-only setups, `ADB_PATH` and `ANDROID_SDK_ROOT` are not required unless y
 
 </details>
 
-## Agent plugin
+## Manual setup
 
-For clients that support Agent Plugins, the [agent-plugin](agent-plugin/README.md)
-package installs the MCP server configuration together with the existing usage
-skill. Direct npm/MCP configuration above remains supported.
+For a local source checkout, follow the [development setup](CONTRIBUTING.md#local-development)
+to install dependencies and build the server. Then configure your MCP client to
+launch that build over stdio:
 
-<details>
-
-<summary>Codex plugin</summary>
-
-Install the plugin from this repository's marketplace:
-
-```bash
-codex plugin marketplace add clivejefferies/mobile-debug-tools
-codex plugin add mobile-debug-tools@mobile-debug-tools
+```json
+{
+  "mcpServers": {
+    "mobile-debug": {
+      "command": "node",
+      "args": ["/absolute/path/to/mobile-debug-mcp/dist/server.js"]
+    }
+  }
+}
 ```
 
-</details>
-
-<details>
-
-<summary>Claude Code plugin</summary>
-
-Install the plugin from this repository's marketplace:
-
-```bash
-claude plugin marketplace add clivejefferies/mobile-debug-tools
-claude plugin install mobile-debug-tools@mobile-debug-tools
-```
-
-</details>
-
-<details>
-
-<summary>Cursor plugin</summary>
-
-The repository includes a [Cursor marketplace](.cursor-plugin/marketplace.json).
-Teams and Enterprise admins can import the repository in Dashboard → Plugins & MCPs → Team
-Marketplaces. To test it locally, copy [agent-plugin](agent-plugin/) into
-`~/.cursor/plugins/local/mobile-debug-tools`, then reload Cursor.
-
-</details>
-
-Start a new chat or session after installation so the client loads the skill
-and MCP tools. Each plugin launches the published npm package locally and needs
-Node.js 18 or newer and the platform toolchains for your device. If you also
-registered the MCP server directly, disable that registration to avoid
-duplicate tools.
+Replace the path with your checkout location. Rebuild after source changes.
+Continue with [Getting started](#getting-started) once your client connects.
 
 ## Getting started
 
@@ -261,19 +285,11 @@ For setup problems, return to [environment diagnostics](docs/tools/system.md). F
 Android flows, see [system traces](docs/tools/system-traces.md); for paused runtime
 inspection, see [Android runtime debugging](docs/tools/debugger.md).
 
-### Next steps
-
-- [Interaction reference](docs/tools/interact.md): conditional actions, state assertions,
-  execution controls, and batched journeys.
-- [Observation reference](docs/tools/observe.md): readiness, log streams, and snapshots.
-- [Tool reference](docs/tools/TOOLS.md): all reference guides and shared principles.
-- [Contributing](CONTRIBUTING.md): change the server and run its checks.
-
 ## Documentation
 
-- [Documentation guide](docs/README.md) — where to start and what to read next.
-- [Tool reference](docs/tools/TOOLS.md) — tool inputs, responses, and examples.
-- [Contributing](CONTRIBUTING.md) — local development and validation.
+- [Documentation guide](docs/README.md) — find the guide for your task.
+- [Tool reference](docs/tools/TOOLS.md) — inputs, responses, examples, and shared principles.
+- [Contributing](CONTRIBUTING.md) — develop the server and run its checks.
 - [Changelog](docs/CHANGELOG.md) — release history.
 
 ## License

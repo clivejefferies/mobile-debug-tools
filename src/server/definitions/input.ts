@@ -1,3 +1,4 @@
+import { verificationModeJson, responseModeJson } from '../../contracts/execution-controls.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 
 export const inputTools: Tool[] = [
@@ -55,8 +56,8 @@ Failure Handling:
           type: 'string',
           description: 'Device Serial/UDID. Defaults to connected/booted device.'
         },
-        verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
-        responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+        verificationMode: { ...verificationModeJson, default: 'full' },
+        responseMode: { ...responseModeJson, default: 'debug' },
         actionTimeoutMs: { type: 'number', minimum: 100, maximum: 30000 },
         verificationTimeoutMs: { type: 'number', minimum: 100, maximum: 60000 }
       },

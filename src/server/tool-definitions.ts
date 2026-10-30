@@ -1,3 +1,4 @@
+import { verificationModeJson, responseModeJson } from '../contracts/execution-controls.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { manageTools } from './definitions/manage.js'
 import { observeTools } from './definitions/observe.js'
@@ -6,11 +7,11 @@ import { waitTools } from './definitions/wait.js'
 import { assertTools } from './definitions/assert.js'
 import { targetTools } from './definitions/target.js'
 import { inputTools } from './definitions/input.js'
-import { debuggerTools } from './debugger-schema.js'
-import { systemTraceTools } from './system-trace-schema.js'
-import { journeyStepsJson } from './journey-schema.js'
-import { conditionalTools, expectedStateJson } from './condition-schema.js'
-import { readinessPropertiesJson } from './readiness-schema.js'
+import { debuggerTools } from './schemas/debugger-schema.js'
+import { systemTraceTools } from './schemas/system-trace-schema.js'
+import { journeyStepsJson } from './schemas/journey-schema.js'
+import { conditionalTools, expectedStateJson } from './schemas/condition-schema.js'
+import { readinessPropertiesJson } from './schemas/readiness-schema.js'
 
 const baseTools = new Map([...manageTools, ...observeTools, ...diagnosticTools, ...waitTools, ...assertTools, ...targetTools, ...inputTools].map(tool => [tool.name, tool]))
 const baseOrder = [
@@ -89,8 +90,8 @@ for (const tool of toolDefinitions) {
   }
   if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
     Object.assign(tool.inputSchema.properties, {
-      verificationMode: { type: 'string', enum: ['none', 'light', 'full'], default: 'full' },
-      responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' },
+      verificationMode: { ...verificationModeJson, default: 'full' },
+      responseMode: { ...responseModeJson, default: 'debug' },
       actionTimeoutMs: { type: 'integer', description: 'Dispatch budget in milliseconds, clamped to 100–30000.' },
       verificationTimeoutMs: { type: 'integer', description: 'Light observation budget in milliseconds, clamped to 100–60000.' }
     })
@@ -101,7 +102,7 @@ for (const tool of toolDefinitions) {
     systemTraceId: { type: 'string', format: 'uuid', description: 'Explicit active same-device system trace. Invalid references prevent all journey input. Capture lifetime is controlled separately.' },
     captureOnFailure: { type: 'boolean', default: false },
     defaults: { type: 'object' as const, additionalProperties: false, properties: {
-      verificationMode: { type: 'string', enum: ['none', 'light', 'full'] },
+      verificationMode: verificationModeJson,
       actionTimeoutMs: { type: 'integer' }, verificationTimeoutMs: { type: 'integer' }
     } }
   })

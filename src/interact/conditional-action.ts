@@ -4,7 +4,7 @@ import type { ExpectedState } from '../contracts/condition.js'
 import { ToolsObserve } from '../observe/index.js'
 import { getSnapshotSessionId, hasSnapshotBaseline } from '../observe/snapshot-metadata.js'
 import { runWithSeparateBudget } from '../utils/operation-budget.js'
-import { ToolsNetwork } from '../network/index.js'
+import { ToolsNetwork } from '../observe/network/index.js'
 
 export interface ConditionalAction {
   platform: 'android' | 'ios'
