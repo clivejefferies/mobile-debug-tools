@@ -1,7 +1,9 @@
 # Plan: Android runtime debugger
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Specification](spec.md)
+
 2026-10-30. [Intent](intent.md) and [spec](spec.md) explicitly approved by the
-user's successive “yes” responses in this conversation. Implementation authorized.
+user's successive “yes” responses during design review. Implementation authorized.
 
 ## Implementation
 

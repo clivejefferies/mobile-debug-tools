@@ -1,5 +1,7 @@
 # Interaction latency fixture
 
+[Contributing](../../../CONTRIBUTING.md) · [Documentation](../../../docs/README.md)
+
 An offline native Android fixture, version 1.0. It requires Android SDK platform 36,
 build-tools 36.0.0 and JDK 21. The harness builds and signs it using those installed
 tools; no Gradle dependency download is needed.

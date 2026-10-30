@@ -1,5 +1,7 @@
 # Spec: Adjustable Control Support
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## Purpose
 
 Provide a deterministic, semantic interface for interacting with adjustable controls (such as sliders, steppers and other value-based controls) without relying primarily on coordinate manipulation.
@@ -8,7 +10,7 @@ The goal is to allow agents to request a target value rather than perform low-le
 
 ---
 
-# Rationale
+## Rationale
 
 Adjustable controls are common throughout modern mobile applications, but they remain one of the least reliable interaction types for autonomous agents.
 
@@ -25,7 +27,7 @@ This specification introduces a semantic adjustment model where agents request t
 
 ---
 
-# Goals
+## Goals
 
 The implementation shall:
 
@@ -38,7 +40,7 @@ The implementation shall:
 
 ---
 
-# Non-Goals
+## Non-Goals
 
 This specification does not:
 
@@ -50,7 +52,7 @@ This specification does not:
 
 ---
 
-# Supported Controls
+## Supported Controls
 
 Initial scope includes:
 
@@ -66,7 +68,7 @@ All supported controls must expose or deterministically parse into a numeric val
 
 ---
 
-# Runtime Interface
+## Runtime Interface
 
 The public tool contract remains the existing `adjust_control` operation.
 
@@ -134,7 +136,7 @@ These changes require corresponding updates to the existing `adjust_control` imp
 
 ---
 
-# Preconditions
+## Preconditions
 
 Before execution the following conditions must be satisfied:
 
@@ -148,7 +150,7 @@ If any precondition fails, execution shall terminate without attempting adjustme
 
 ---
 
-# Execution Model
+## Execution Model
 
 ## Phase 1 — Resolve
 
@@ -261,7 +263,7 @@ return CONTROL_CONVERGENCE_FAILED
 
 ---
 
-# Strategy Detection
+## Strategy Detection
 
 Strategy selection is deterministic and platform-specific.
 
@@ -353,7 +355,7 @@ The implementation shall use the existing coordinate gesture primitive and then 
 
 ---
 
-# Value Domains and Normalization
+## Value Domains and Normalization
 
 The initial public contract is numeric.
 
@@ -425,7 +427,7 @@ The implementation shall not silently clamp an out-of-range request unless the e
 
 ---
 
-# Failure Modes
+## Failure Modes
 
 The implementation shall use existing runtime error codes.
 
@@ -440,7 +442,7 @@ The implementation shall not introduce new public failure codes for this capabil
 
 ---
 
-# Acceptance Criteria
+## Acceptance Criteria
 
 The implementation is complete when all of the following automated fixtures or smoke scenarios pass on each supported platform.
 
@@ -487,7 +489,7 @@ For every failed fixture:
 
 ---
 
-# Dependencies
+## Dependencies
 
 Depends on:
 
@@ -504,7 +506,7 @@ Strengthens:
 
 ---
 
-# Future Work
+## Future Work
 
 The following capabilities are intentionally excluded from this specification:
 
@@ -519,7 +521,7 @@ These are covered by the **Adjustable Control Precision Hardening** specificatio
 
 ---
 
-# Determinism Requirements
+## Determinism Requirements
 
 Given identical:
 

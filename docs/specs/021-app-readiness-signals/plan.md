@@ -1,8 +1,10 @@
 # Plan: app readiness signals
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Specification](spec.md)
+
 Date: 2026-10-29. Status: complete — implementation and required verification passed.
-[Intent](intent.md) and [spec](spec.md) separately approved in this conversation;
-“yep” authorises implementation of spec 021. Preserve existing uncommitted work.
+[Intent](intent.md) and [spec](spec.md) separately approved during design review;
+“yep” authorises implementation of spec 021.
 
 ## Implementation
 
@@ -47,8 +49,8 @@ Node v23.11.0. This is local evidence, not a published package or Node 18 CI run
 | --- | --- |
 | Classifier, schemas, opt-in waits | PASS: state precedence, monotonic stability, invalid/error continuity, no extra predicate reads, explicit unsupported states, timeout uncertainty |
 | Production Android/iOS observation adapters with fake binaries | PASS: two-sample stability, native loaders, timeout child closure, and killing a hung iOS metadata probe; simulated error evidence |
-| Maintainer checks | PASS: final `npm run verify` (lint, build, 62 unit-test files, plugin consistency); `/tmp/mobile-readiness-verify-complete.log` |
-| Existing `npm run test:device` | PASS: all six Android/iOS screenshot, log, and tree smoke wrappers; `/tmp/mobile-readiness-device-suite.log` |
+| Maintainer checks | PASS: final `npm run verify` (lint, build, 62 unit-test files, plugin consistency) |
+| Existing `npm run test:device` | PASS: all six Android/iOS screenshot, log, and tree smoke wrappers |
 | Native fixture journeys through built MCP stdio | PASS: six on each simulator; evidence linked below |
 
 Focused device commands (each builds, installs, and uninstalls its own offline
@@ -78,8 +80,7 @@ starts a 12-second loader while Ready stays visible; completion displays Done.
 All twelve device scenarios passed. Both fixture apps were uninstalled, build
 folders removed, Android’s original foreground app restored, and iOS returned
 to Home. No settings, permissions, accounts, or production app data were changed.
-Structured evidence: `/tmp/mobile-readiness-android.json` and
-`/tmp/mobile-readiness-ios.json`.
+Temporary raw outputs were not retained in the repository; results are summarised here.
 
 Review covered classification/normalization, schema parity, serialization,
 request-local state, ancestor budgets, native acquisition and cleanup, existing

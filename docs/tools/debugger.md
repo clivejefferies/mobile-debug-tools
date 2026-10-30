@@ -1,5 +1,7 @@
 # Android runtime debugger
 
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
+
 Optional managed Java/Kotlin bytecode debugging through an independently developed
 JDI worker. Requires JDK 17+ (`java`, `javac`, `jdk.jdi`), Android platform-tools,
 an authorized device and an already-running JDWP-visible debuggable app.
@@ -102,3 +104,9 @@ MCP_DEBUGGER_DEVICE=emulator-5554 MCP_DEBUGGER_EXTENDED=1 npx tsx test/device/au
 
 The ordinary device suite explicitly reports this journey unrun unless the device
 is selected. Fixture compilation requires SDK platform/build-tools 36 and `javac -g`.
+
+## Related guides
+
+- [App management](manage.md): build, install, and launch the app before attaching.
+- [App readiness](observe.md#app-readiness): understand known debugger-pause evidence.
+- [Android system traces](system-traces.md): investigate performance without paused-state inspection.

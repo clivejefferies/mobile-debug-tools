@@ -1,5 +1,7 @@
 # RFC 018 — Interaction Latency, Verification Modes, and Batched Journeys
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## Status
 
 Implemented; Android and iOS device validation passed.

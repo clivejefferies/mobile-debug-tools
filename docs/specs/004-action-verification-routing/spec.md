@@ -1,6 +1,6 @@
-
-
 # RFC 004: Verification Routing for Local and Side-Effect Actions
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## Status
 Draft

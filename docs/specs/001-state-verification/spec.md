@@ -1,12 +1,14 @@
 # RFC-001: Stronger State Verification
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 Priority: 1
 Depends on: Snapshot v1
 Related Roadmap Item: Priority 1 — Stronger State Verification
 
 ---
 
-# 1. Problem
+## 1. Problem
 
 Agents currently infer UI control state too often from surrounding text or visual clues instead of reading authoritative control state.
 
@@ -35,7 +37,7 @@ Shift from visual inference to explicit state introspection.
 
 ---
 
-# 2. Goals
+## 2. Goals
 
 This RFC introduces:
 
@@ -52,7 +54,7 @@ Success goals:
 
 ---
 
-# 3. Non-Goals
+## 3. Non-Goals
 
 This RFC does not:
 
@@ -64,7 +66,7 @@ This RFC does not:
 
 ---
 
-# 4. Proposed Model
+## 4. Proposed Model
 
 ## 4.1 State Model Additions
 
@@ -209,7 +211,7 @@ Rules:
 
 ---
 
-# 5. Guardrails and Conflict Semantics
+## 5. Guardrails and Conflict Semantics
 
 Required invariants:
 
@@ -242,7 +244,7 @@ Observation and verification stay distinct.
 
 ---
 
-# 6. Protocol Delta (Draft)
+## 6. Protocol Delta (Draft)
 
 Snapshot schema extension:
 
@@ -278,7 +280,7 @@ capabilities: {
 
 ---
 
-# 7. Failure Modes
+## 7. Failure Modes
 
 Must define behavior for:
 
@@ -310,7 +312,7 @@ If snapshot freshness is uncertain, no assumptions of real-time synchronization.
 
 ---
 
-# 8. Acceptance Test Vectors
+## 8. Acceptance Test Vectors
 
 Representative benchmark flows:
 
@@ -366,7 +368,7 @@ Then:
 
 ---
 
-# 9. Acceptance Criteria
+## 9. Acceptance Criteria
 
 RFC considered complete when:
 
@@ -378,7 +380,7 @@ RFC considered complete when:
 
 ---
 
-# 10. Success Metrics
+## 10. Success Metrics
 
 Target outcomes:
 
@@ -390,7 +392,7 @@ Measured against roadmap KPIs.
 
 ---
 
-# 11. Normative Requirements (v1)
+## 11. Normative Requirements (v1)
 
 Implementations conforming to RFC-001:
 
@@ -415,7 +417,7 @@ MAY:
 
 ---
 
-# 12. Resolved Design Decisions
+## 12. Resolved Design Decisions
 
 Former open questions resolved for RFC-001:
 
@@ -441,7 +443,7 @@ No unresolved design blockers remain for RFC-001 draft scope.
 
 ---
 
-# 13. Deferred To Later RFCs
+## 13. Deferred To Later RFCs
 
 Deferred to later RFCs:
 

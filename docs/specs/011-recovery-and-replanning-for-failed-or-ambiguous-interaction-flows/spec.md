@@ -1,6 +1,6 @@
-
-
 # RFC 011 — Recovery and Replanning for Failed or Ambiguous Interaction Flows
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## 1. Summary
 

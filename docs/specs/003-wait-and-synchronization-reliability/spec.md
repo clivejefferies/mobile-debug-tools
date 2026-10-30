@@ -1,11 +1,13 @@
 # RFC-003: Wait and Synchronization Reliability
 
-Priority: 3  
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
+Priority: 3
 Depends on: RFC-001 (Stronger State Verification), RFC-002 (Platform-Native Element Metadata and Resolution Hints)
 
 ---
 
-# 1. Problem
+## 1. Problem
 
 Agents can often identify the right element (RFC-002) and verify the right state (RFC-001), but still fail because they act before the UI has reached the intended post-action state.
 
@@ -26,7 +28,7 @@ Current system limitations:
 
 ---
 
-# 2. Goals
+## 2. Goals
 
 This RFC introduces:
 
@@ -45,7 +47,7 @@ Success goals:
 
 ---
 
-# 3. Non-Goals
+## 3. Non-Goals
 
 This RFC does not:
 
@@ -56,7 +58,7 @@ This RFC does not:
 
 ---
 
-# 4. Proposed Model
+## 4. Proposed Model
 
 ## 4.1 UI-First Synchronization Contract (v1)
 
@@ -219,7 +221,7 @@ These are synchronization hints layered on top of standard wait behaviour.
 
 ---
 
-# 5. Failure Modes
+## 5. Failure Modes
 
 ## 5.1 Premature Action Progression
 
@@ -257,7 +259,7 @@ If unrelated UI churn triggers early wait completion:
 
 ---
 
-# 6. Acceptance Criteria
+## 6. Acceptance Criteria
 
 RFC-003 specification is complete when:
 
@@ -275,7 +277,7 @@ Implementation readiness success is measured when:
 
 ---
 
-# 7. Success Metrics
+## 7. Success Metrics
 
 - Fewer retries caused by timing/synchronization errors
 - Higher post-action verification success rate
@@ -284,7 +286,7 @@ Implementation readiness success is measured when:
 
 ---
 
-# 8. Deferred To Later RFCs
+## 8. Deferred To Later RFCs
 
 - Advanced subscriptions / notify-when-element-appears APIs
 - Full action-to-ui trace correlation (Priority 7)

@@ -1,5 +1,7 @@
 # Intent: Android system traces
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Specification](spec.md) · [Plan and verification](plan.md)
+
 Originator: repository maintainer, through GitHub roadmap issue #67.
 Date: 2026-10-30. Status: approved.
 Source: [issue #67](https://github.com/clivejefferies/mobile-debug-tools/issues/67), roadmap priority 4 of 9.
@@ -36,5 +38,4 @@ Android CLI integration is provisional and requires investigation.
 
 ## Approval
 
-The maintainer approved the complete captured intent with “yes” in this
-conversation on 2026-10-30. Specification approval remains pending.
+The maintainer approved the complete captured intent with “yes” during design review on 2026-10-30. See the linked specification for its separate approval record.

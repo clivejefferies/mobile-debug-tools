@@ -1,6 +1,8 @@
 # Intent: Android heap dump capture
 
-Originator: clivejefferies, through GitHub roadmap issue #69 and the current conversation.
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
+Originator: clivejefferies, through GitHub roadmap issue #69 and maintainer design review.
 Date: 2026-10-30. Status: parked; intent not approved.
 Source: [issue #69](https://github.com/clivejefferies/mobile-debug-tools/issues/69), roadmap priority 6 of 9.
 

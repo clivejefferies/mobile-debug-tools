@@ -1,5 +1,7 @@
 # UI tree observation performance benchmark
 
+[Benchmark index](../README.md) · [Documentation](../../README.md)
+
 This paired Android benchmark compares a clean, built instrumentation baseline
 with a clean, built candidate. It runs the Spec 018 static journey and a local
 network-backed loading-to-ready flow against the same fixture APK and emulator.
@@ -41,19 +43,25 @@ not gain timing fields. Events contain timings, platform, generated journey step
 IDs, and opaque acquisition IDs. They omit UI contents, app identifiers,
 screenshots, logs, payloads, and device serials. iOS latency remains unmeasured.
 
-The checked-in `initial-baseline.json` is the standalone capture taken before
-the optimization. The checked-in `baseline.json` is the baseline side of the
-paired run, so it shares the fixture APK hash with `candidate.json`.
-`comparison-attempt-1.json` retains an earlier paired run with two visible
-network failures; see `comparison.md` for the outcome and limitation.
-The report commit SHAs are available locally as `codex/spec-019-baseline` and
-`codex/spec-019-candidate`; create clean, built checkouts of those refs to
-reproduce the paired measurement.
+## Recorded results
 
-The historical `bridge-probe.json` compares ten bridge and legacy reads, checks a network
-update, and checks a timer that changes visually without emitting an
-accessibility event. The timer check catches a stale accessibility cache even
-when every bridge request calls `getRootInActiveWindow()`.
-The bridge APK source, generator, and build/install probe have been removed;
-this report is retained as historical evidence, not a runnable benchmark in
-the current checkout.
+Read the [comparison report](comparison.md) for measurements and limitations.
+The checked-in reports describe a historical run, not the current checkout's
+performance.
+
+| File | Purpose |
+| --- | --- |
+| [comparison.md](comparison.md) | Human-readable results and interpretation. |
+| [comparison.json](comparison.json) | Complete paired report, including both modes and per-attempt data. |
+| [baseline.json](baseline.json) | Baseline-only view of the paired run. |
+| [candidate.json](candidate.json) | Candidate-only view of the paired run. |
+| [comparison-attempt-1.json](comparison-attempt-1.json) | Earlier failed comparison, retained because the unexplained stalls remain a limitation. |
+
+The paired baseline and candidate use the same fixture APK hash. The separate
+views are generated outputs; use the complete comparison for the full record.
+Baseline-only runs also write `baseline.json`, so keep paired reports together
+when recording a new comparison.
+
+Use the commit identifiers in the JSON reports to identify the measured source.
+Reproducing the run requires clean, built checkouts of those commits and the
+fixture prerequisites described above.

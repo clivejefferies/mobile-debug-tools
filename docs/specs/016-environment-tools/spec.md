@@ -1,6 +1,6 @@
-
-
 # Specification 016 — Environment Auto-Configuration and Toolchain Discovery
+
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
 
 ## Purpose
 
@@ -10,7 +10,7 @@ The MCP should work out of the box on a standard development machine whenever th
 
 ---
 
-# Goals
+## Goals
 
 - Eliminate manual executable path configuration for standard installations.
 - Automatically discover Android and iOS toolchains.
@@ -21,7 +21,7 @@ The MCP should work out of the box on a standard development machine whenever th
 
 ---
 
-# Non-Goals
+## Non-Goals
 
 This specification does not:
 
@@ -33,7 +33,7 @@ This specification does not:
 
 ---
 
-# Supported Host Matrix
+## Supported Host Matrix
 
 | Host OS | Android discovery | iOS discovery | Expected behaviour |
 |---|---:|---:|---|
@@ -57,7 +57,7 @@ iOS discovery shall only run on macOS. On Linux and Windows, iOS status shall be
 }
 ```
 
-# Scope
+## Scope
 
 ## Android
 
@@ -87,7 +87,7 @@ iOS discovery shall only run on macOS. On Linux and Windows, iOS status shall be
 
 ---
 
-# Runtime Behaviour
+## Runtime Behaviour
 
 Toolchain discovery and validation shall be available through `get_system_status`.
 
@@ -109,7 +109,7 @@ The server shall not fail simply because one platform is unavailable.
 
 ---
 
-# Discovery Priority
+## Discovery Priority
 
 Every executable and toolchain root shall be resolved using the following deterministic order.
 
@@ -136,7 +136,7 @@ If multiple supported overrides are present for the same concern, the order show
 
 An explicitly configured path that does not exist, is not executable, or fails validation shall not silently fall back to automatic discovery. It shall return a structured failure so configuration errors remain visible and deterministic.
 
-# Tool Version Policy
+## Tool Version Policy
 
 Version validation shall be deterministic and tool-specific.
 
@@ -157,7 +157,7 @@ When a version string cannot be parsed, the tool shall return `TOOL_VERSION_UNSU
 
 ---
 
-# Capability Detection
+## Capability Detection
 
 Discovery shall determine available capabilities rather than simply locating executables.
 
@@ -185,7 +185,7 @@ iOS capabilities may include:
 
 Agents shall not need to know which underlying provider implements a capability.
 
-# Provider Selection
+## Provider Selection
 
 Multiple providers may satisfy the same capability.
 
@@ -214,7 +214,7 @@ A platform may be partially ready when only a subset of capabilities has an avai
 
 ---
 
-# Environment Validation
+## Environment Validation
 
 Validation shall confirm:
 
@@ -233,7 +233,7 @@ Examples:
 - `xcrun` and `simctl` available with no booted simulator: iOS toolchain ready, device-dependent capabilities unavailable until a simulator is booted or device is connected.
 - `adb` available with no connected device: Android toolchain ready, device-dependent capabilities unavailable until a device or emulator is connected.
 
-# Diagnostic Contract
+## Diagnostic Contract
 
 All discovery and validation failures shall use the following shape:
 
@@ -276,7 +276,7 @@ Raw shell errors may be recorded internally for diagnostics, but shall not be ex
 
 ---
 
-# Partial Availability
+## Partial Availability
 
 Platform readiness shall be reported independently.
 
@@ -295,7 +295,7 @@ A platform status shall be one of:
 - `unavailable`
 - `unsupported`
 
-# Runtime Introspection
+## Runtime Introspection
 
 `get_system_status` shall expose the environment summary using this minimum structure:
 
@@ -401,7 +401,7 @@ Each capability entry shall include:
 
 ---
 
-# Compatibility
+## Compatibility
 
 This specification extends the existing `get_system_status` surface additively.
 
@@ -429,7 +429,7 @@ Environment variables become optional overrides rather than mandatory configurat
 
 ---
 
-# Failure Modes
+## Failure Modes
 
 The implementation shall return deterministic setup failures including:
 
@@ -455,7 +455,7 @@ Failure selection rules:
 
 ---
 
-# Acceptance Criteria
+## Acceptance Criteria
 
 The implementation is complete when all of the following are true.
 
@@ -521,7 +521,7 @@ The implementation is complete when all of the following are true.
 
 ---
 
-# Future Work
+## Future Work
 
 Potential future enhancements include:
 

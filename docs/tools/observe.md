@@ -1,31 +1,33 @@
-# Observe (logs, screenshots, UI trees)
+# Observation
 
-Tools that retrieve device state, logs, screenshots, fingerprints, and UI hierarchies.
+[Documentation](../README.md) · [Tool reference](TOOLS.md)
 
-These tools are primarily for:
+Use observations to understand the current UI and investigate unexpected behaviour.
+Screenshots show layout; UI trees expose labels, identifiers, and control state.
+Logs and debug snapshots provide context when the UI does not explain a failure.
+Use [interaction assertions](interact.md#expect_element_visible) to establish an
+expected outcome.
 
-- building context before an action
-- supporting synchronization
-- diagnostics when verification fails
+## On this page
 
-They are **not** the primary success signal when an applicable `expect_*` tool exists.
+- Inspect the UI: [screenshot](#capture_screenshot), [UI tree](#get_ui_tree), [current screen](#get_current_screen), [fingerprint](#get_screen_fingerprint).
+- Investigate a failure: [logs](#get_logs), [debug snapshot](#capture_debug_snapshot), [log streams](#start_log_stream--read_log_stream--stop_log_stream).
+- Check whether the UI has settled: [app readiness](#app-readiness).
 
-Covered observations support optional `actionRef` and return acquisition/freshness
-metadata; see [correlated evidence](evidence.md).
-
-Android performance investigations can use [system traces](system-traces.md)
-to bracket a journey and retrieve a local Perfetto artifact.
+To connect an observation to a specific action, use [evidence
+correlation](correlated-evidence.md). For Android performance questions, collect a
+[system trace](system-traces.md) around the interaction.
 
 ## get_logs
 
-Fetch recent logs as structured entries optimized for AI agents.
+Fetch recent logs as structured entries for diagnosis.
 
 Use logs as a debugging aid only. Prefer `expect_*` for verification, and use logs after verification fails or when an error is suspected.
 
 Input (example):
 
 ```json
-{ "platform": "android|ios", "appId": "com.example.app", "deviceId": "emulator-5554", "pid": 1234, "tag": "MyTag", "level": "ERROR", "contains": "timeout", "since_seconds": 60, "limit": 50 }
+{ "platform": "android", "appId": "com.example.app", "deviceId": "emulator-5554", "pid": 1234, "tag": "MyTag", "level": "ERROR", "contains": "timeout", "since_seconds": 60, "limit": 50 }
 ```
 
 Defaults:
@@ -86,10 +88,10 @@ Input:
 { "platform": "android", "deviceId": "emulator-5554" }
 ```
 
-Response (example):
+Response (selected fields):
 
 ```json
-{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "snapshot_revision": 12, "captured_at_ms": 1710000000123, "loading_state": { "active": true, "signal": "spinner", "source": "ui_tree" }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true }, "stable_id": "com.example:id/signin", "role": "button", "test_tag": "com.example:id/signin", "selector": { "value": "com.example:id/signin", "confidence": { "score": 1, "reason": "resource_id" } }, "semantic": { "is_clickable": true, "is_container": false } } ] }
+{ "device": { "platform": "android", "id": "emulator-5554" }, "screen": "", "resolution": { "width": 1080, "height": 2400 }, "snapshot_session_id": "example-server-session", "snapshot_revision": 12, "captured_at_ms": 1710000000123, "loading_state": { "active": true, "signal": "spinner", "source": "ui_tree" }, "elements": [ { "text": "Sign in", "type": "android.widget.Button", "resourceId": "com.example:id/signin", "clickable": true, "bounds": [0,0,100,50], "state": { "enabled": true }, "stable_id": "com.example:id/signin", "role": "button", "test_tag": "com.example:id/signin", "selector": { "value": "com.example:id/signin", "confidence": { "score": 1, "reason": "resource_id" } }, "semantic": { "is_clickable": true, "is_container": false } } ] }
 ```
 
 Notes:
@@ -133,8 +135,9 @@ Input:
 {
   "reason": "optional string describing why snapshot is taken",
   "includeLogs": true,
+  "includeScreenshot": true,
   "logLines": 200,
-  "platform": "android | ios",
+  "platform": "android",
   "appId": "optional package/bundle id to scope logs",
   "deviceId": "optional device serial/udid",
   "sessionId": "optional log stream session id to prefer"
@@ -152,17 +155,17 @@ Behavior:
 - `semantic` is optional, derived from `raw`, and intended for planning only.
 - `raw` now includes `snapshot_revision`, `captured_at_ms`, and `loading_state` when detectable.
 
-Response (example):
+Response (selected fields):
 
 ```json
 {
   "raw": {
-    "timestamp": 1710000000,
+    "timestamp": 1710000000000,
     "reason": "Crash after tapping checkout",
     "activity": "CheckoutActivity",
     "fingerprint": "abc123",
     "screenshot": "<base64 PNG string>",
-    "ui_tree": { ... },
+    "ui_tree": { "elements": [] },
     "logs": [ { "timestamp": "2024-03-09T12:00:00.000Z", "level": "ERROR", "tag": "CheckoutViewModel", "pid": 1234, "message": "NullPointerException at CheckoutViewModel" } ]
   },
   "semantic": {
@@ -214,12 +217,41 @@ Guidance:
 ---
 
 ## start_log_stream / read_log_stream / stop_log_stream
-Start a background adb logcat stream and retrieve parsed NDJSON entries.
-
-read_log_stream response example:
+Start an app-scoped background stream on Android (`adb logcat`) or an iOS
+simulator (`xcrun simctl ... log stream`). Start with `start_log_stream`:
 
 ```json
-{ "entries": [ { "timestamp": "2026-03-20T...Z", "level": "ERROR", "tag": "AppTag", "pid": 1234, "message": "FATAL EXCEPTION" } ], "crash_summary": { "crash_detected": true } }
+{
+  "platform": "android",
+  "deviceId": "emulator-5554",
+  "packageName": "com.example.app",
+  "sessionId": "app-diagnostics",
+  "level": "error"
+}
+```
+
+`packageName` is required and is also used for an iOS bundle ID. `platform`
+defaults to Android. Android accepts `level`: `error` (default), `warn`, `info`,
+or `debug`. The iOS adapter does not use that level argument. Omitted session IDs
+use `default`; supply an explicit ID to keep diagnostic streams distinct.
+
+Pass the same session ID to `read_log_stream` and, when finished,
+`stop_log_stream`:
+
+```json
+{ "sessionId": "app-diagnostics" }
+```
+
+Use distinct session IDs across platforms: when an ID exists only on iOS, read
+and stop select iOS; otherwise they select Android. Reads retain the stream's device scope.
+`read_log_stream` also accepts the optional [action reference](correlated-evidence.md)
+for evidence correlation. A read returns accumulated entries and any available
+crash summary; reading does not itself stop the background stream.
+
+Example read response (selected fields):
+
+```json
+{ "entries": [ { "timestamp": "2026-03-20T12:00:00Z", "level": "ERROR", "tag": "AppTag", "pid": 1234, "message": "FATAL EXCEPTION" } ], "crash_summary": { "crash_detected": true } }
 ```
 
 ## App readiness

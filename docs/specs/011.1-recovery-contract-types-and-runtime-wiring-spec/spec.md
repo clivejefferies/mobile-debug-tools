@@ -1,5 +1,7 @@
 # RFC 011.1 — Recovery Contract Types & Runtime Wiring Spec
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
 ## 1. Purpose
 
 This document defines the typed runtime contract required to implement RFC 011 safely and consistently across:

@@ -1,11 +1,13 @@
 # RFC-002: Platform-Native Element Metadata and Resolution Hints
 
-Priority: 2  
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md)
+
+Priority: 2
 Depends on: RFC-001 (Stronger State Verification)
 
 ---
 
-# 1. Problem
+## 1. Problem
 
 Agents currently rely on brittle or inconsistent selectors when identifying UI elements.
 
@@ -28,7 +30,7 @@ This RFC does not assume that a universal or guaranteed stable_id exists across 
 
 ---
 
-# 2. Goals
+## 2. Goals
 
 This RFC introduces:
 
@@ -45,7 +47,7 @@ Success goals:
 
 ---
 
-# 3. Non-Goals
+## 3. Non-Goals
 
 This RFC does not:
 
@@ -56,7 +58,7 @@ This RFC does not:
 
 ---
 
-# 4. Proposed Model
+## 4. Proposed Model
 
 ## 4.1 Stable Element Identity
 
@@ -336,7 +338,7 @@ Notes:
 
 ---
 
-# 5. Failure Modes
+## 5. Failure Modes
 
 ## 5.1 Ambiguous match
 
@@ -369,7 +371,7 @@ If UI structure changes:
 
 ---
 
-# 6. Acceptance Criteria
+## 6. Acceptance Criteria
 
 RFC-002 is complete when:
 
@@ -381,7 +383,7 @@ RFC-002 is complete when:
 
 ---
 
-# 7. Success Metrics
+## 7. Success Metrics
 
 - Higher element resolution match rate using platform-native metadata + confidence hints
 - Reduced selector retries
@@ -390,7 +392,7 @@ RFC-002 is complete when:
 
 ---
 
-# 8. Out of Scope
+## 8. Out of Scope
 
 - State verification (RFC-001)
 - Wait/synchronization (RFC-003)

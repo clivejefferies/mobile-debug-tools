@@ -1,8 +1,10 @@
 # Plan: conditional actions
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Specification](spec.md)
+
 Date: 2026-10-29. Status: complete — implementation and required verification passed.
 Intent: [intent.md](intent.md). Specification: [spec.md](spec.md).
-Both approved by the originator's separate “yes” replies in this conversation;
+Both approved by the originator's separate “yes” replies during design review;
 the latest approval authorises implementation of spec 020.
 
 ## Implementation sequence
@@ -98,18 +100,16 @@ minimum is >=18; CI's Node 18 run has not been executed locally).
   All elements contribute to revision checks beyond the bounded delta history.
 - `npm run sync:agent-plugin`: PASS; no generated manifest differences.
 - Final `npm run verify`: PASS (lint, build, 59 unit-test files, plugin consistency).
-  Log: `/tmp/mobile-debug-conditional-verify-final.log`.
 - Initial `npm run test:device`: FAIL at iOS UI-tree smoke (`Invalid UI tree resolution`) while the original simulator was booting.
   Android screenshot/log/tree wrappers passed. iOS screenshot wrapper passed;
   the iOS log wrapper also reported pass but its underlying log retrieval printed
   `getpwuid_r` / unavailable log-store errors, so this is not evidence of usable
   iOS logs. These wrappers use automatic device selection; focused tests below
-  pin their simulator explicitly. Full log: `/tmp/mobile-debug-conditional-device-suite.log`.
+  pin their simulator explicitly.
 
 - Final `npm run test:device`: PASS after the replacement iPhone 17 Pro finished
   booting. All six Android/iOS screenshot, log, and tree smoke wrappers passed,
-  without the earlier iOS log-store diagnostics. Log:
-  `/tmp/mobile-debug-conditional-device-suite-final.log`.
+  without the earlier iOS log-store diagnostics.
 - Final documentation relative-link checks and `git diff --check`: PASS.
 - Final lint after the device helper's selector/start-state correction: PASS.
 
@@ -138,7 +138,7 @@ Starting state: system Settings root, with Network & internet visible.
 | Journey stop, compact | Successful wait for Internet, conditional back tap with root expectation, later tap | Earlier wait passed, guarded step failed with fresh tree, later step `not_run`; destination remained | PASS |
 | Journey stop, debug | Same sequence in debug mode | Same stop and preserved evidence | PASS |
 
-Full structured evidence: `/tmp/mobile-debug-conditional-android.json`.
+The temporary raw output was not retained in the repository; results are summarised here.
 The five scenarios were rerun successfully against the final built server after
 the compact-error and metadata-validity fixes and the helper selector correction.
 The helper is reproducible and requires a deliberately prepared safe system
@@ -175,7 +175,7 @@ Starting state: Settings root with General visible, About absent.
 | Journey stop, compact | Successful wait for About, stale conditional tap on `resource_id: BackButton`, later back tap | Wait passed; condition failed; later step `not_run`; General remained visible | PASS |
 | Journey stop, debug | Same sequence in debug mode | Same stop and fresh condition evidence | PASS |
 
-Structured evidence: `/tmp/mobile-debug-conditional-ios.json`.
+The temporary raw output was not retained in the repository; results are summarised here.
 An initial helper attempt selected the application container sharing the Settings
 label and correctly stopped with `ELEMENT_NOT_INTERACTABLE` / `not_checked`;
 this was not counted as a conditional-journey pass. The helper now prefers the
@@ -210,5 +210,4 @@ Limits: live simulator checks cover conditional taps and journey stops; conditio
 swipes and Android typing/back use production-adapter tests with fake native
 tools. Physical devices were not used for mutation checks. UI normalization, the observation-to-OS-input race, and concurrent external
 input remain explicit spec limits. No mutation testing was performed. No tests
-or validation rules were weakened. Existing uncommitted process/skill relocation
-work was preserved. No package was published and nothing was committed/pushed.
+or validation rules were weakened. No published-package verification was performed.

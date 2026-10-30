@@ -1,8 +1,10 @@
 # Spec 021: app readiness signals
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Plan and verification](plan.md)
+
 Date: 2026-10-29. Status: approved — implementation authorised.
 Source: [issue #65](https://github.com/clivejefferies/mobile-debug-tools/issues/65).
-[Intent](intent.md) approved by the originator’s “yes” in this conversation.
+[Intent](intent.md) approved by the originator’s “yes” during design review.
 
 ## Behaviour and scope
 

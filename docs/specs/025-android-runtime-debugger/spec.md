@@ -1,7 +1,9 @@
 # Specification: Android runtime debugger
 
+[Design and evidence](../../README.md#design-and-evidence) · [Tool reference](../../tools/TOOLS.md) · [Intent](intent.md) · [Plan and verification](plan.md)
+
 Date: 2026-10-30. Status: approved.
-Intent: [approved intent](intent.md), approved by the user's “yes” in this conversation.
+Intent: [approved intent](intent.md), approved by the user's “yes” during design review.
 Source: [issue #68](https://github.com/clivejefferies/mobile-debug-tools/issues/68).
 
 ## Behaviour and supported environment
@@ -176,7 +178,6 @@ Primary references: [JDI VM lifecycle](https://docs.oracle.com/en/java/javase/17
 and [ADB](https://developer.android.com/tools/adb). ART/JDI interoperability must
 be established by fixture evidence; API documentation alone does not prove it.
 
-The user approved this complete specification with “yes” on 2026-10-30 in this
-conversation, including all-thread
+The user approved this complete specification with “yes” on 2026-10-30 during design review, including all-thread
 suspension, conservative device-wide UI blocking, shallow locals, JDK dependency,
 and automatic detach limits. Implementation is authorized within this scope.

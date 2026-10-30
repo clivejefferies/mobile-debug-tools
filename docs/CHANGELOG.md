@@ -1,5 +1,11 @@
 # Changelog
 
+[Documentation](README.md)
+
+Entries describe their release at the time it was recorded. Historical source
+paths and commands may have moved; use the [contribution guide](../CONTRIBUTING.md)
+and [tool reference](tools/TOOLS.md) for the current checkout.
+
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## Unreleased

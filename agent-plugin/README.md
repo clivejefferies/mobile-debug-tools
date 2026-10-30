@@ -1,23 +1,33 @@
 # Mobile Debug MCP agent plugin
 
-Install this directory as an Agent Plugins package in a client that supports
-both skills and stdio MCP servers. It provides the existing mobile-debug MCP
+[Documentation](../docs/README.md) · [Client installation](../README.md#agent-plugin)
+
+Use the [client installation instructions](../README.md#agent-plugin) to install
+the plugin. It supports clients with
+both skills and stdio MCP servers. It provides the mobile-debug MCP
 usage skill and launches the published `mobile-debug-mcp` npm package. The
 plugin requires Node.js 18 or newer, `npx`, and the platform toolchains needed
 for the devices you want to use. The first launch may need npm registry access.
 The MCP process starts in the client-managed plugin data directory so npm does
 not resolve the source checkout as a local package when installed from this repo.
 
+## Versions and maintenance
+
 The server is pinned to the published npm version in `mcp.json`. The plugin's
 `plugin.json` version advances independently for guidance-only releases; do not
-change the server pin to an unpublished npm version. The skill in
-`skills/mobile-debug-mcp/SKILL.md` is shared by all three clients. Run
+change the server pin to an unpublished npm version. The
+[usage skill](skills/mobile-debug-mcp/SKILL.md) is shared by all three clients. Run
 `npm run sync:agent-plugin` after updating the plugin metadata or server pin to
 refresh the thin Codex, Claude Code, and Cursor manifests in this directory.
 The three marketplaces all point here and share one skill.
 The packaged directory uses the skill's declared name, `mobile-debug-mcp`, as
 required by Agent Skills. `npm run check:agent-plugin` checks the packaged
 copies and configuration.
+
+## Using the plugin
+
+After installation, follow [Getting started](../README.md#getting-started) to check
+the environment and perform a verified interaction.
 
 The usage skill prefers screenshots for routine visual checks and reserves
 hierarchy reads for semantic selection and structured assertions. Assertion
@@ -30,4 +40,4 @@ updating the skill does not update the pinned server or installed plugin.
 If you already configured the MCP server directly in your agent client, disable
 that separate registration when enabling this plugin to avoid duplicate tools.
 The direct npm installation remains available without this plugin. See the
-repository README for platform toolchain setup and `get_system_status` guidance.
+[repository README](../README.md#environment-setup) for platform toolchain setup and `get_system_status` guidance.
