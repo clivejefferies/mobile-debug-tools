@@ -1179,3 +1179,16 @@ for (const tool of toolDefinitions) {
     } }
   })
 }
+
+// Correlation is explicit; an omitted reference creates an independent observation.
+for (const tool of toolDefinitions) {
+  if (['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'read_log_stream'].includes(tool.name)) {
+    Object.assign(tool.inputSchema.properties, { actionRef: {
+      type: 'object', additionalProperties: false, required: ['sessionId', 'actionId'], properties: {
+        sessionId: { type: 'string', minLength: 1, maxLength: 128 },
+        actionId: { type: 'string', minLength: 1, maxLength: 128 }
+      }
+    } })
+    tool.description += '\nReturns evidence metadata with acquisition intervals and conservative freshness. Optional actionRef links a known same-session/device action; unavailable references collect independently. Device log times are not comparable with host dispatch times.'
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "verified_on": "2026-10-30",
+  "source_base": "3701f3987940a8abc76ed893b575ed370e3fb673",
+  "source_state": "working tree with correlated evidence changes",
+  "node_version": "23.11.0",
+  "build_sha256": {
+    "dist/server/tool-handlers.js": "4ae4aef2467518216e3b987112aadb91e5ff560679782fe08aefdb389209cc50",
+    "dist/observe/evidence.js": "bd7c6ac046ad4adde08117dcb66f68682e0036a83308c0c84f6d5ce141f8a386"
+  },
+  "journeys": [
+    {
+      "status": "PASS",
+      "server": {
+        "name": "mobile-debug-mcp",
+        "version": "0.32.4"
+      },
+      "platform": "android",
+      "device": "emulator-5554",
+      "osVersion": "16",
+      "startingApp": "com.android.settings",
+      "actionId": "5fdfe5a0-cfd3-4182-a12b-c440d855cec5",
+      "phases": {
+        "dispatchStarted": 1793350325789,
+        "dispatchCompleted": 1793350326584,
+        "screenshotStarted": 1793350327002,
+        "screenshotCompleted": 1793350327334
+      },
+      "screenshot": "captured",
+      "logs": "captured",
+      "uiTree": "captured",
+      "disabledComponents": "omitted",
+      "foreignReference": "unavailable",
+      "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+    },
+    {
+      "status": "PASS",
+      "server": {
+        "name": "mobile-debug-mcp",
+        "version": "0.32.4"
+      },
+      "platform": "ios",
+      "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+      "osVersion": "iOS 26.4",
+      "startingApp": "com.apple.Preferences",
+      "actionId": "99a4cdc4-8be1-4194-acab-3d08e7bd4a41",
+      "phases": {
+        "dispatchStarted": 1793350335131,
+        "dispatchCompleted": 1793350335486,
+        "screenshotStarted": 1793350335806,
+        "screenshotCompleted": 1793350336212
+      },
+      "screenshot": "captured",
+      "logs": "captured",
+      "uiTree": "captured",
+      "disabledComponents": "omitted",
+      "foreignReference": "unavailable",
+      "cleanup": "No settings, app data or streams changed; Settings remains foreground. No content artifacts saved."
+    }
+  ]
+}

@@ -2495,7 +2495,7 @@ export class ToolsInteract {
     return { found: true, element: outEl, score: scoreVal, confidence: scoreVal, resolution }
   }
 
-  static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId, singleObservation = false, singleAttempt = false, rejectAmbiguous = false }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string, singleObservation?: boolean, singleAttempt?: boolean, rejectAmbiguous?: boolean }) {
+  static async waitForUIHandler({ selector, condition = 'exists', timeout_ms = 60000, poll_interval_ms = 300, match, retry = { max_attempts: 1, backoff_ms: 0 }, platform, deviceId, singleObservation = false, singleAttempt = false, rejectAmbiguous = false, resolveTapTarget = false }: { selector?: { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }, condition?: 'exists'|'not_exists'|'visible'|'clickable', timeout_ms?: number, poll_interval_ms?: number, match?: { index?: number }, retry?: { max_attempts?: number, backoff_ms?: number }, platform?: 'android'|'ios', deviceId?: string, singleObservation?: boolean, singleAttempt?: boolean, rejectAmbiguous?: boolean, resolveTapTarget?: boolean }) {
     const readinessTracker = currentReadinessWait()
     const overallStart = Date.now()
     const requestedIndex = typeof match?.index === 'number' ? match.index : null
@@ -2567,6 +2567,8 @@ export class ToolsInteract {
             const acquisitionStarted = Date.now()
             const tree = await ToolsObserve.getUITreeHandler({ platform, deviceId }) as any
             observeReadinessWait(tree, acquisitionStarted)
+            // A failed acquisition cannot establish that the requested tap target is absent.
+            if (resolveTapTarget && tree?.error && /ACTION_TIMEOUT|timed out/i.test(String(tree.error))) throw new Error('ACTION_TIMEOUT')
             const elements = (tree && Array.isArray(tree.elements)) ? tree.elements as any[] : []
 
             const matches: { el: any, idx: number }[] = []
@@ -2640,7 +2642,8 @@ export class ToolsInteract {
                 conditionMet = visibleFlag
               } else conditionMet = false
             } else if (condition === 'clickable') {
-              matchedElement = chosen ? (ToolsInteract._resolveActionableAncestor(elements, chosen as { el: UiElement, idx: number }) || chosen) : null
+              matchedElement = chosen ? (resolveTapTarget && (!ToolsInteract._isVisibleElement(chosen.el) || chosen.el.enabled === false)
+                ? chosen : ToolsInteract._resolveActionableAncestor(elements, chosen as { el: UiElement, idx: number }) || chosen) : null
               if (matchedElement) {
                 const b = matchedElement.el.bounds
                 const visibleFlag = !!matchedElement.el.visible && Array.isArray(b) && b.length >= 4 && (b[2] > b[0] && b[3] > b[1])
@@ -2650,6 +2653,13 @@ export class ToolsInteract {
               } else conditionMet = false
             }
 
+            // Waiting for a label to exist/be visible is distinct from resolving its
+            // executable control. Reuse the clickable-wait ancestor policy without
+            // promoting hidden or disabled labels into an unrelated enabled target.
+            if (resolveTapTarget && conditionMet && matchedElement &&
+                ToolsInteract._isVisibleElement(matchedElement.el) && matchedElement.el.enabled !== false) {
+              matchedElement = ToolsInteract._resolveActionableAncestor(elements, matchedElement) ?? matchedElement
+            }
             const resolvedPlatform = tree?.device?.platform === 'ios' ? 'ios' : (platform || 'android')
             const resolvedDeviceId = tree?.device?.id || deviceId
             lastMatchedCount = matchedCount

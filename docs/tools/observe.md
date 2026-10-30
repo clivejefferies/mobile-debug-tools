@@ -10,6 +10,9 @@ These tools are primarily for:
 
 They are **not** the primary success signal when an applicable `expect_*` tool exists.
 
+Covered observations support optional `actionRef` and return acquisition/freshness
+metadata; see [correlated evidence](evidence.md).
+
 ## get_logs
 
 Fetch recent logs as structured entries optimized for AI agents.

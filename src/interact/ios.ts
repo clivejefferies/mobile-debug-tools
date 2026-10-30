@@ -1,3 +1,4 @@
+import { evidenceDispatch } from '../observe/evidence.js'
 import { beforeInputDispatch } from './conditional-action.js'
 import { remainingBudget, markDispatchStarted } from '../utils/operation-budget.js'
 import { spawn } from "child_process"
@@ -33,9 +34,10 @@ export class iOSInteract {
       }
 
       await beforeInputDispatch('ios', device.id)
-      await new Promise<void>((resolve, reject) => {
-        markDispatchStarted()
-        const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
+      const timeout = remainingBudget() || undefined
+      markDispatchStarted()
+      await evidenceDispatch({ platform: 'ios', id: device.id }, () => new Promise<void>((resolve, reject) => {
+        const proc = spawn(getIdbCmd(), args, { timeout });
         let stderr = '';
         proc.stderr.on('data', d => stderr += d.toString());
         proc.on('close', code => {
@@ -43,7 +45,7 @@ export class iOSInteract {
             else reject(new Error(`idb ui tap failed: ${stderr}`));
         });
         proc.on('error', err => reject(err));
-      });
+      }));
 
       return { device, success: true, x, y };
     } catch (e) {
@@ -76,9 +78,10 @@ export class iOSInteract {
       }
 
       await beforeInputDispatch('ios', device.id)
-      await new Promise<void>((resolve, reject) => {
-        markDispatchStarted()
-        const proc = spawn(getIdbCmd(), args, { timeout: remainingBudget() || undefined });
+      const timeout = remainingBudget() || undefined
+      markDispatchStarted()
+      await evidenceDispatch({ platform: 'ios', id: device.id }, () => new Promise<void>((resolve, reject) => {
+        const proc = spawn(getIdbCmd(), args, { timeout });
         let stderr = '';
         proc.stderr.on('data', d => stderr += d.toString());
         proc.on('close', code => {
@@ -86,7 +89,7 @@ export class iOSInteract {
           else reject(new Error(`idb ui swipe failed: ${stderr}`));
         });
         proc.on('error', err => reject(err));
-      });
+      }));
 
       return { device, success: true, start: [x1, y1], end: [x2, y2], duration };
     } catch (e) {

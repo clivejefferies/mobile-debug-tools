@@ -24,6 +24,8 @@ async function run() {
     assert.equal(success.success, true)
     assert.equal(tapCount, 1)
     assert.equal(lastWait.condition, 'clickable')
+    assert.equal(lastWait.timeout_ms, 5000)
+    assert.equal(lastWait.resolveTapTarget, true)
     assert.equal(lastWait.singleObservation, true)
     assert.equal(lastWait.singleAttempt, true)
     assert.equal(lastWait.rejectAmbiguous, true)

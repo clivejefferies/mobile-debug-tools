@@ -3,6 +3,8 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## Unreleased
+- Fixed selector taps timing out before one normal Android UI-tree acquisition: a default single lookup now uses the action budget (5 seconds). Selector taps with exists/visible waits resolve actionable containers consistently with clickable waits; hidden/disabled labels remain protected. Acquisition timeouts retain `ACTION_TIMEOUT` instead of reporting a missing element.
+- Added correlated action/observation evidence, explicit `actionRef`, phase/acquisition timestamps, conservative freshness, and bounded metadata history. Journey steps share correlation IDs; snapshot components and stream reads retain their actual device scope. Device log times remain explicitly incomparable with host dispatch times; tracing is unsupported.
 - Added evidence-backed foreground UI readiness observations, bounded readiness waits, and opt-in `requireReady` for existing UI waits. Tree responses include single-sample readiness without extra reads. Unresponsive/debugger-paused signals are explicitly unsupported; iOS probes and metadata reads now respect active operation budgets.
 - Added optional conditional input to `tap`, `tap_element`, `swipe`, Android `type_text`/`press_back`, and journey tap steps. A fresh snapshot check at native dispatch blocks stale or uncheckable expectations and returns condition evidence, including fresh trees in compact failures.
 - Added process-scoped `snapshot_session_id` metadata to UI-tree responses so conditional expectations cannot be reused across server restarts. Successful repeated observations refresh retained revision history timestamps.
