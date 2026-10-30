@@ -1,3 +1,4 @@
+import type { UiSelector as ExpectElementSelectorArg } from '../contracts/selector.js'
 import { handleDebugger } from './debugger-handlers.js'
 import { debuggerContracts } from './debugger-schema.js'
 import { debuggerSessions } from '../debugger/sessions.js'
@@ -51,7 +52,6 @@ const systemTraceToolNames = new Set(systemTraceTools.map(tool => tool.name))
 
 type PlatformArg = 'android' | 'ios'
 type ProjectTypeArg = 'native' | 'kmp' | 'react-native' | 'flutter'
-type ExpectElementSelectorArg = { text?: string, resource_id?: string, accessibility_id?: string, contains?: boolean }
 type WaitForUiMatchArg = { index?: number }
 type WaitForUiRetryArg = { max_attempts?: number, backoff_ms?: number }
 type ScrollSelectorArg = { text?: string, resourceId?: string, contentDesc?: string, className?: string }

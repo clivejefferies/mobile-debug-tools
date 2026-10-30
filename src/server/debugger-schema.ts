@@ -31,7 +31,7 @@ export const debuggerContracts = Object.fromEntries(Object.entries(specs).map(([
   ...spec, schema: z.object({ ...spec.fields, timeoutMs: timeout.default(name === 'wait_for_debugger_event' ? 1000 : 10000) }).strict()
 }]))
 export const debuggerTools = Object.entries(debuggerContracts).map(([name, spec]) => ({ name, description: spec.description,
-  inputSchema: { type: 'object', additionalProperties: false,
+  inputSchema: { type: 'object' as const, additionalProperties: false,
     required: Object.entries(spec.fields).filter(([, field]) => !field.isOptional()).map(([key]) => key),
     properties: { ...Object.fromEntries(Object.entries(spec.fields).map(([key, field]) => [key, jsonField(field)])), timeoutMs: { type: 'integer', minimum: 100, maximum: 30000, default: name === 'wait_for_debugger_event' ? 1000 : 10000 } } }
 }))

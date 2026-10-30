@@ -17,9 +17,10 @@
     "test:integration": "npm run test:device",
     "test:device": "npm run build && tsx test/device/index.ts",
     "test": "npm run test:unit",
-    "lint": "eslint src test --quiet",
-    "lint:fix": "eslint src test --fix",
+    "lint": "eslint src test --quiet && npm run check:quality",
+    "lint:fix": "eslint src test --fix && npm run check:quality",
     "sync:agent-plugin": "node scripts/agent-plugin.mjs --sync",
+    "check:quality": "node scripts/code-quality.mjs",
     "check:agent-plugin": "node scripts/agent-plugin.mjs --check",
     "verify": "npm run lint && npm run build && npm run test:unit && npm run check:agent-plugin"
   },

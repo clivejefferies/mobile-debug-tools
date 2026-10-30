@@ -10,6 +10,12 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Reduced `ToolsInteract` to a typed composition facade within the enforced class budget. Extracted adjustment, candidate resolution, synchronization and assertion services without new legacy exceptions, and added an isolated Android interaction journey plus a permanent default-budget regression check.
+
+- Added code-quality gates to lint and CI for source/class/function size, complexity, nesting, explicit `any`, and interaction/runtime import boundaries. Legacy exceptions have per-symbol ceilings that cannot grow unnoticed.
+- Extracted typed UI/control helpers, bounded handle storage, action-result construction and capability-specific tool definitions; clarified and typed debugger session operations and worker protocol messages while retaining public tool contracts.
+- Fixed the debugger device check to fingerprint Java sources in `src/debugger/java/` after the worker relocation.
+
 ## [0.34.0]
 - Added optional Android JDI runtime debugging: explicit device/process attach, source breakpoints/events, bounded stacks and shallow locals, stepping/resume, stale-reference rejection, pause-aware UI guards/readiness, expiry and owned detach/cleanup. Requires a host JDK 17+ and a running debuggable app; evaluation, mutation, native/coroutine and iOS debugging remain unsupported.
 - Added optional bounded Android Perfetto capture with capability/start/status/stop/cancel tools, explicit journey trace linkage, local artifacts, process-ownership checks and retryable cleanup. iOS tracing and automatic trace analysis remain unsupported.

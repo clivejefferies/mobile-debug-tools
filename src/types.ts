@@ -505,7 +505,7 @@ export interface ExpectElementVisibleResponse {
   element?: ActionTargetResolved | null;
   observed?: {
     status?: string;
-    matched_count?: number;
+    matched_count?: number | null;
     condition_satisfied?: boolean;
     selected_index?: number | null;
     last_matched_element?: ActionTargetResolved | null;

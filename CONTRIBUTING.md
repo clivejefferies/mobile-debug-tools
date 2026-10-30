@@ -45,6 +45,12 @@ for installation or native toolchain work. Automated unit tests belong in
 `test/unit/`, automated device tests in `test/device/automated/`, and manual
 helpers in `test/device/manual/`.
 
+## Code structure
+
+Follow the [code structure and quality checks](docs/code-structure.md) for module
+ownership, enforced limits, and review of legacy exceptions. `npm run lint`
+includes the structural gate; CI runs the same checks.
+
 ## Documentation conventions
 
 Use the [documentation index](docs/README.md) to place new material. Keep one

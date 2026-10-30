@@ -34,7 +34,7 @@ jobs:
           node --input-type=module - "$RUNNER_TEMP/mobile-debug-package.json" <<'JS'
           import fs from 'node:fs'
           const files = new Set(JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))[0].files.map(file => file.path))
-          for (const file of ['src/debugger/java/DebuggerWorker.java', 'dist/debugger/worker.js', 'dist/server/debugger-schema.js']) {
+          for (const file of ['src/debugger/java/DebuggerWorker.java', 'dist/debugger/worker.js', 'dist/debugger/protocol.js', 'dist/runtime/action-results.js', 'dist/server/definitions/input.js', 'dist/server/debugger-schema.js']) {
             if (!files.has(file)) throw new Error(`Missing debugger package file: ${file}`)
           }
           JS

@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { ActionConditionResult } from '../types.js'
-import type { ExpectedState } from '../server/condition-schema.js'
+import type { ExpectedState } from '../contracts/condition.js'
 import { ToolsObserve } from '../observe/index.js'
 import { getSnapshotSessionId, hasSnapshotBaseline } from '../observe/snapshot-metadata.js'
 import { runWithSeparateBudget } from '../utils/operation-budget.js'

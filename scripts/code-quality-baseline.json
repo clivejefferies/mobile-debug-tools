@@ -1,0 +1,1136 @@
+[
+  {
+    "file": "src/debugger/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidDebugNative/candidates",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/interact/conditional-action.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/beforeInputDispatch",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/interact/conditional-action.ts",
+    "rule": "complexity",
+    "symbol": "<module>/beforeInputDispatch",
+    "value": 29,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidManage/installApp",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/android.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/AndroidManage/installApp",
+    "value": 89,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/android.ts",
+    "rule": "complexity",
+    "symbol": "<module>/AndroidManage/installApp",
+    "value": 25,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/build_android",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/build_ios",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/build_flutter",
+    "value": 4,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/build_react_native",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/buildAppHandler",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/buildAndInstallHandler/pushEvent",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/buildAndInstallHandler",
+    "value": 9,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsManage/listDevicesHandler",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/detectProjectPlatform/scan",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ToolsManage/build_flutter",
+    "value": 30,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ToolsManage/buildAndInstallHandler",
+    "value": 27,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "class-lines",
+    "symbol": "<module>/iOSManage",
+    "value": 304,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSManage/build",
+    "value": 6,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSManage/installApp",
+    "value": 3,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSManage/startApp",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSManage/terminateApp",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSManage/resetAppData",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/iOSManage/build",
+    "value": 166,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "complexity",
+    "symbol": "<module>/iOSManage/build",
+    "value": 55,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/manage/ios.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/iOSManage/installApp",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "class-lines",
+    "symbol": "<module>/AndroidObserve",
+    "value": 460,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidObserve/collectGetUITree/forEach:argument0:1e6ee1eaede3",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen/Promise:argument0:16f7a32f199c/on:argument1:49e6ce94dd2d",
+    "value": 4,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen/Promise:argument0:16f7a32f199c/on:argument1:49e6ce94dd2d/catch:argument0:09881ba4ad38",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidObserve/collectGetScreenFingerprint",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/AndroidObserve/collectReadLogStream/map:argument0:5220d9cd1a3f",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/AndroidObserve/collectGetUITree",
+    "value": 86,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "complexity",
+    "symbol": "<module>/AndroidObserve/collectGetLogs",
+    "value": 28,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen",
+    "value": 109,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen/Promise:argument0:16f7a32f199c",
+    "value": 105,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen/Promise:argument0:16f7a32f199c/on:argument1:49e6ce94dd2d",
+    "value": 85,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/android.ts",
+    "rule": "complexity",
+    "symbol": "<module>/AndroidObserve/collectCaptureScreen/Promise:argument0:16f7a32f199c/on:argument1:49e6ce94dd2d",
+    "value": 23,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/validDevice",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/captureEvidence",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/captureEvidence/map:argument0:260410ec6e90",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "complexity",
+    "symbol": "<module>/captureEvidence",
+    "value": 43,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "complexity",
+    "symbol": "<module>/assemble",
+    "value": 21,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/evidence.ts",
+    "rule": "complexity",
+    "symbol": "<module>/assemble/map:argument0:527157a0a6ac",
+    "value": 41,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsObserve/getUITreeHandler",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsObserve/getLogsHandler",
+    "value": 3,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsObserve/getScreenFingerprintHandler",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsObserve/collectDebugSnapshot",
+    "value": 6,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ToolsObserve/collectDebugSnapshot/map:argument0:15b9a257ed3d",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/collectSnapshotTexts",
+    "value": 22,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/deriveSnapshotSemantic",
+    "value": 25,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ToolsObserve/getLogsHandler",
+    "value": 21,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/ToolsObserve/collectDebugSnapshot",
+    "value": 108,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ToolsObserve/collectDebugSnapshot",
+    "value": 70,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ToolsObserve/collectDebugSnapshot/map:argument0:15b9a257ed3d",
+    "value": 21,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "class-lines",
+    "symbol": "<module>/iOSObserve",
+    "value": 389,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/parseIDBFrame",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/_setIOSActiveLogStream",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/collectCaptureScreenshot",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/collectCaptureScreenshot/catch:argument0:33f31501ed89",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/collectGetUITree",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/collectGetScreenFingerprint",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/readLogStream",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/iOSObserve/collectReadLogStream",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "complexity",
+    "symbol": "<module>/traverseIDBNode",
+    "value": 29,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/iOSObserve/collectGetLogs",
+    "value": 110,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "complexity",
+    "symbol": "<module>/iOSObserve/collectGetLogs",
+    "value": 33,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/iOSObserve/collectGetUITree",
+    "value": 114,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/ios.ts",
+    "rule": "max-lines",
+    "symbol": "<module>",
+    "value": 643,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness-service.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/getAppReadiness/runWithBudget:argument1:1edc4bb5b982/withResolvedDevice:argument1:60c7420bf854",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ReadinessTracker/observe/some:argument0:9f6c573e3b8d",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ReadinessTracker/observe/some:argument0:5c8b8d09a7ef",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ReadinessTracker/observe",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/observeReadinessWait",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/readiness.ts",
+    "rule": "complexity",
+    "symbol": "<module>/ReadinessTracker/observe",
+    "value": 47,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/snapshot-metadata.ts",
+    "rule": "complexity",
+    "symbol": "<module>/deriveSnapshotMetadata",
+    "value": 38,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/snapshot-metadata.ts",
+    "rule": "complexity",
+    "symbol": "<module>/getStateDelta",
+    "value": 24,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/observe/system-trace.ts",
+    "rule": "complexity",
+    "symbol": "<module>/SystemTraceSessions/control/serial:argument1:51c6fd036d62",
+    "value": 21,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/common.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/wrapResponse",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/debugger-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleDebugger",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/debugger-schema.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/jsonField/map:argument0:1e66dab6d61d",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/debugger-schema.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/jsonField",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/compactAction",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleInstallApp",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleCaptureScreenshot",
+    "value": 7,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executeTap",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executeTapElement",
+    "value": 4,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/payloadOf/find:argument0:484f746b75d9",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/expectElementAbsent",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/expectFingerprint",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleRunJourney",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22/withObservationContext:argument1:4f8fe91d0ebf/runWithBudget:argument1:d748ec6a30a3",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22/withObservationContext:argument1:b2cbcf616137",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executeSwipe",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executeScrollToElement",
+    "value": 6,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executeTypeText",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/executePressBack",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/actionHandler",
+    "value": 91,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9",
+    "value": 89,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
+    "value": 86,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "complexity",
+    "symbol": "<module>/actionHandler/correlatedHandler:argument1:0a55a88ff9c9/withTiming:argument1:1aed8c070ef0",
+    "value": 69,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines",
+    "symbol": "<module>",
+    "value": 957,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/handleRunJourney",
+    "value": 100,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
+    "value": 87,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "complexity",
+    "symbol": "<module>/handleRunJourney/withResolvedDevice:argument1:662a3e7a6c22",
+    "value": 70,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server/tool-handlers.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/handleToolCall/withTiming:argument1:3540a40b3ec0",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/server.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/main",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/android.ts",
+    "rule": "complexity",
+    "symbol": "<module>/checkAndroid",
+    "value": 28,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/buildAndroidPlatform",
+    "value": 114,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/buildAndroidPlatform",
+    "value": 46,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/buildIOSPlatform",
+    "value": 129,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "complexity",
+    "symbol": "<module>/buildIOSPlatform",
+    "value": 52,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/getSystemStatus",
+    "value": 86,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/index.ts",
+    "rule": "max-lines",
+    "symbol": "<module>",
+    "value": 566,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/ios.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/checkIOS",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/system/ios.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/checkIOS/filter:argument0:43798dba3ad9",
+    "value": 6,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/StartAppResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/TerminateAppResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/RestartAppResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/ResetAppDataResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/GetLogsResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/InstallAppResponse",
+    "value": 1,
+    "reason": "Existing type-boundary debt, previously pooled under the enclosing module; split by declaration so unrelated types cannot offset regressions."
+  },
+  {
+    "file": "src/types.ts",
+    "rule": "max-lines",
+    "symbol": "<module>",
+    "value": 567,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/prepareGradle",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/execAdb",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/spawnAdb",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/isSliderLikeAndroid",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/extractAndroidState",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/traverseNode/forEach:argument0:e921b7d12de8",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/traverseNode",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/parseLogLine",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "complexity",
+    "symbol": "<module>/prepareGradle",
+    "value": 40,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "complexity",
+    "symbol": "<module>/extractAndroidState",
+    "value": 25,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "complexity",
+    "symbol": "<module>/traverseNode",
+    "value": 27,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/android/utils.ts",
+    "rule": "max-lines",
+    "symbol": "<module>",
+    "value": 525,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/idb/check-idb.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/print",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/idb/check-idb.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/runInstaller",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/idb/idb-helper.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/getConfiguredIdbPath",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/idb/install-idb.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/runCommand",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/idb/install-idb.ts",
+    "rule": "complexity",
+    "symbol": "<module>/main",
+    "value": 23,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/ios/preflight-ios.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/main",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/ios/preflight-ios.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/findFirst",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/ios/preflight-ios.ts",
+    "rule": "complexity",
+    "symbol": "<module>/main",
+    "value": 30,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/ios/run-ios-ui-tree-tap.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/main",
+    "value": 2,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/cli/ios/run-ios-ui-tree-tap.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/main/find:argument0:d66e0aaa080a",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ios/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/execCommandWithDiagnostics",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ios/utils.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/listIOSDevices/Promise:argument0:6f6ef5698df8/execFile:argument3:55171e0f2098/execFile:argument3:500b357a149e",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ios/utils.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/getConfiguredIdbPath",
+    "value": 6,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ios/utils.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/getIOSDeviceMetadata/Promise:argument0:7ebdc55a8f30/execFile:argument3:1c5c5f1c7bb3",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ios/utils.ts",
+    "rule": "max-depth",
+    "symbol": "<module>/listIOSDevices/Promise:argument0:6f6ef5698df8/execFile:argument3:55171e0f2098/execFile:argument3:500b357a149e",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/java.ts",
+    "rule": "complexity",
+    "symbol": "<module>/detectJavaHome",
+    "value": 28,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/resolve-device.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/resolveDevice/filter:argument0:e497e0923549",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/resolve-device.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/resolveDevice/filter:argument0:b66e5d6544e3",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/resolve-device.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/resolveDevice/map:argument0:e050eb25a418",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/resolve-device.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/resolveDevice",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/resolve-device.ts",
+    "rule": "complexity",
+    "symbol": "<module>/resolveDevice",
+    "value": 26,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ui/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/normalizeElement/map:argument0:d4366eb62601",
+    "value": 1,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ui/index.ts",
+    "rule": "explicit-any",
+    "symbol": "<module>/computeScreenFingerprint",
+    "value": 5,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  },
+  {
+    "file": "src/utils/ui/index.ts",
+    "rule": "max-lines-per-function",
+    "symbol": "<module>/scrollToElementShared",
+    "value": 89,
+    "reason": "Pre-existing debt recorded before the approved structural refactor; ceiling may only decrease."
+  }
+]

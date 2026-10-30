@@ -1,10 +1,7 @@
+import { selectorSchema as selector, selectorJson } from '../contracts/selector.js'
 import { z } from 'zod'
 import { expectedStateSchema, expectedStateJson } from './condition-schema.js'
 
-const selector = z.object({
-  text: z.string().min(1).optional(), resource_id: z.string().min(1).optional(),
-  accessibility_id: z.string().min(1).optional(), contains: z.boolean().optional()
-}).strict().refine(value => !!(value.text || value.resource_id || value.accessibility_id), 'Selector requires a target')
 const verificationMode = z.enum(['none', 'light', 'full'])
 const timeoutMs = z.number().int().min(100).max(60000).optional()
 const pollIntervalMs = z.number().int().min(50).max(1000).optional()
@@ -40,9 +37,6 @@ export const journeySchema = z.object({
   steps: z.array(step).min(1).max(50)
 }).strict().refine(value => new Set(value.steps.map(step => step.id)).size === value.steps.length, 'Step IDs must be unique')
 
-const selectorJson = { type: 'object', additionalProperties: false, properties: {
-  text: { type: 'string', minLength: 1 }, resource_id: { type: 'string', minLength: 1 }, accessibility_id: { type: 'string', minLength: 1 }, contains: { type: 'boolean' }
-}, anyOf: ['text', 'resource_id', 'accessibility_id'].map(key => ({ required: [key] })) }
 const targetJson = { selector: selectorJson, elementId: { type: 'string', minLength: 1 } }
 const oneTargetJson = [{ required: ['selector'], not: { required: ['elementId'] } }, { required: ['elementId'], not: { required: ['selector'] } }]
 const intervalJson = { timeoutMs: { type: 'integer', minimum: 100, maximum: 60000 }, pollIntervalMs: { type: 'integer', minimum: 50, maximum: 1000 } }

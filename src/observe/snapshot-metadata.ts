@@ -38,7 +38,10 @@ function normalizeBounds(bounds: unknown): [number, number, number, number] | nu
   return normalized as [number, number, number, number]
 }
 
-function stableElementSignature(element: UIElement) {
+type SignatureElement = Partial<Pick<UIElement, 'text' | 'contentDescription' | 'resourceId' | 'stable_id' | 'role' | 'test_tag' | 'selector' | 'clickable' | 'enabled' | 'visible' | 'state'>> & { bounds?: number[] | null; type?: string | null }
+export interface SnapshotSignatureInput { elements?: SignatureElement[]; screen?: unknown; resolution?: unknown; error?: unknown }
+
+function stableElementSignature(element: SignatureElement) {
   return {
     text: normalize(element.text),
     contentDescription: normalize(element.contentDescription),
@@ -115,7 +118,7 @@ function summarizeSnapshotDelta(previous: SnapshotState | undefined, currentElem
   }
 }
 
-export function computeSnapshotSignature(tree: Pick<GetUITreeResponse, 'elements' | 'screen' | 'resolution' | 'error'> | null | undefined): string | null {
+export function computeSnapshotSignature(tree: SnapshotSignatureInput | null | undefined): string | null {
   if (!tree || tree.error) return null
 
   const payload = {
