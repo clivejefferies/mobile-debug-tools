@@ -3,6 +3,7 @@
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
 ## Unreleased
+- Made readiness unit-test polling time deterministic while retaining exact sample-count and timeout assertions, eliminating host timer-rounding flakes.
 - Isolated snapshot unit tests from physical device discovery and native handlers so they run without connected devices. Readiness deadline expiry now retains the last valid observation instead of intermittently resetting loading to unknown.
 
 ## [0.33.0]

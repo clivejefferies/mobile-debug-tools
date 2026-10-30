@@ -148,3 +148,24 @@ conditional dispatch guards intact. Preserve unrelated correlated-evidence work.
 - Historical failures in `modul8-evidence.json` are retained as before-fix evidence;
   this repair supersedes their unresolved-selector status. Validation logs:
   `/tmp/mobile-debug-selector-fix-verify.log`, `/tmp/mobile-debug-selector-fix-device.log`.
+
+## Remaining readiness test flake — 2026-10-30
+
+After push 0ae7300, [run 41034943919 passed](https://github.com/clivejefferies/mobile-debug-tools/actions/runs/41034943919)
+while [run 41034949793 failed](https://github.com/clivejefferies/mobile-debug-tools/actions/runs/41034949793)
+on the same commit. The failure was `server/readiness.test.ts:51`, expecting four
+reads but observing five. Real timer rounding can leave the fourth sample just
+short of the requested stability interval, legitimately requiring another read.
+
+Test-only repair: the sequential fixture/poll timers now advance wall and
+monotonic clocks by exactly their requested delay. Existing exact read counts,
+late-read/deadline rejection, state transitions, predicate observations, and
+forced second-read timeout assertions remain intact. Clock/timer hooks are
+restored in `finally`. No production timing or readiness behaviour changed.
+
+- Focused check: Node 23 pass; 25 separate Node 18.20.8 test-process runs pass.
+- Full Node 18 maintainer verification with unavailable native defaults: **pass**
+  (65 unit files, lint, build, agent-plugin consistency). Changed whitespace and
+  local document links also pass; log: `/tmp/mobile-debug-readiness-clock-verify.log`.
+- Native device suite not repeated for this test-only change; prior runtime
+  device results remain applicable. GitHub CI requires pushing this local repair.

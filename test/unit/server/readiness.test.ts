@@ -30,6 +30,19 @@ async function run() {
     return tree()
   }
   _setDeviceListersForTests({ listAndroidDevices: async () => [device] })
+  // Sample counts depend on elapsed time, not the host timer's wakeup precision.
+  // Advance both clocks exactly when a fixture/poll timer completes.
+  const originalDateNow = Date.now
+  const originalPerformanceNow = Object.getOwnPropertyDescriptor(performance, 'now')
+  const originalSetTimeout = globalThis.setTimeout
+  const epoch = originalDateNow()
+  let elapsed = 0
+  Date.now = () => epoch + elapsed
+  Object.defineProperty(performance, 'now', { configurable: true, value: () => elapsed })
+  globalThis.setTimeout = ((callback: (...args: any[]) => void, delay = 0, ...args: any[]) => {
+    queueMicrotask(() => { elapsed += Math.max(0, Number(delay) || 0); callback(...args) })
+    return {} as ReturnType<typeof setTimeout>
+  }) as typeof setTimeout
   const call = async (name: string, args: any = {}) => JSON.parse((await handleToolCall(name, { platform: 'android', deviceId: 'fixture', ...args })).content[0].text!)
   try {
     let result = await call('get_app_readiness', { stabilityMs: 100 })
@@ -144,6 +157,10 @@ async function run() {
     }
     console.log('Readiness tools, schemas and opt-in waits: PASS')
   } finally {
+    globalThis.setTimeout = originalSetTimeout
+    Date.now = originalDateNow
+    if (originalPerformanceNow) Object.defineProperty(performance, 'now', originalPerformanceNow)
+    else delete (performance as any).now
     ToolsObserve.getUITreeHandler = originalTree
     AndroidObserve.prototype.getUITree = originalNative
     _resetDeviceListersForTests()
