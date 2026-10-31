@@ -1,4 +1,4 @@
-# Mobile Debug MCP
+# Mobile Debug Tools
 [![npm version](https://img.shields.io/npm/v/mobile-debug-mcp.svg)](https://www.npmjs.com/package/mobile-debug-mcp)
 
 Build, install, control, and inspect Android and iOS apps from an MCP-compatible
