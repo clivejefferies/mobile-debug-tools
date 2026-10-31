@@ -33,6 +33,19 @@ can include feedback from the device as well as the source code. For example:
   [runtime debugger](docs/tools/debugger.md) to a debuggable app to inspect
   breakpoints, call stacks and locals.
 
+## How it works
+
+Your agent client launches a local MCP server and communicates with it over
+stdio. The server translates tool calls into operations through Android's ADB
+or Apple's Xcode tools and idb, then returns device observations and action
+results to the client. It connects to emulators, simulators and supported
+physical devices through those toolchains.
+
+The agent plugin bundles the server configuration and usage skill. The same
+server can also be configured directly in an MCP client or run from a source
+checkout. See [code structure](docs/code-structure.md#module-ownership) for the
+implementation's module boundaries.
+
 ## Start here
 
 Choose how to connect:
@@ -52,24 +65,6 @@ Check the [requirements](#requirements) for your platform before installing.
 - Xcode and its command-line tools on macOS for iOS support
 - [idb](https://github.com/facebook/idb) for iOS UI inspection and interaction
 - JDK 17+ for optional [Android runtime debugging](docs/tools/debugger.md)
-
-## Environment setup
-
-The server discovers platform tools from standard locations and `PATH`. Leave
-path overrides unset for a standard installation. Use them for non-standard
-locations, multiple toolchains, or a pinned development environment.
-
-| Variable | Purpose |
-| --- | --- |
-| `ADB_PATH` | Path to `adb`. |
-| `ANDROID_SDK_ROOT` or `ANDROID_HOME` | Android SDK root. |
-| `XCRUN_PATH` | Path to `xcrun`. |
-| `MCP_IDB_PATH` or `IDB_PATH` | Path to `idb`. |
-| `GRADLE_JAVA_HOME` or `JAVA_HOME` | Java home for Gradle-backed operations. |
-
-After connecting the client, call `get_system_status` to check discovery and
-prerequisites. See [environment diagnostics](docs/tools/system.md) if a toolchain
-or device is unavailable.
 
 ## Agent plugin
 
@@ -209,6 +204,24 @@ launch that build over stdio:
 ```
 
 Replace the path with your checkout location. Rebuild after source changes.
+
+## Environment setup
+
+The server discovers platform tools from standard locations and `PATH`. Leave
+path overrides unset for a standard installation. Use them for non-standard
+locations, multiple toolchains, or a pinned development environment.
+
+| Variable | Purpose |
+| --- | --- |
+| `ADB_PATH` | Path to `adb`. |
+| `ANDROID_SDK_ROOT` or `ANDROID_HOME` | Android SDK root. |
+| `XCRUN_PATH` | Path to `xcrun`. |
+| `MCP_IDB_PATH` or `IDB_PATH` | Path to `idb`. |
+| `GRADLE_JAVA_HOME` or `JAVA_HOME` | Java home for Gradle-backed operations. |
+
+After connecting the client, call `get_system_status` to check discovery and
+prerequisites. See [environment diagnostics](docs/tools/system.md) if a toolchain
+or device is unavailable.
 
 ## Documentation
 
