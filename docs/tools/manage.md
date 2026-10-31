@@ -3,7 +3,7 @@
 [Documentation](../README.md) · [Tool reference](TOOLS.md)
 
 Use these tools to select a device, build and install an app, and control its
-lifecycle. For a first launch, follow [Getting started](../../README.md#getting-started).
+lifecycle.
 
 After `start_app` or `restart_app`, [inspect the resulting UI](observe.md) and
 [assert the expected screen or element](interact.md#expect_screen). If the app

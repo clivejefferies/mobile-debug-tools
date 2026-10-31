@@ -2,13 +2,36 @@
 [![npm version](https://img.shields.io/npm/v/mobile-debug-mcp.svg)](https://www.npmjs.com/package/mobile-debug-mcp)
 
 Build, install, control, and inspect Android and iOS apps from an MCP-compatible
-client. Mobile Debug MCP connects your client to local device toolchains and
+client. Mobile Debug Tools connects your client to local device toolchains and
 provides UI actions, screenshots, logs, state assertions, and optional Android
 performance capture and runtime debugging.
 
 Android, iOS, and Kotlin Multiplatform projects are supported. Flutter and React
 Native have not been tested. Platform and device limitations are described in the
 [tool reference](docs/tools/TOOLS.md).
+
+## What you can use it for
+
+Mobile Debug Tools gives a coding agent access to a running app, so development
+can include feedback from the device as well as the source code. For example:
+
+- **Build and test a feature.** After adding a settings screen, build and install
+  the app, navigate to it, and check that its controls display and behave as
+  expected. See [app management](docs/tools/manage.md) and
+  [UI interactions and assertions](docs/tools/interact.md).
+- **Check a bug fix or regression.** Reproduce a sequence such as opening a form,
+  entering text and submitting it, then verify the resulting screen or control
+  state. Repeat the journey after a code change to check the outcome.
+- **Review the UI on a device.** Capture screenshots to inspect layout and visual
+  changes, or inspect the UI hierarchy for exposed labels and control state.
+  See [observations](docs/tools/observe.md).
+- **Investigate an app failure.** Collect logs, screenshots and a debug snapshot
+  around a failing action to understand what happened. [Evidence
+  correlation](docs/tools/correlated-evidence.md) links observations to the action.
+- **Investigate Android performance or runtime behaviour.** Capture a
+  [Perfetto trace](docs/tools/system-traces.md) during a slow flow, or attach the
+  [runtime debugger](docs/tools/debugger.md) to a debuggable app to inspect
+  breakpoints, call stacks and locals.
 
 ## Start here
 
@@ -20,8 +43,7 @@ Choose how to connect:
    to another MCP-compatible client.
 3. **[Manual setup](#manual-setup).** Build and run a local source checkout.
 
-Check the [requirements](#requirements) for your platform, then follow
-[Getting started](#getting-started) to select a device and verify an interaction.
+Check the [requirements](#requirements) for your platform before installing.
 
 ## Requirements
 
@@ -187,103 +209,6 @@ launch that build over stdio:
 ```
 
 Replace the path with your checkout location. Rebuild after source changes.
-Continue with [Getting started](#getting-started) once your client connects.
-
-## Getting started
-
-This walkthrough takes you from a connected MCP client to a verified interaction
-with an installed app. Complete the [requirements and client
-configuration](#start-here) first. The examples use Android; use
-`"platform": "ios"` and a discovered simulator ID for supported iOS operations.
-
-Tool names label MCP calls. Submit the JSON through your client's tool interface,
-or ask the client to perform the described step. These are not shell commands.
-Replace device IDs, app identifiers, and example UI labels with your own values.
-
-### 1. Check the environment and select a device
-
-Call `get_system_status` with `{}`. Read the platform summary and resolve missing
-prerequisites before continuing. Then call `list_devices`:
-
-```json
-{ "platform": "android" }
-```
-
-Choose a connected device and pass its ID in subsequent calls. Explicit targeting
-keeps observations and actions on the same device, especially when several are
-connected. If discovery fails, see [environment diagnostics](docs/tools/system.md).
-
-### 2. Launch your app
-
-With the app already installed, call `start_app`:
-
-```json
-{
-  "platform": "android",
-  "deviceId": "emulator-5554",
-  "appId": "com.example.app"
-}
-```
-
-If you need to build or install it first, follow [app management](docs/tools/manage.md).
-A successful launch reports execution, so inspect the resulting screen before
-assuming the app has reached the state you need.
-
-### 3. Inspect the screen
-
-Call `capture_screenshot` for a visual view, or `get_ui_tree` for element labels,
-identifiers, and exposed control state. Both accept:
-
-```json
-{ "platform": "android", "deviceId": "emulator-5554" }
-```
-
-Use a selector from the observed UI for the next action. Prefer a stable resource
-or accessibility identifier when available. For loading screens, see
-[app readiness](docs/tools/observe.md#app-readiness); a fresh capture may still show a
-transition.
-
-### 4. Act and verify the result
-
-For example, if the tree exposes a button labelled Settings, call `tap_element`:
-
-```json
-{
-  "platform": "android",
-  "deviceId": "emulator-5554",
-  "selector": { "text": "Settings" }
-}
-```
-
-Then assert a visible element that identifies the destination. If your Settings
-screen contains an Account heading, call `expect_element_visible`:
-
-```json
-{
-  "platform": "android",
-  "deviceId": "emulator-5554",
-  "selector": { "text": "Account" },
-  "timeout_ms": 15000
-}
-```
-
-Choose an assertion that represents your app's intended outcome. A delivered tap
-alone does not prove navigation succeeded. Use [UI waits](docs/tools/interact.md#wait_for_ui)
-when you need to resolve a target or synchronize before continuing, and
-[assertions](docs/tools/interact.md#expect_element_visible) to check the result.
-
-### When a step fails
-
-Read the tool's error and inspect the current UI before retrying an action with
-uncertain delivery. Refine an ambiguous selector or allow enough observation time
-for the device. If the UI does not explain the failure, collect
-[logs or a debug snapshot](docs/tools/observe.md). Use [evidence
-correlation](docs/tools/correlated-evidence.md) to associate those observations with a
-specific action.
-
-For setup problems, return to [environment diagnostics](docs/tools/system.md). For slow
-Android flows, see [system traces](docs/tools/system-traces.md); for paused runtime
-inspection, see [Android runtime debugging](docs/tools/debugger.md).
 
 ## Documentation
 

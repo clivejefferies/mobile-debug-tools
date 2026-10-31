@@ -5,8 +5,7 @@
 Check local toolchains and connected devices before building, installing, or
 interacting with an app. If discovery cannot find a tool, configure the relevant
 [path override](../../README.md#environment-setup), then check again. Once the
-required platform is available, continue with [device selection](manage.md#list_devices)
-or the [getting-started walkthrough](../../README.md#getting-started).
+required platform is available, continue with [device selection](manage.md#list_devices).
 
 ## get_system_status
 A fast, non-throwing healthcheck that inspects key dependencies and connections required for mobile debugging.

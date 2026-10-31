@@ -62,8 +62,8 @@ setup in the root README, current tool contracts in `docs/tools/`, design record
 in `docs/specs/`, and measurements in `docs/benchmarks/`.
 
 Write guides around a reader's task: explain when to use the page, show a complete
-example where useful, and link to the likely next step. Keep walkthroughs in
-[Getting started](README.md#getting-started) and detailed contracts in the tool
+example where useful, and link to the likely next step. Keep agent usage
+workflows in the existing plugin skill and detailed contracts in the tool
 reference. Avoid duplicating the full navigation on every page; long references
 should offer task-based links to their own sections.
 

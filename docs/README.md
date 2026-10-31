@@ -6,8 +6,7 @@ installation, and client configuration.
 
 ## Choose a starting point
 
-- **New to the server?** Follow [Getting started](../README.md#getting-started) for a device
-  check, app launch, and verified UI interaction.
+- **New to the server?** See the [project overview and installation options](../README.md#start-here).
 - **Looking up a tool?** Use the [tool reference](tools/TOOLS.md) for inputs,
   responses, examples, and shared interaction principles.
 - **Troubleshooting setup?** Check [environment diagnostics](tools/system.md) and

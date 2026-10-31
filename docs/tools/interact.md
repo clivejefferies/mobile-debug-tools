@@ -3,8 +3,7 @@
 [Documentation](../README.md) · [Tool reference](TOOLS.md)
 
 Use these tools to select UI targets, perform actions, wait for transitions, and
-verify the resulting state. Follow [Getting started](../../README.md#getting-started) for a
-complete example and [interaction principles](TOOLS.md#interaction-principles)
+verify the resulting state. See [interaction principles](TOOLS.md#interaction-principles)
 for the distinction between execution, synchronization, and verification.
 
 ## On this page

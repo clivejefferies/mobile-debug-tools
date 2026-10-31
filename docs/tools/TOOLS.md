@@ -2,7 +2,6 @@
 
 [Documentation](../README.md)
 
-Start with [Getting started](../../README.md#getting-started) for a complete interaction.
 Use the guides below when you need a tool contract or a specific workflow.
 
 ## Reference guides

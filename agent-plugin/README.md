@@ -26,8 +26,8 @@ copies and configuration.
 
 ## Using the plugin
 
-After installation, follow [Getting started](../README.md#getting-started) to check
-the environment and perform a verified interaction.
+After installation, the [usage skill](skills/mobile-debug-mcp/SKILL.md) guides the
+agent through device selection, observation, interaction and verification.
 
 The usage skill prefers screenshots for routine visual checks and reserves
 hierarchy reads for semantic selection and structured assertions. Assertion
