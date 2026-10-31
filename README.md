@@ -14,7 +14,7 @@ Native have not been tested. Platform and device limitations are described in th
 
 Choose how to connect:
 
-1. **[Agent plugin](#agent-plugin) — preferred.** Installs the server configuration
+1. **[Agent plugin](#agent-plugin) — Recommended.** Installs the server configuration
    and usage skill together for supported agent clients.
 2. **[Direct MCP configuration](#mcp-configuration).** Connect the published server
    to another MCP-compatible client.
