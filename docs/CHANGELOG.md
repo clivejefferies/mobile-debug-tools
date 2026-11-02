@@ -10,6 +10,10 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Added plugin `0.0.5` Antigravity compatibility and a standalone distribution
+  export. Generated a Cursor-native package for its supported path variables,
+  and checked/refined installation instructions for all four clients.
+
 ## [0.35.0]
 
 - Updated the agent plugin to `0.0.4`, pinned to MCP `0.35.0`.

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "mobile-debug-tools",
+  "version": "0.0.5",
+  "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
+  "author": {
+    "name": "mobile-debug-tools contributors"
+  },
+  "repository": "https://github.com/clivejefferies/mobile-debug-tools",
+  "license": "Apache-2.0",
+  "displayName": "Mobile Debug Tools",
+  "logo": "assets/mobile-debug-tools.svg",
+  "suggestedPrompts": [
+    "Check my mobile debugging environment and connected devices.",
+    "Inspect the current screen of my mobile app.",
+    "Help me reproduce and diagnose a bug in my mobile app."
+  ]
+}
