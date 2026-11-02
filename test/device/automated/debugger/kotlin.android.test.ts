@@ -54,8 +54,8 @@ if (!deviceId) {
     assert.equal(locals.success, true)
     return { locals: locals.result.locals as { name: string; value: string }[], frameId, availability: locals.result.availability }
   }
-  const forwardsBefore = adb('forward', '--list').trim()
   try {
+    const forwardsBefore = adb('forward', '--list').trim()
     const javap = process.env.JAVA_HOME ? process.env.JAVA_HOME + '/bin/javap' : 'javap'
     const bytecode = execFileSync(javap, ['-p', '-c', '-l', '-classpath', fixture.directory + '/classes', `${debuggerAppId}.MainActivity`], { encoding: 'utf8' })
     const scopes = Object.fromEntries(['seed', 'known', 'answer'].map(name => {
