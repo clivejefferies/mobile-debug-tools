@@ -1,0 +1,475 @@
+{
+  "status": "PASS",
+  "device": "emulator-5554",
+  "api": "36",
+  "runtime": "v22.23.4",
+  "source_sha256": "5978b835673876642c256b1c688975e78018addc1f68219371bc47c8cc29a92b",
+  "apk_sha256": "65d6bc4931f6532a7488da10fde9e211b75172ed0bb8d04fcc372bc0765b48ef",
+  "dist_sha256": "4f7bf452fc0022c8feb492f11a25c34ac5e360baff9f77d752dd0d248105d581",
+  "worker_sha256": "fb15e7add65fb3682d86153818d02378084a46fcd49b2c23c0eafdba290f8323",
+  "compiler": "info: kotlinc-jvm 2.0.21 (JRE 17.0.11+7-LTS-207)",
+  "dependencies": [
+    {
+      "name": "MCP_KOTLIN_STDLIB",
+      "sha256": "f31cc53f105a7e48c093683bbd5437561d1233920513774b470805641bedbc09"
+    },
+    {
+      "name": "MCP_COROUTINES_CORE",
+      "sha256": "ad89c2892235e670f222d819cb3d81188143cb19a05b59df9889ae4269f5c70a"
+    }
+  ],
+  "metadata_sha256": "8988c515f6b1e345d6f9d8910bcb12c5f65f57b2b5cd454b27c4eca587b0b3f1",
+  "observations": [
+    {
+      "marker": "BREAK_BEFORE",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 53,
+        "code_index": 73,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "label": "before suspension",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 53,
+        "code_index": 73,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$completion",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "158",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$start$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$continuation",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "159",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": null,
+            "truncated": false
+          },
+          {
+            "name": "firstThread",
+            "type": "java.lang.String",
+            "value": "fixture-first",
+            "truncated": false
+          },
+          {
+            "name": "known",
+            "type": "int",
+            "value": "42",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "marker": "BREAK_AFTER",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 56,
+        "code_index": 102,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "label": "after suspension",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 56,
+        "code_index": 102,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$completion",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "159",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$continuation",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "159",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": {
+              "object_id": "177",
+              "type": "kotlin.Unit"
+            },
+            "truncated": false
+          },
+          {
+            "name": "known",
+            "type": "int",
+            "value": "42",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "marker": "BREAK_DISPATCH",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$2",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 59,
+        "code_index": 38,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "label": "second dispatcher",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$2",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 59,
+        "code_index": 38,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": {
+              "object_id": "177",
+              "type": "kotlin.Unit"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$this$withContext",
+            "type": "kotlinx.coroutines.CoroutineScope",
+            "value": {
+              "object_id": "181",
+              "type": "kotlinx.coroutines.DispatchedCoroutine"
+            },
+            "truncated": false
+          },
+          {
+            "name": "dispatcherThread",
+            "type": "java.lang.String",
+            "value": "fixture-second",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "marker": "BREAK_HELPER",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "helper",
+        "source": "MainActivity.kt",
+        "line": 67,
+        "code_index": 0,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "label": "nested child helper",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "helper",
+        "source": "MainActivity.kt",
+        "line": 67,
+        "code_index": 0,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "value",
+            "type": "int",
+            "value": "43",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "marker": "BREAK_INCREMENT",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "increment",
+        "source": "MainActivity.kt",
+        "line": 72,
+        "code_index": 0,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "marker": "BREAK_INCREMENT_RETURN",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "increment",
+        "source": "MainActivity.kt",
+        "line": 73,
+        "code_index": 2,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "stop": {
+        "event": "stopped",
+        "state": "paused",
+        "stop_id": "c2a29373-ce16-46e3-9fa8-f6793f92f8e6",
+        "thread_id": "c2a29373-ce16-46e3-9fa8-f6793f92f8e6:180",
+        "stops": [
+          {
+            "reason": "step",
+            "location": {
+              "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+              "method": "helper",
+              "source": "MainActivity.kt",
+              "line": 67,
+              "code_index": 3,
+              "class_loader_id": "2"
+            }
+          }
+        ],
+        "sequence": 7,
+        "received_at_ms": 1793639490534
+      }
+    },
+    {
+      "marker": "BREAK_RESULT",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$2",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 62,
+        "code_index": 88,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "label": "nested result",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$2",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 62,
+        "code_index": 88,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": {
+              "object_id": "184",
+              "type": "java.lang.Integer"
+            },
+            "truncated": false
+          },
+          {
+            "name": "answer",
+            "type": "int",
+            "value": "44",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "journey": "completion, breakpoint workaround, synchronous steps, guards, cancelled wait",
+      "status": "PASS"
+    },
+    {
+      "marker": "BREAK_SUSPEND",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 55,
+        "code_index": 86,
+        "class_loader_id": "2"
+      }
+    },
+    {
+      "stop": {
+        "event": "stopped",
+        "state": "paused",
+        "stop_id": "f4dfa658-f209-467b-98bc-f207cf3721f9",
+        "thread_id": "f4dfa658-f209-467b-98bc-f207cf3721f9:3",
+        "stops": [
+          {
+            "reason": "step",
+            "location": {
+              "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+              "method": "completeWork",
+              "source": "MainActivity.kt",
+              "line": 50,
+              "code_index": 100,
+              "class_loader_id": "2"
+            }
+          }
+        ],
+        "sequence": 2,
+        "received_at_ms": 1793639498222
+      }
+    },
+    {
+      "label": "suspension step observed stop",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+        "method": "completeWork",
+        "source": "MainActivity.kt",
+        "line": 50,
+        "code_index": 100,
+        "class_loader_id": "2"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$completion",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "10",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$start$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$continuation",
+            "type": "kotlin.coroutines.Continuation",
+            "value": {
+              "object_id": "11",
+              "type": "dev.mobiledebugmcp.coroutinefixture.MainActivity$completeWork$1"
+            },
+            "truncated": false
+          },
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": null,
+            "truncated": false
+          },
+          {
+            "name": "known",
+            "type": "int",
+            "value": "42",
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "journey": "suspension boundary step",
+      "status": "PASS",
+      "observation": {
+        "event": "stopped",
+        "state": "paused",
+        "stop_id": "f4dfa658-f209-467b-98bc-f207cf3721f9",
+        "thread_id": "f4dfa658-f209-467b-98bc-f207cf3721f9:3",
+        "stops": [
+          {
+            "reason": "step",
+            "location": {
+              "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity",
+              "method": "completeWork",
+              "source": "MainActivity.kt",
+              "line": 50,
+              "code_index": 100,
+              "class_loader_id": "2"
+            }
+          }
+        ],
+        "sequence": 2,
+        "received_at_ms": 1793639498222
+      }
+    },
+    {
+      "marker": "BREAK_CANCEL",
+      "location": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$cancelWork$2$child$1",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 83,
+        "code_index": 21,
+        "class_loader_id": "152"
+      }
+    },
+    {
+      "label": "cancelled child finally",
+      "top_frame": {
+        "class_name": "dev.mobiledebugmcp.coroutinefixture.MainActivity$cancelWork$2$child$1",
+        "method": "invokeSuspend",
+        "source": "MainActivity.kt",
+        "line": 83,
+        "code_index": 21,
+        "class_loader_id": "152"
+      },
+      "locals": {
+        "availability": "available",
+        "locals": [
+          {
+            "name": "$result",
+            "type": "java.lang.Object",
+            "value": {
+              "object_id": "201",
+              "type": "kotlin.Result$Failure"
+            },
+            "truncated": false
+          }
+        ],
+        "truncated": false
+      }
+    },
+    {
+      "journey": "job cancellation, child finally, cancelAndJoin and recovery",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": "PASS: detach complete, owned package/build directory removed, original forwards preserved"
+}
