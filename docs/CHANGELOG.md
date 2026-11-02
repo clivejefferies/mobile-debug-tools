@@ -10,6 +10,9 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Added an opt-in isolated Kotlin debugger validation journey for named locals
+  before/after assignment, compiler scope tables, stale references and app recovery.
+  This adds evidence and regression coverage without changing debugger behaviour.
 - Added opt-in debugger `responseMode: "compact"` to omit repeated target metadata
   from routine commands while retaining diagnostics, execution state and cleanup.
   Existing full responses remain the default; discovery and state stay complete.

@@ -14,6 +14,37 @@ pattern, ephemeral signing material and temporary output. It does not modify oth
 apps or display settings. The automated journey installs/removes only this fixture
 and checks session-owned ADB forwards. See [debugger tools](../../../docs/tools/debugger.md).
 
+## Kotlin locals validation
+
+The opt-in Kotlin variant compiles `MainActivity.kt` instead of the Java sources
+into the same disposable package. Do not run the variants concurrently on one
+device. It requires a Kotlin JVM compiler (`MCP_KOTLINC`, or `kotlinc` on PATH),
+the matching standard-library jar (`MCP_KOTLIN_STDLIB`), and a compatible JDK.
+Kotlin 2.0.21 with JDK 17 was used for the recorded validation. The fixture does
+not add Gradle, download a compiler, or change the server's dependencies.
+
+```sh
+npm run build
+export JAVA_HOME=/path/to/jdk-17
+export MCP_KOTLINC=/path/to/kotlin/bin/kotlinc
+export MCP_KOTLIN_STDLIB=/path/to/kotlin/lib/kotlin-stdlib.jar
+MCP_KOTLIN_DEVICE=emulator-5554 npx tsx test/device/automated/debugger/kotlin.android.test.ts
+```
+
+The compiler retains its default line/local metadata; D8 runs without shrinking
+or obfuscation. The runner checks the class-file local-variable scope tables,
+then reads `seed=7` before `known` is initialized, `known=42` before `answer` is
+initialized, and `answer=43` afterward through MCP. Old references must fail as
+stale. Resume/detach is followed by a fresh hierarchy assertion for
+`Kotlin result 43`; exact owned forwards, package and temporary files are cleaned
+up. Build failures also remove their temporary directory.
+
+`npm run test:device` includes this journey only when `MCP_KOTLIN_DEVICE` is set;
+otherwise it reports **UNRUN** explicitly. The existing Java journey separately
+covers absent variable tables. A local outside its compiler scope and missing
+metadata are different conditions; an empty ART table alone proves neither.
+See the [dated validation record](../../../docs/specs/029-kotlin-locals-validation/report.md).
+
 ## Interaction regression journey
 
 The same isolated fixture is also used by the [interaction device check](../../device/automated/interact/interaction.android.test.ts)

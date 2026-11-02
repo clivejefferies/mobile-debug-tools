@@ -140,6 +140,14 @@ useful source lines or locals. Locals may contain private data: values are retur
 only on request, without protocol/value logging, persistent dumps or upload.
 Worker heap is capped at 128 MiB; IPC and messages are bounded; forwarding remains loopback-only.
 
+For Kotlin, stop after a local's assignment before expecting its value. A stop
+on the assignment line may precede initialization and the compiler's variable
+scope. Compare source location and emitted debug tables before classifying a
+missing local as a debugger failure. The isolated
+[Kotlin validation](../specs/029-kotlin-locals-validation/report.md) covers a plain
+calculation; it does not establish coroutine, inline/suspend, optimized or
+obfuscated-code support.
+
 Verified environments and remaining checks are recorded in
 [the implementation plan](../specs/025-android-runtime-debugger/plan.md).
 To run the isolated fixture journey (installs then removes its own test package):

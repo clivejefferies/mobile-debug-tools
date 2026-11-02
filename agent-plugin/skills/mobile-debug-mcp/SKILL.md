@@ -183,7 +183,10 @@ and does not establish execution recovery.
    `get_debugger_locals` with `stopId`/`frameId` from the returned frame. Inspection
    is shallow and bounded; check availability and truncation. ART may return
    `EMPTY_OR_UNAVAILABLE_VARIABLE_METADATA`: an empty table does not prove that
-   the frame has no locals. Values can contain private data; report only what is
+   the frame has no locals. On Kotlin assignment lines, the local may not yet be
+   initialized or in its emitted variable scope; compare a stop after assignment
+   and compiler metadata before diagnosing a worker defect.
+   Values can contain private data; report only what is
    needed for the investigation.
 5. Use `step_debugger` (`kind: into/over/out`) or `resume_debugger` with the current
    `stopId`. Acknowledgement is not proof of a later stop. Discard all old stop,
