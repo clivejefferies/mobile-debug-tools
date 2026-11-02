@@ -136,3 +136,12 @@ The separate Android system-trace check **FAIL**ed its cancellation assertion:
 The test's finally cleanup retry completed. Log: `/tmp/pr96-user-trace.log`.
 This does not change the repaired coroutine journey's PASS result and prevents
 claiming all Android smoke checks passed. No tracing code or assertions changed.
+
+Perfetto investigation: three direct start/cancel probes and three full MCP smoke
+journeys subsequently **PASS**ed with unchanged production code/assertions. The
+final MCP run recorded command timings; process lookup max 111 ms, signal max
+63 ms, no command timeouts. Owned artifacts/files/forwards were cleaned up. The
+original ACTION_TIMEOUT was not reproduced and is not root-caused; no runtime
+fix or relaxed deadline is claimed. See the report's Perfetto investigation and
+`/tmp/pr96-perfetto-mcp-timings.log`. This supplies passing current trace evidence
+without erasing the original failed run; iOS setup limitations remain separate.

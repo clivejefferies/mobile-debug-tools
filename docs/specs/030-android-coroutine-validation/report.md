@@ -200,3 +200,41 @@ completed. Log: `/tmp/pr96-user-trace.log`. This is an additional observed
 limitation in the broader smoke checks; it does not invalidate the coroutine
 journey's successful cancellation and cleanup. No trace code or assertions were
 changed, and no complete device-suite pass is claimed.
+
+## Perfetto timeout investigation — 2026-11-02
+
+The earlier `cancel_system_trace` failure reported ACTION_TIMEOUT in the bounded
+stop/termination phase. Its original log does not identify which ADB command or
+process-exit wait exhausted the budget, so the root cause remains undetermined.
+No tracing source or smoke-test changes appear in PR #96.
+
+On the same running Android 16/API 36 emulator-5554 and server build
+`e90ed0831de4059f1e2b213ed0c050298cf2e55c0cc0aef9ff4ea2a38b6062a0`:
+
+- Three direct native/session start-cancel probes **PASS**ed with complete cleanup;
+  cancellation took 372, 373 and 390 ms. Log: `/tmp/pr96-perfetto-probe.log`.
+- Three full MCP smoke journeys **PASS**ed: Settings journey assertion, readable
+  trace content, explicit stop, cancellation, automatic duration completion,
+  stale-trace rejection and active shutdown cleanup. Logs:
+  `/tmp/pr96-perfetto-retest.log`, `/tmp/pr96-perfetto-instrumented-1.log`,
+  `/tmp/pr96-perfetto-instrumented-2.log`.
+- The final run used an assertion-identical temporary test copy with a server
+  preloader recording native-command timing. Across 71 commands, the only
+  nonzero exits were five expected Perfetto help probes (exit 1 is supported).
+  Maximum process lookup was 111 ms; maximum signal command 63 ms; maximum start
+  247 ms. No command timed out. Log: `/tmp/pr96-perfetto-mcp-timings.log`.
+- The first attempted instrumentation relied on NODE_OPTIONS, which the SDK's
+  default subprocess environment did not forward to the server. That smoke pass
+  remains valid but supplies no server timing evidence. The final run explicitly
+  preloaded the diagnostic module in both server subprocesses.
+- Final independent checks found no MCP trace files and no forwards on the
+  emulator. Host test artifacts were removed by each smoke journey. The emulator
+  remains running; no settings or user-app data were changed.
+
+Classification: the previously observed timeout is **not reproduced**, with an
+intermittent timing failure still possible. Passing reruns do not establish its
+cause or prove it fixed. No production change, timeout increase, assertion change
+or test suppression was made. Current Perfetto verification passes; the earlier
+failed observation is retained rather than reclassified as a pass. Any recurrence
+needs command timings at the failing invocation to distinguish ADB transport,
+process identity lookup, signalling and process-exit delay.
