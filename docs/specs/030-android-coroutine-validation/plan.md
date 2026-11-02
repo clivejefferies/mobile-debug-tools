@@ -106,3 +106,33 @@ contract change. `feature/coroutines` started clean at
   forwarding table was empty. Temporary build output was removed. Physical
   checks and hosted CI remain unrun. Native verification is partial, not a full
   suite pass; the remaining limitation is recorded rather than bypassing it.
+
+## Retry on the maintainer's running emulator — 2026-11-02
+
+The complete repaired coroutine journey **PASS**ed on the already-running
+emulator-5554, Android 16/API 36, at commit `1497693`. This includes cancellation
+readiness, the child finally breakpoint, cancelAndJoin, fresh cancellation UI,
+completion, synchronous steps, guards, cancelled-wait recovery and final cleanup.
+Overall JSON PASS was emitted after package/build-output/forward cleanup.
+Log: `/tmp/pr96-user-emulator.log`. No test source, assertions or deadlines changed.
+
+Runtime: Node 22.23.3, fixture compiler Kotlin 2.0.21/JDK 17.0.11, coroutines 1.9.0.
+The local `ADB_PATH` wrapper selected streamed (`--no-incremental`) installation;
+`JAVA_TOOL_OPTIONS='-Xmx512m -XX:TieredStopAtLevel=1'` reduced host JVM startup cost.
+The existing emulator was used directly and is left running. Its existing user
+apps/data were not cleared. Full device regression results are recorded below.
+
+The full `npm run test:device` retry passed coroutine, Kotlin/Java debugger,
+interaction and Android screenshot checks, then **FAIL**ed at the iOS screenshot
+check because multiple matching iOS simulators were available and no target was
+selected. Log: `/tmp/pr96-user-device-suite.log`. Separate Android logs and UI-tree
+checks **PASS**ed, as did the Android correlated-evidence portion; its required
+iOS portion **FAIL**ed because no iOS simulator was running. Log:
+`/tmp/pr96-user-android-remaining.log`. These iOS setup failures do not represent
+an Android emulator failure; they prevent claiming a complete suite pass.
+
+The separate Android system-trace check **FAIL**ed its cancellation assertion:
+`cancel_system_trace` returned `failed` / `ACTION_TIMEOUT` instead of `cancelled`.
+The test's finally cleanup retry completed. Log: `/tmp/pr96-user-trace.log`.
+This does not change the repaired coroutine journey's PASS result and prevents
+claiming all Android smoke checks passed. No tracing code or assertions changed.

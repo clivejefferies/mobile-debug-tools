@@ -164,3 +164,39 @@ Final independent package query returned no owned fixture package; no ADB forwar
 remained and temporary build output was removed. The review fixes introduce no
 production server behaviour or contract change. Physical-device checks and hosted
 CI are unrun for this revision.
+
+## Successful retry on the maintainer's running emulator
+
+The repaired coroutine assessment **PASS**ed in full on emulator-5554, Android
+16/API 36, commit `1497693`, Node 22.23.3. This supersedes the earlier incomplete
+cancellation verification: queued readiness, cancellation/finally, cancelAndJoin,
+fresh `Coroutine cancelled` UI, completion, stepping, guards, cancelled event wait
+and owned cleanup all passed. The overall JSON PASS followed successful cleanup.
+Log: `/tmp/pr96-user-emulator.log`.
+
+Fixture source SHA-256 remains
+`d4656e3736cc245230bc000c6574288b145df47957dd7ee511ea98717afde4df`;
+server/dist remains `4f7bf452fc0022c8feb492f11a25c34ac5e360baff9f77d752dd0d248105d581`.
+APK SHA-256: `3ec87db96cd87f9bd7ca27472dde8c1b57d2789d9f808714362ca4ba2ee95c83`.
+Kotlin/stdlib 2.0.21, coroutines 1.9.0 and fixture JDK 17.0.11 were unchanged.
+Local setup used the temporary ADB_PATH wrapper for streamed installation and
+`JAVA_TOOL_OPTIONS='-Xmx512m -XX:TieredStopAtLevel=1'` for host JVM startup.
+No assertions or deadlines changed. The user-started emulator remains running;
+only fixture-owned resources were removed. Physical-device coroutine validation
+remains unrun.
+
+The full device-suite retry passed coroutine, Kotlin/Java debugger, interaction
+and Android screenshot checks before failing the iOS screenshot test's ambiguous
+target selection (`/tmp/pr96-user-device-suite.log`). Separate Android logs,
+UI-tree and correlated-evidence checks passed; the correlation script then failed
+its iOS prerequisite because no iOS simulator was running
+(`/tmp/pr96-user-android-remaining.log`). Full-suite status remains **FAIL** for
+those iOS setup requirements, while the repaired Android coroutine journey is
+verified **PASS**, including cancellation and cleanup.
+
+A separate Android system-trace check failed its cancellation-state assertion
+(`failed` / `ACTION_TIMEOUT`, expected `cancelled`); its finally cleanup retry
+completed. Log: `/tmp/pr96-user-trace.log`. This is an additional observed
+limitation in the broader smoke checks; it does not invalidate the coroutine
+journey's successful cancellation and cleanup. No trace code or assertions were
+changed, and no complete device-suite pass is claimed.
