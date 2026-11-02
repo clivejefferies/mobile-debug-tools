@@ -217,6 +217,14 @@ traversal, coroutine reconstruction or heap capture. A successful debugger comma
 establishes only its reported execution/inspection evidence, not the visible app
 outcome or the cause of a bug.
 
+For Kotlin coroutines, use explicit source breakpoints before and after suspension
+and verify each observed location. Thread-based stepping can stop in generated
+state-machine code; it does not promise to follow a coroutine across dispatchers.
+Inspect compiler line/local metadata when source bindings or values are unclear.
+Shallow locals do not expose spilled continuation fields, suspended coroutine
+inventories, parent/child identities or logical asynchronous stacks. Do not enable
+debug probes or add app instrumentation without a separately agreed design.
+
 ## Report evidence precisely
 
 State the device, actions taken, observed result, evidence source, and any

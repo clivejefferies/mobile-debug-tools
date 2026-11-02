@@ -10,6 +10,13 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+## [0.35.0]
+
+- Updated the agent plugin to `0.0.4`, pinned to MCP `0.35.0`.
+
+- Added an opt-in isolated Android coroutine debugger assessment fixture for
+  suspension, dispatcher changes, nested work, stepping and cancellation, with
+  explicit local dependencies. This does not add coroutine reconstruction.
 - Added an opt-in isolated Kotlin debugger validation journey for named locals
   before/after assignment, compiler scope tables, stale references and app recovery.
   This adds evidence and regression coverage without changing debugger behaviour.

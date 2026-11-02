@@ -148,6 +148,16 @@ missing local as a debugger failure. The isolated
 calculation; it does not establish coroutine, inline/suspend, optimized or
 obfuscated-code support.
 
+An opt-in [coroutine fixture](../../test/fixtures/coroutine-app/README.md) assesses
+source breakpoints across suspension, dispatcher changes, nested work and
+cancellation with explicit Kotlin/coroutine dependencies. Use source breakpoints
+at both sides of a suspension point and inspect each actual stop. A thread-based
+step may stop in generated coroutine code; its acknowledgement does not establish
+that it followed a coroutine. Stop/thread/frame references expire when execution
+resumes. Shallow locals do not expose spilled continuation fields or reconstruct
+parent/child coroutine identity. The [assessment record](../specs/030-android-coroutine-validation/report.md)
+distinguishes device evidence from follow-up proposals.
+
 Verified environments and remaining checks are recorded in
 [the implementation plan](../specs/025-android-runtime-debugger/plan.md).
 To run the isolated fixture journey (installs then removes its own test package):
