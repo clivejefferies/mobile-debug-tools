@@ -68,52 +68,114 @@ Check the [requirements](#requirements) for your platform before installing.
 
 ## Agent plugin
 
-The preferred setup for supported agent clients is the
-[agent plugin](agent-plugin/README.md). It installs the MCP server configuration
-and usage skill together. Choose your client below.
+The plugin installs the MCP server configuration and the `mobile-debug-mcp` usage
+skill together. These are GitHub/local installation routes; they do not require
+approval from a client's public curated marketplace.
 
 <details>
 
-<summary>Codex plugin</summary>
+<summary>Codex</summary>
 
-Install the plugin from this repository's marketplace:
+In a terminal with a current Codex CLI:
 
 ```bash
-codex plugin marketplace add clivejefferies/mobile-debug-tools
+codex plugin marketplace add clivejefferies/mobile-debug-tools --ref main
 codex plugin add mobile-debug-tools@mobile-debug-tools
+codex plugin list
 ```
+
+Start a new chat/session and confirm the plugin is enabled and its skill and MCP
+tools are available. These commands use the repository's marketplace, named
+`mobile-debug-tools`, not a public directory listing. See the
+[official packaging instructions](https://developers.openai.com/plugins/build/plugins).
 
 </details>
 
 <details>
 
-<summary>Claude Code plugin</summary>
+<summary>Claude Code</summary>
 
-Install the plugin from this repository's marketplace:
+Run these shell commands (not slash commands inside a chat):
 
 ```bash
-claude plugin marketplace add clivejefferies/mobile-debug-tools
-claude plugin install mobile-debug-tools@mobile-debug-tools
+claude plugin marketplace add clivejefferies/mobile-debug-tools --scope user
+claude plugin install mobile-debug-tools@mobile-debug-tools --scope user
+claude plugin list
 ```
+
+Restart the session after installation. In an interactive Claude Code chat, the
+corresponding commands start with `/plugin` instead of `claude plugin`. See
+[Claude Code's installation guide](https://code.claude.com/docs/en/discover-plugins).
 
 </details>
 
 <details>
 
-<summary>Cursor plugin</summary>
+<summary>Cursor</summary>
 
-The repository includes a [Cursor marketplace](.cursor-plugin/marketplace.json).
-Teams and Enterprise admins can import the repository in Dashboard → Plugins & MCPs → Team
-Marketplaces. To test it locally, copy [agent-plugin](agent-plugin/) into
-`~/.cursor/plugins/local/mobile-debug-tools`, then reload Cursor.
+For local installation, clone this repository and run these commands from its
+root in a macOS/Linux shell:
+
+```bash
+git clone https://github.com/clivejefferies/mobile-debug-tools.git
+cd mobile-debug-tools
+cursor_plugin_dir="$HOME/.cursor/plugins/local/mobile-debug-tools"
+if [ -e "$cursor_plugin_dir" ]; then
+  echo "Move the existing plugin directory aside before copying the new package."
+else
+  mkdir -p "$(dirname "$cursor_plugin_dir")"
+  cp -R agent-plugin/cursor "$cursor_plugin_dir"
+fi
+```
+
+On Windows, copy the contents of `agent-plugin/cursor` into a new
+`~/.cursor/plugins/local/mobile-debug-tools` folder, including `.cursor-plugin`.
+Use this generated Cursor-native package, not the portable parent: Cursor does
+not expand `${PLUGIN_DATA}` in portable `mcp.json`. Do not symlink to the checkout.
+
+Run **Developer: Reload Window**, open **Customize**, and confirm the skill and
+MCP server are loaded. For Teams/Enterprise distribution, import this repository
+under **Dashboard → Plugins & MCPs → Team Marketplaces**; its
+[Cursor catalog](.cursor-plugin/marketplace.json) selects the native package.
+Members install from Customize. See [Cursor's plugin guide](https://cursor.com/docs/plugins).
 
 </details>
 
-Start a new chat or session after installation so the client loads the skill
-and MCP tools. Each plugin launches the published npm package locally and needs
-Node.js 22 or newer and the platform toolchains for your device. If you also
-registered the MCP server directly, disable that registration to avoid
-duplicate tools.
+<details>
+
+<summary>Antigravity</summary>
+
+Install the [Antigravity CLI](https://antigravity.google/docs/getting-started?tab=cli),
+then clone this GitHub repository and export its plugin:
+
+```bash
+git clone https://github.com/clivejefferies/mobile-debug-tools.git
+cd mobile-debug-tools
+npm run package:antigravity -- "$PWD/antigravity-dist"
+agy plugin validate --strict "$PWD/antigravity-dist"
+agy plugin install "$PWD/antigravity-dist"
+agy plugin list --json
+```
+
+No `npm install` is needed for the export script. Choose a new output directory;
+the exporter refuses to overwrite an existing one. Check the installed entry has
+one skill (`mobile-debug-mcp`) and one MCP server (`mobile-debug-mcp`), then start
+a new session and approve the specific MCP calls you intend to use.
+
+The Antigravity-only export avoids strict-validation warnings from the other
+clients' compatibility files. It uses `mcp_config.json` and the same pinned npm
+server and shared skill. GitHub/local installation does not require the
+Antigravity Marketplace interest form. See [Google's plugin guide](https://antigravity.google/docs/build-plugins).
+
+</details>
+
+Each client needs Node.js 22 or newer, `npx` on its PATH, npm registry access on
+first launch, and the platform toolchains for your device. After installation,
+ask the agent to list devices, select an explicit emulator/device, and inspect
+its screen. An installed component list alone does not prove a working device
+connection. Disable any separate manual registration of this MCP server in the
+same client to avoid duplicate tools. If a plugin command is unavailable, update
+the client; the [direct MCP configuration](#mcp-configuration) works independently.
 
 ## MCP configuration
 

@@ -29,3 +29,6 @@ Thumbs.db
 
 # Optional: local MCP inspector state
 .mcp-inspector/
+
+# Generated client distribution package
+/antigravity-dist/
