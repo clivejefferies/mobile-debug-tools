@@ -10,6 +10,9 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Added opt-in debugger `responseMode: "compact"` to omit repeated target metadata
+  from routine commands while retaining diagnostics, execution state and cleanup.
+  Existing full responses remain the default; discovery and state stay complete.
 - Android debugger failures now include bounded, sanitized stage/reason diagnostics
   and static recovery guidance while preserving error codes. Capability probes
   report ordered prerequisite diagnostics; terminal summaries retain failure evidence.

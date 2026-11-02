@@ -52,6 +52,21 @@ Failures carry `error: {code, message, retryable}`. Event polls use top-level
 `events`, `next_cursor`, `overflow`, `timed_out`; empty waits are successful.
 The 256-event ring returns at most 100 entries; overflow must not be ignored.
 
+## Response modes
+
+All eleven debugger tools accept `responseMode: "compact" | "debug"` (default
+`"debug"`, the existing full response). Selection applies only to the current call.
+For routine session commands, compact mode omits only top-level `device`, `target`
+and `capabilities` when `debug_session_id` is non-null. Attach, capabilities and
+state calls retain their full payload in either mode. Use `get_debugger_state`
+or request `debug` to recover target/capability context.
+
+Errors and sanitized diagnostics, identifiers, stop and execution state, event
+cursors/overflow, limitations, truncation and cleanup remain intact. Unknown
+session IDs still fail explicitly. Compact mode does not redact locals or prove
+execution resumed: detach retains `execution_state: "unknown"`. Retry incomplete
+cleanup according to its remaining resources. Invalid modes are rejected.
+
 ## Failure diagnostics
 
 Debugger operation failures add `error.diagnostic: {stage, reason, recovery}` while
@@ -131,6 +146,8 @@ To run the isolated fixture journey (installs then removes its own test package)
 
 ```sh
 MCP_DEBUGGER_DEVICE=emulator-5554 npx tsx test/device/automated/debugger/runtime.android.test.ts
+# Exercise opt-in compact responses across the same assertions:
+MCP_DEBUGGER_DEVICE=emulator-5554 MCP_DEBUGGER_RESPONSE_MODE=compact npx tsx test/device/automated/debugger/runtime.android.test.ts
 # Also exercise the real 60-second pause expiry:
 MCP_DEBUGGER_DEVICE=emulator-5554 MCP_DEBUGGER_EXTENDED=1 npx tsx test/device/automated/debugger/runtime.android.test.ts
 ```
