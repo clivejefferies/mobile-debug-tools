@@ -139,9 +139,15 @@ public final class DebuggerWorker {
     try(Reader reader=new InputStreamReader(System.in,StandardCharsets.UTF_8)){
       StringBuilder line=new StringBuilder();int ch;
       while((ch=reader.read())!=-1){if(ch!='\n'){line.append((char)ch);if(line.length()>MAX_LINE)throw new IOException("IPC_LIMIT");continue;}
-        Object id=null;
-        try{@SuppressWarnings("unchecked") Map<String,Object>a=(Map<String,Object>)new Json(line.toString()).value();id=a.get("id");synchronized(lock){Object result=command(a);send(obj("id",id,"result",result));}}
-        catch(Exception e){String msg=e.getMessage();String code=msg!=null&&msg.matches("(?:DEBUGGER|INVALID|PROCESS|DEVICE)_[A-Z_]+")?msg:e instanceof VMDisconnectedException?"DEBUGGER_DISCONNECTED":"DEBUGGER_WORKER_FAILED";send(obj("id",id,"error",obj("code",code)));}
+        Object id=null;String commandName="";
+        try{@SuppressWarnings("unchecked") Map<String,Object>a=(Map<String,Object>)new Json(line.toString()).value();id=a.get("id");commandName=str(a,"command");synchronized(lock){Object result=command(a);send(obj("id",id,"result",result));}}
+        catch(Exception e){
+          String msg=e.getMessage();
+          String code=msg!=null&&msg.matches("(?:DEBUGGER|INVALID|PROCESS|DEVICE)_[A-Z_]+")?msg:e instanceof VMDisconnectedException?"DEBUGGER_DISCONNECTED":"DEBUGGER_WORKER_FAILED";
+          String stage=commandName.equals("attach")?"attach":e instanceof VMDisconnectedException?"transport":"command";
+          String reason=e instanceof java.net.ConnectException?"connection_refused":e instanceof VMDisconnectedException?"transport_lost":e instanceof java.net.SocketTimeoutException || e instanceof TransportTimeoutException?"timeout":"operation_failed";
+          send(obj("id",id,"error",obj("code",code,"diagnostic",obj("stage",stage,"reason",reason))));
+        }
         line.setLength(0);
       }
     }finally{synchronized(lock){finish("parent_closed");}watchdog.shutdownNow();}

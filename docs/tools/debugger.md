@@ -52,6 +52,39 @@ Failures carry `error: {code, message, retryable}`. Event polls use top-level
 `events`, `next_cursor`, `overflow`, `timed_out`; empty waits are successful.
 The 256-event ring returns at most 100 entries; overflow must not be ignored.
 
+## Failure diagnostics
+
+Debugger operation failures add `error.diagnostic: {stage, reason, recovery}` while
+preserving existing error codes, messages and retryability. `stage` identifies
+prerequisite checks, compilation, worker startup, IPC, target resolution,
+forwarding, JDI attach, command execution, transport or cleanup; `unknown` is
+explicit when evidence is insufficient. `reason` is a fixed classification,
+such as `spawn_failed`, `process_exited`, `invalid_message`, `message_limit`,
+`write_failed`, `connection_refused`, `transport_lost`, `timeout` or `cancelled`.
+Remaining catalog values and the exact schema are defined in the
+[accepted specification](../specs/027-debugger-failure-diagnostics/spec.md).
+
+`recovery` is static guidance, not raw stderr or exception text. Each diagnostic
+is at most 512 UTF-8 bytes with guidance at most 240 ASCII characters. Untrusted
+worker fields are validated and reconstructed. No new logging or app-value
+collection is introduced. Startup classification means no valid worker reply had
+yet arrived; it does not establish the underlying cause of an unexpected exit.
+Argument, stale-reference and pause/state validation errors may omit diagnostics.
+
+Capability probes retain `success: true` and `supported: false` for unavailable
+prerequisites; optional top-level `diagnostics` contains at most two entries,
+ordered JDK then target. Successful probes omit it. Terminal session failures
+retain sanitized diagnostics until normal summary expiry, even after inspection
+data is cleared. A cleanup failure has its own diagnostic; inspect the existing
+session reason and `cleanup.remaining_resources` as well.
+
+Follow recovery guidance and inspect session/cleanup state before another
+state-changing command. Timeout or cancellation does not prove nondelivery.
+Retry incomplete cleanup with `detach_debugger`; never automatically retry
+attach, step or resume, or kill the app/ADB server. Diagnostics improve failure
+classification and do not establish the cause of a previously intermittent error.
+This contract applies to the Android backend; iOS debugging remains unsupported.
+
 ## Suspension, limits and cleanup
 
 Stops suspend all app threads. UI actions, app lifecycle/data changes, waits and

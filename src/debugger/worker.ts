@@ -1,3 +1,5 @@
+import { DebuggerError, classify, diagnostic, atStage } from './diagnostics.js'
+export { DebuggerError } from './diagnostics.js'
 import { parseWorkerMessage, type WorkerEvent, type WorkerReply } from './protocol.js'
 export type { WorkerEvent } from './protocol.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -29,54 +31,51 @@ export function nativeError(error: unknown, fallback: string): DebuggerError {
   if (typeof error === 'object' && error !== null && 'killed' in error && error.killed) return new DebuggerError('DEBUGGER_TIMEOUT')
   return new DebuggerError(fallback)
 }
-export class DebuggerError extends Error { constructor(public code: string) { super(code) } }
 export const workerSource = fileURLToPath(new URL('../../src/debugger/java/DebuggerWorker.java', import.meta.url))
 let compiled: Promise<{ java: string; directory: string }> | undefined
 export async function prepareWorker() {
+  let stage: 'prerequisite' | 'compilation' = 'prerequisite'
   compiled ??= (async () => {
-    const home = await detectJavaHome({ quiet: true })
+    const home = await detectJavaHome({ quiet: true }).catch(e => { throw classify(e, 'prerequisite', 'DEBUGGER_ATTACH_FAILED', 'unavailable') })
     const java = home ? path.join(home, 'bin', 'java') : 'java'
     const javac = home ? path.join(home, 'bin', 'javac') : 'javac'
-    const version = await exec(java, ['-version'], { timeout: debuggerRemaining(5000), signal: debuggerSignal() })
+    const version = await exec(java, ['-version'], { timeout: debuggerRemaining(5000), signal: debuggerSignal() }).catch(e => { throw classify(e, 'prerequisite', 'DEBUGGER_ATTACH_FAILED', debuggerSignal()?.aborted ? 'cancelled' : typeof e === 'object' && e !== null && 'killed' in e && e.killed ? 'timeout' : 'unavailable') })
     const major = Number(/version "(\d+)/.exec(version.stderr)?.[1])
-    if (!(major >= 17)) throw new DebuggerError('DEBUGGER_UNSUPPORTED')
-    const source = await readFile(workerSource)
+    if (!(major >= 17)) throw new DebuggerError('DEBUGGER_UNSUPPORTED', diagnostic('prerequisite', 'unsupported'))
+    stage = 'compilation'
+    const source = await readFile(workerSource).catch(e => { throw classify(e, 'compilation', 'DEBUGGER_ATTACH_FAILED', 'unavailable') })
     const key = createHash('sha256').update(source).update(version.stderr).digest('hex').slice(0, 16)
-    const directory = await mkdtemp(path.join(os.tmpdir(), `mobile-debug-jdi-${key}-`))
-    await chmod(directory, 0o700)
-    try { await exec(javac, ['--release', '17', '--add-modules', 'jdk.jdi', '-d', directory, workerSource], { timeout: debuggerRemaining(15000), signal: debuggerSignal(), maxBuffer: 1024 * 1024 }) }
-    catch (e) { await rm(directory, { recursive: true, force: true }); throw nativeError(e, 'DEBUGGER_UNSUPPORTED') }
+    const directory = await atStage('compilation', 'DEBUGGER_ATTACH_FAILED', () => mkdtemp(path.join(os.tmpdir(), `mobile-debug-jdi-${key}-`)))
+    try { await atStage('compilation', 'DEBUGGER_ATTACH_FAILED', () => chmod(directory, 0o700)); await exec(javac, ['--release', '17', '--add-modules', 'jdk.jdi', '-d', directory, workerSource], { timeout: debuggerRemaining(15000), signal: debuggerSignal(), maxBuffer: 1024 * 1024 }) }
+    catch (e) { await rm(directory, { recursive: true, force: true }); throw classify(nativeError(e, 'DEBUGGER_UNSUPPORTED'), 'compilation', 'DEBUGGER_UNSUPPORTED', 'operation_failed') }
     return { java, directory }
-  })().catch(error => { compiled = undefined; throw error })
+  })().catch(error => { compiled = undefined; throw classify(error, stage, 'DEBUGGER_ATTACH_FAILED') })
   return compiled
 }
+function commandStage(command: string) { return command === 'attach' ? 'attach' as const : command === 'detach' ? 'cleanup' as const : 'command' as const }
 export interface DebugWorker {
   call(command: string, args?: Record<string, unknown>, timeout?: number): Promise<WorkerReply>
   close(): Promise<void>
 }
+type WorkerFailureReason = 'spawn_failed' | 'process_exited' | 'write_failed' | 'invalid_message' | 'message_limit'
 export class JdiWorker implements DebugWorker {
   private child: ChildProcessWithoutNullStreams
-  private pending = new Map<number, { resolve(value: WorkerReply): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>()
+  private pending = new Map<number, { resolve(value: WorkerReply): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout>; command: string }>()
   private sequence = 0
   private dead = false
+  private failure?: DebuggerError
+  private replied = false
   private exited: Promise<void>
-  constructor(java: string, directory: string, onEvent: (event: WorkerEvent) => void) {
+  constructor(java: string, directory: string, private onEvent: (event: WorkerEvent) => void) {
     this.child = spawn(java, ['-Xmx128m', '--add-modules', 'jdk.jdi', '-cp', directory, 'DebuggerWorker'], { stdio: ['pipe', 'pipe', 'pipe'] })
     let buffer = ''
-    const fail = () => {
-      if (this.dead) return
-      this.dead = true
-      for (const request of this.pending.values()) { clearTimeout(request.timer); request.reject(new DebuggerError('DEBUGGER_WORKER_FAILED')) }
-      this.pending.clear()
-      onEvent({ event: 'worker_failed' })
-    }
-    this.exited = new Promise(resolve => { this.child.once('exit', () => { fail(); resolve() }); this.child.once('error', () => { fail(); resolve() }) })
-    this.child.stdin.on('error', fail)
+    this.exited = new Promise(resolve => { this.child.once('exit', () => { this.fail('process_exited'); resolve() }); this.child.once('error', () => { this.fail('spawn_failed'); resolve() }) })
+    this.child.stdin.on('error', () => this.fail('write_failed'))
     this.child.stderr.resume() // Never copy worker data or VM diagnostics into MCP stdout/logs.
     this.child.stdout.setEncoding('utf8')
     this.child.stdout.on('data', (chunk: string) => {
       buffer += chunk
-      if (Buffer.byteLength(buffer) > 2 * 1024 * 1024) { fail(); this.child.kill('SIGKILL'); return }
+      if (Buffer.byteLength(buffer) > 2 * 1024 * 1024) { this.fail('message_limit'); this.child.kill('SIGKILL'); return }
       let end: number
       while ((end = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, end); buffer = buffer.slice(end + 1)
@@ -85,30 +84,43 @@ export class JdiWorker implements DebugWorker {
           const msg = parseWorkerMessage(JSON.parse(line))
           if (msg.kind === 'event') onEvent(msg.value)
           else {
+            this.replied = true
             const request = this.pending.get(msg.id)
             if (!request) continue
             clearTimeout(request.timer); this.pending.delete(msg.id)
-            if (msg.error) request.reject(new DebuggerError(msg.error.code ?? 'DEBUGGER_WORKER_FAILED'))
+            if (msg.error) request.reject(classify(new DebuggerError(msg.error.code ?? 'DEBUGGER_WORKER_FAILED', msg.error.diagnostic), commandStage(request.command), 'DEBUGGER_WORKER_FAILED'))
             else request.resolve(msg.result)
           }
-        } catch { fail(); this.child.kill('SIGKILL'); return }
+        } catch { this.fail(Buffer.byteLength(line) > 1024 * 1024 ? 'message_limit' : 'invalid_message'); this.child.kill('SIGKILL'); return }
       }
     })
   }
+  private fail(reason: WorkerFailureReason) {
+    if (this.dead) return
+    this.dead = true
+    const stage = reason === 'spawn_failed' || (reason === 'process_exited' && !this.replied) ? 'worker_start' : 'ipc'
+    this.failure = new DebuggerError('DEBUGGER_WORKER_FAILED', diagnostic(stage, reason))
+    for (const request of this.pending.values()) {
+      clearTimeout(request.timer)
+      request.reject(this.failure)
+    }
+    this.pending.clear()
+    this.onEvent({ event: 'worker_failed', diagnostic: this.failure.diagnostic })
+  }
   call(command: string, args: Record<string, unknown> = {}, timeout = 10000): Promise<WorkerReply> {
-    if (this.dead) return Promise.reject(new DebuggerError('DEBUGGER_WORKER_FAILED'))
-    try { timeout = Math.min(timeout, debuggerRemaining(timeout)) } catch (e) { return Promise.reject(e) }
+    if (this.dead) return Promise.reject(this.failure ?? new DebuggerError('DEBUGGER_WORKER_FAILED', diagnostic('ipc', 'unknown')))
+    try { timeout = Math.min(timeout, debuggerRemaining(timeout)) } catch (e) { return Promise.reject(classify(e, commandStage(command), 'DEBUGGER_WORKER_FAILED')) }
     const id = ++this.sequence
     const message = JSON.stringify({ ...args, command, id }) + '\n'
     if (Buffer.byteLength(message) > 1024 * 1024) return Promise.reject(new DebuggerError('INVALID_ARGUMENT'))
     return new Promise((resolve, reject) => {
       const signal = debuggerSignal()
-      const abort = () => { this.pending.delete(id); clearTimeout(timer); reject(new DebuggerError('DEBUGGER_CANCELLED')) }
+      const abort = () => { this.pending.delete(id); clearTimeout(timer); done(); reject(new DebuggerError('DEBUGGER_CANCELLED', diagnostic(commandStage(command), 'cancelled'))) }
       const done = () => signal?.removeEventListener('abort', abort)
-      const timer = setTimeout(() => { this.pending.delete(id); done(); reject(new DebuggerError('DEBUGGER_TIMEOUT')) }, timeout)
-      this.pending.set(id, { resolve: value => { done(); resolve(value) }, reject: error => { done(); reject(error) }, timer })
+      const timer = setTimeout(() => { this.pending.delete(id); done(); reject(new DebuggerError('DEBUGGER_TIMEOUT', diagnostic(commandStage(command), 'timeout'))) }, timeout)
+      this.pending.set(id, { command, resolve: value => { done(); resolve(value) }, reject: error => { done(); reject(error) }, timer })
       signal?.addEventListener('abort', abort, { once: true })
-      this.child.stdin.write(message)
+      try { this.child.stdin.write(message) } catch { this.fail('write_failed') }
     })
   }
   async close() {

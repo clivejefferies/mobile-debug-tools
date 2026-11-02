@@ -223,6 +223,8 @@ After connecting the client, call `get_system_status` to check discovery and
 prerequisites. See [environment diagnostics](docs/tools/system.md) if a toolchain
 or device is unavailable.
 
+Android debugger errors include bounded, sanitized failure classifications and recovery guidance; see the [debugger guide](docs/tools/debugger.md#failure-diagnostics).
+
 ## Documentation
 
 - [Documentation guide](docs/README.md) — find the guide for your task.

@@ -1,3 +1,4 @@
+import { atStage, classify, diagnostic, type DebuggerDiagnostic, type DiagnosticStage } from './diagnostics.js';
 import type { WorkerReply } from './protocol.js';
 import { registerDebuggerPauseProvider } from './guard.js';
 import { randomUUID } from 'node:crypto';
@@ -11,6 +12,7 @@ interface Session {
     state: State;
     stop: WorkerEvent | null;
     reason: string | null;
+    diagnostic?: DebuggerDiagnostic;
     worker?: DebugWorker;
     port?: number;
     queue: Promise<unknown>;
@@ -42,6 +44,7 @@ interface ResultPayload {
         code: string | null;
         message: string | null;
         retryable: boolean;
+        diagnostic?: DebuggerDiagnostic;
     };
     events?: SessionEvent[];
     next_cursor?: number;
@@ -76,7 +79,7 @@ export class DebuggerSessions {
     private result(s: Session, payload: ResultPayload = {}) {
         const success = payload.success ?? (!['failed', 'disconnected'].includes(s.state) && s.cleanup.status !== 'failed');
         const code = s.cleanup.status === 'failed' ? 'DEBUGGER_CLEANUP_FAILED' : s.state === 'disconnected' ? 'DEBUGGER_DISCONNECTED' : s.reason?.match(/^[A-Z_]+$/) ? s.reason : 'DEBUGGER_WORKER_FAILED';
-        return structuredClone({ success, ...(!success ? { error: { code, message: code, retryable: false } } : {}), debug_session_id: s.id,
+        return structuredClone({ success, ...(!success ? { error: { code, message: code, retryable: false, diagnostic: s.cleanup.status === 'failed' ? diagnostic('cleanup', 'operation_failed') : s.diagnostic ?? diagnostic('unknown', 'unknown') } } : {}), debug_session_id: s.id,
             device: { platform: 'android', id: s.device }, target: s.target, state: s.state, captured_at_ms: Date.now(),
             capabilities: debuggerCapabilities, limitations, cleanup: s.cleanup, reason: s.reason, stop: s.stop, ...payload });
     }
@@ -94,6 +97,7 @@ export class DebuggerSessions {
             s.pausedAt ??= Date.now();
         }
         if (event.event === 'terminated' || event.event === 'worker_failed') {
+            if (!s.cleaning) s.diagnostic ??= event.diagnostic ?? diagnostic(event.event === 'worker_failed' ? 'ipc' : 'transport', event.reason === 'transport_lost' ? 'transport_lost' : 'unknown');
             if (!s.cleaning && s.state !== 'failed')
                 s.reason = event.reason ?? 'worker_failed';
             if (!s.cleaning) {
@@ -111,30 +115,33 @@ export class DebuggerSessions {
         const prerequisites: Record<string, boolean> = { jdk: false, device: false, process: false };
         let candidates: DebugTarget[] = [];
         const reasons: string[] = [];
+        const diagnostics: DebuggerDiagnostic[] = [];
         try {
-            await this.prerequisite();
+            await atStage('prerequisite', 'DEBUGGER_UNSUPPORTED', () => this.prerequisite());
             prerequisites.jdk = true;
         }
         catch (e) {
             if (e instanceof DebuggerError && ['DEBUGGER_TIMEOUT', 'DEBUGGER_CANCELLED'].includes(e.code))
                 throw e;
             reasons.push('DEBUGGER_UNSUPPORTED');
+            diagnostics.push(classify(e, 'prerequisite', 'DEBUGGER_UNSUPPORTED').diagnostic ?? diagnostic('prerequisite', 'unknown'));
         }
         try {
-            candidates = await this.native.candidates(device, app);
+            candidates = await atStage('target_resolution', 'DEVICE_UNAVAILABLE', () => this.native.candidates(device, app));
             prerequisites.device = true;
             prerequisites.process = candidates.some(t => pid === undefined || pid === t.pid);
             if (!prerequisites.process)
-                reasons.push('PROCESS_NOT_FOUND');
+                { reasons.push('PROCESS_NOT_FOUND'); diagnostics.push(diagnostic('target_resolution', 'unavailable')); }
         }
         catch (e) {
             if (e instanceof DebuggerError && ['DEBUGGER_TIMEOUT', 'DEBUGGER_CANCELLED'].includes(e.code))
                 throw e;
             reasons.push(e instanceof DebuggerError ? e.code : 'DEVICE_UNAVAILABLE');
+            diagnostics.push(classify(e, 'target_resolution', 'DEVICE_UNAVAILABLE').diagnostic ?? diagnostic('target_resolution', 'unknown'));
         }
         return { success: true, debug_session_id: null, device: { platform: 'android', id: device }, target: null, state: null,
             captured_at_ms: Date.now(), supported: Object.values(prerequisites).every(Boolean), prerequisites, candidates,
-            capabilities: debuggerCapabilities, reasons, limitations, cleanup: { status: 'complete', remaining_resources: [] } };
+            ...(diagnostics.length ? { diagnostics } : {}), capabilities: debuggerCapabilities, reasons, limitations, cleanup: { status: 'complete', remaining_resources: [] } };
     }
     async attach(device: string, app: string, pid?: number, timeout = 10000) {
         this.prune();
@@ -145,27 +152,33 @@ export class DebuggerSessions {
             queue: Promise.resolve(), events: [], sequence: 0, cleanup: { status: 'pending', remaining_resources: [] }, created: Date.now(), activity: Date.now() };
         this.sessions.set(s.id, s);
         return this.serial(s, async () => {
+            let stage: DiagnosticStage = 'prerequisite';
             const deadline = Date.now() + timeout;
-            const remaining = () => { debuggerRemaining(timeout); const ms = deadline - Date.now(); if (ms <= 0)
-                throw new DebuggerError('DEBUGGER_TIMEOUT'); return ms; };
+            const remaining = () => { try { debuggerRemaining(timeout); const ms = deadline - Date.now(); if (ms <= 0)
+                throw new DebuggerError('DEBUGGER_TIMEOUT'); return ms; } catch (e) { throw classify(e, stage, 'DEBUGGER_ATTACH_FAILED'); } };
             try {
-                await this.prerequisite();
+                await atStage('prerequisite', 'DEBUGGER_ATTACH_FAILED', () => this.prerequisite());
                 remaining();
-                const candidates = (await this.native.candidates(device, app)).filter(t => pid === undefined || t.pid === pid);
+                stage = 'target_resolution';
+                const candidates = (await atStage('target_resolution', 'DEBUGGER_ATTACH_FAILED', () => this.native.candidates(device, app))).filter(t => pid === undefined || t.pid === pid);
                 remaining();
                 if (!candidates.length)
-                    throw new DebuggerError('PROCESS_NOT_FOUND');
+                    throw new DebuggerError('PROCESS_NOT_FOUND', diagnostic('target_resolution', 'unavailable'));
                 if (candidates.length > 1)
                     throw new DebuggerError('PROCESS_AMBIGUOUS');
                 s.target = candidates[0];
-                s.port = await this.native.forward(device, s.target.pid);
+                stage = 'forwarding';
+                s.port = await atStage('forwarding', 'DEBUGGER_ATTACH_FAILED', () => this.native.forward(device, s.target!.pid));
                 remaining();
                 s.cleanup.remaining_resources.push(`forward:tcp:${s.port}`);
-                s.worker = await this.workerFactory(event => this.event(s, event));
+                stage = 'worker_start';
+                s.worker = await atStage('worker_start', 'DEBUGGER_ATTACH_FAILED', () => this.workerFactory(event => this.event(s, event)));
                 remaining();
                 s.cleanup.remaining_resources.push('jdi_worker');
-                await s.worker.call('attach', { port: s.port, timeoutMs: remaining() }, remaining());
-                await this.native.identity(device, s.target);
+                stage = 'attach';
+                await atStage('attach', 'DEBUGGER_ATTACH_FAILED', () => s.worker!.call('attach', { port: s.port, timeoutMs: remaining() }, remaining()));
+                stage = 'target_resolution';
+                await atStage('target_resolution', 'DEBUGGER_ATTACH_FAILED', () => this.native.identity(device, s.target!));
                 remaining();
                 if (s.state === 'attaching')
                     s.state = 'running';
@@ -182,10 +195,11 @@ export class DebuggerSessions {
                 s.timer.unref();
             }
             catch (e) {
+                s.diagnostic ??= classify(e, stage, 'DEBUGGER_ATTACH_FAILED').diagnostic;
                 s.state = 'failed';
                 s.reason = e instanceof DebuggerError ? e.code : 'DEBUGGER_ATTACH_FAILED';
                 await this.cleanup(s, true);
-                return this.result(s, { success: false, error: { code: s.reason, message: s.reason, retryable: false } });
+                return this.result(s, { success: false, error: { code: s.reason, message: s.reason, retryable: false, diagnostic: s.diagnostic } });
             }
             return this.result(s);
         });
@@ -245,12 +259,12 @@ export class DebuggerSessions {
             if (after > s.sequence)
                 throw new DebuggerError('INVALID_ARGUMENT');
             if (args.signal?.aborted)
-                throw new DebuggerError('DEBUGGER_CANCELLED');
+                throw new DebuggerError('DEBUGGER_CANCELLED', diagnostic('command', 'cancelled'));
             if (s.worker && ['running', 'paused'].includes(s.state))
-                await s.worker.call('heartbeat', {}, Math.min(timeout, 1000));
+                await atStage('command', 'DEBUGGER_WORKER_FAILED', () => s.worker!.call('heartbeat', {}, Math.min(timeout, 1000)));
             while (Date.now() < deadline && !s.events.some(e => e.sequence > after) && s.cleanup.status === 'pending') {
                 if (args.signal?.aborted)
-                    throw new DebuggerError('DEBUGGER_CANCELLED');
+                    throw new DebuggerError('DEBUGGER_CANCELLED', diagnostic('command', 'cancelled'));
                 await new Promise(resolve => setTimeout(resolve, Math.min(50, deadline - Date.now())));
             }
             const events = s.events.filter(e => e.sequence > after).slice(0, 100);
@@ -260,7 +274,7 @@ export class DebuggerSessions {
     }
     private assertCommandTarget(s: Session, command: string, args: CommandArgs) {
         if (!s.worker || ['detaching', 'detached', 'disconnected', 'failed'].includes(s.state))
-            throw new DebuggerError('DEBUGGER_DISCONNECTED');
+            throw new DebuggerError('DEBUGGER_DISCONNECTED', s.diagnostic ?? diagnostic('command', 'unavailable'));
         if (['stack', 'locals', 'step', 'resume'].includes(command)) {
             if (args.stopId !== s.stop?.stop_id)
                 throw new DebuggerError('DEBUGGER_STALE_REFERENCE');
@@ -287,11 +301,12 @@ export class DebuggerSessions {
             return this.result(s, command === 'state' ? { breakpoints: data.breakpoints } : { result: data });
         }
         catch (e) {
-            return this.handleCommandError(s, command, e);
+            return this.handleCommandError(s, command, classify(e, 'command', 'DEBUGGER_WORKER_FAILED'));
         }
     }
     private async handleCommandError(s: Session, command: string, e: unknown) {
         if (e instanceof DebuggerError && e.code === 'DEBUGGER_DISCONNECTED') {
+            s.diagnostic ??= e.diagnostic ?? diagnostic('transport', 'transport_lost');
             s.state = 'disconnected';
             s.reason = 'transport_lost';
             await this.cleanup(s, false);
@@ -299,6 +314,7 @@ export class DebuggerSessions {
                 return this.result(s);
         }
         if ((command === 'step' || command === 'resume' || command === 'set' || command === 'remove') && e instanceof DebuggerError && ['DEBUGGER_TIMEOUT', 'DEBUGGER_CANCELLED', 'DEBUGGER_WORKER_FAILED'].includes(e.code)) {
+            s.diagnostic ??= e.diagnostic;
             s.state = 'failed';
             s.reason = e.code;
             await this.cleanup(s, true);

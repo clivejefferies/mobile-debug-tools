@@ -10,6 +10,11 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Android debugger failures now include bounded, sanitized stage/reason diagnostics
+  and static recovery guidance while preserving error codes. Capability probes
+  report ordered prerequisite diagnostics; terminal summaries retain failure evidence.
+  Raw stderr, exception messages and app locals are excluded from diagnostics.
+
 - **Runtime requirement:** Node.js 22 or newer is now required. Updated Sharp,
   Zod and transitive dependencies to clear the dependency audit findings; CI
   configuration now uses Node 22. Public tool definitions remain unchanged.

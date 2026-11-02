@@ -181,7 +181,14 @@ navigation and UI verification on the existing interaction path.
 5. Use `step_debugger` (`kind: into/over/out`) or `resume_debugger` with the current
    `stopId`. Acknowledgement is not proof of a later stop. Discard all old stop,
    thread and frame IDs after execution resumes; acquire fresh IDs from events.
-6. Always finish with `detach_debugger`, including after failed investigations.
+6. On operation failure, inspect `error.diagnostic.stage`, `.reason` and `.recovery`
+   when present. These are bounded classifications and static guidance, not raw
+   worker output or proof of root cause. Capability probes may return ordered
+   `diagnostics` (JDK, then target) while retaining `success: true` and
+   `supported: false`. Terminal state retains sanitized failure diagnostics.
+   Timeout/cancellation can leave execution uncertain: reconcile state and cleanup
+   before another state-changing command; never automatically retry attach/step/resume.
+7. Always finish with `detach_debugger`, including after failed investigations.
    Inspect `cleanup.status`; retry incomplete detach rather than starting another
    session. Use `get_debugger_state` to reconcile an uncertain command outcome;
    do not automatically repeat attach, step or resume.
