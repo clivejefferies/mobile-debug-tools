@@ -105,8 +105,8 @@ checks. Changed relative links, new-file whitespace and `git diff --check` passe
 The focused review found no required production-code or schema change. Fixture
 subprocesses/polls are bounded; package targeting is explicit; the runner refuses
 pre-existing fixture installations and keeps normal debugger cleanup separate
-from resetting its own app between independent cases. Changes are local,
-uncommitted and unpushed.
+from resetting its own app between independent cases. At the original verification,
+changes were local, uncommitted and unpushed.
 
 Full `npm run test:device` **PASS**, all 12 files, with
 `MCP_COROUTINE_DEVICE=emulator-5554 MCP_KOTLIN_DEVICE=emulator-5554 MCP_DEBUGGER_DEVICE=emulator-5554`
@@ -118,3 +118,49 @@ Existing Kotlin/Java debugger, interaction, Android/iOS observation smoke,
 correlated-evidence and Android system-trace checks passed. These iOS checks do
 not verify iOS runtime debugging. The new fixture's package, temporary outputs
 and owned forwards were removed; no physical-device coroutine check ran.
+
+## PR #96 repair evidence
+
+The original results above predate the readiness-race fix: they establish the
+recorded locations/values, but the original UI readiness alone did not prove
+that the gate wait had suspended before release/cancellation. New readiness
+runs as queued work behind the coroutine on its own single-thread executor,
+which cannot execute until that coroutine yields. The repaired dispatcher
+breakpoint class is `MainActivity$completeWork$3`.
+
+Overall JSON PASS now follows cleanup, and cleanup failures are reported as FAIL.
+Forward comparisons select only the target serial and sort entries. The new
+unit regressions and repository verification passed (90 unit files, Node 22.23.3;
+`/tmp/pr96-verify.log`). The first attempt on a restored emulator
+snapshot hit install/uninstall timeouts; that real cleanup failure emitted JSON FAIL
+without an overall PASS (`/tmp/pr96-device.log`). The task-owned leftover package
+was removed after a cold start. Final device-rerun evidence is recorded below;
+the original suspension-readiness evidence is superseded.
+
+Final repair verification: `npm run verify` **PASS**, all 90 unit files, Node
+22.23.3 (`/tmp/pr96-final-verify.log`). Unit checks cover successful cleanup before
+PASS, work failure, cleanup failure, simultaneous failures without losing either
+error, exact serial filtering, other-device churn and order normalization.
+
+Full device-suite attempts **FAIL** during installation/cleanup on the restored
+and cold-started emulator (`/tmp/pr96-device.log`, `/tmp/pr96-device-cold.log`).
+Incremental installation continued after host-side timeout, leaving a differently
+signed package; the task-owned package was removed. A focused streamed-install
+run used an external temporary ADB_PATH wrapper adding `--no-incremental` only
+for install, without changing repository timeouts or assertions.
+
+That focused run **passed** completion, verified the queued readiness and updated
+`completeWork$3` breakpoints, named dispatchers, known values, synchronous steps,
+stale/pause guards, cancelled wait recovery and the bounded suspension-step
+observation. It then **failed** at `am start -W` restarting the fixture before
+cancellation, followed by an uninstall timeout. Its overall JSON FAIL preserves
+both errors (`/tmp/pr96-focused-streamed.log`). Repaired cancellation readiness
+is compiler-checked but its device journey is **UNRUN**; remaining suite checks
+were not reached. No full native pass is claimed for this repair.
+
+Current fixture source SHA-256:
+`d4656e3736cc245230bc000c6574288b145df47957dd7ee511ea98717afde4df`.
+Final independent package query returned no owned fixture package; no ADB forwards
+remained and temporary build output was removed. The review fixes introduce no
+production server behaviour or contract change. Physical-device checks and hosted
+CI are unrun for this revision.

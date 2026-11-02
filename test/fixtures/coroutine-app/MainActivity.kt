@@ -50,8 +50,9 @@ class MainActivity : Activity() {
   private suspend fun completeWork() {
     val firstThread = Thread.currentThread().name
     val known = 42
-    show("Coroutine waiting") // BREAK_BEFORE
-    check(firstThread == "fixture-first")
+    check(firstThread == "fixture-first") // BREAK_BEFORE
+    // Queued on the same single-thread executor: runs only after gate.await yields.
+    first.executor.execute { show("Coroutine waiting") }
     gate.await() // BREAK_SUSPEND
     val after = known + 1 // BREAK_AFTER
     withContext(second) {
@@ -76,7 +77,8 @@ class MainActivity : Activity() {
   private suspend fun cancelWork() = coroutineScope {
     val child = launch(second) {
       try {
-        show("Cancellation waiting")
+        // The child must yield at gate.await before this queued work can run.
+        second.executor.execute { show("Cancellation waiting") }
         gate.await()
         error("Cancelled child must not cross gate")
       } finally {

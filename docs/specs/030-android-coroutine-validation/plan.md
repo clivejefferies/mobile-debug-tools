@@ -63,3 +63,46 @@ or follow-up capabilities require separate scope decisions.
   cursor overflow, compiler source mapping, subprocess bounds and owned cleanup.
   Compiler scope elimination and fixture starting-state problems were addressed
   in test setup; no server contract change was introduced.
+
+## PR #96 review repairs — 2026-11-02
+
+Lightweight repair of the three attached review comments; no capability or
+contract change. `feature/coroutines` started clean at
+`a46c9091d5df8f064e4c1d5961a708964b2ed74d`.
+
+- Overall JSON reporting now encloses work and cleanup. PASS is emitted only
+  after cleanup; cleanup failures emit FAIL and reject the run. Unit regression
+  checks cover successful cleanup, work failure and cleanup failure with either
+  successful or failed work.
+- Both gate-readiness messages are posted by work queued on the waiting
+  coroutine's single-thread executor, after its gate wait yields. Compiler
+  metadata changed the dispatcher/result breakpoint class to `completeWork$3`;
+  both bindings were updated.
+- All forwarding snapshots filter the exact device serial and normalize ordering.
+  Unit coverage changes another device's forwards, reorders the target's table
+  and confirms target forward removal still fails comparison.
+- `npm run verify` **PASS**, Node 22.23.3, all 90 unit files, lint, quality,
+  architecture, build and plugin consistency. Log: `/tmp/pr96-verify.log`.
+- First device run **FAIL** due to the restored emulator snapshot becoming
+  unresponsive during installation and uninstall. The actual cleanup failure
+  emitted JSON FAIL with no overall JSON PASS. Log: `/tmp/pr96-device.log`.
+  Cold-started the existing Android 36 AVD without wiping data; removed the
+  task-owned leftover package once the guest recovered. The Pixel_8 AVD could
+  not start because its configured Android 37.1 system image is absent.
+- Final `npm run verify` **PASS** after preserving simultaneous work/cleanup
+  errors in an AggregateError; all 90 unit files. Log: `/tmp/pr96-final-verify.log`.
+- Full device-suite attempts **FAIL** at fixture setup on this emulator:
+  incremental installation timed out and continued installing in the guest;
+  cold-start logs: `/tmp/pr96-device-cold.log`. No checks were weakened.
+- Focused Android 36 rerun using a temporary `ADB_PATH` wrapper that adds
+  `--no-incremental` only to installation: completion, gate-readiness,
+  dispatcher/result source bindings, synchronous stepping, pause/stale guards,
+  cancelled-wait recovery and bounded suspension-step observation **PASS**.
+  The run then **FAIL**ed restarting the owned fixture before cancellation
+  (`am start -W` timeout), with an additional uninstall timeout. The overall JSON
+  result is FAIL and preserves both errors; cancellation remains **UNRUN** for
+  the repaired fixture. Log: `/tmp/pr96-focused-streamed.log`.
+- Final independent package query confirmed the owned package absent; the
+  forwarding table was empty. Temporary build output was removed. Physical
+  checks and hosted CI remain unrun. Native verification is partial, not a full
+  suite pass; the remaining limitation is recorded rather than bypassing it.

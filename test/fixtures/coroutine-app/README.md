@@ -23,8 +23,10 @@ it cannot silently pass. Do not run other fixture journeys concurrently on the
 same serial. A physical device must be selected explicitly and reported separately.
 
 The source owns two named single-thread dispatcher executors, an explicit gate,
-nested async work and a cancellation/finally path. UI controls release the gate
-only after debugger resume. Compiler line/variable tables are captured for generated
+nested async work and a cancellation/finally path. Readiness is posted by work
+queued on the same single-thread executor behind the coroutine, so the runner
+releases or cancels only after the gate wait has yielded. UI controls release the
+gate only after debugger resume. Compiler line/variable tables are captured for generated
 continuation classes as well as ordinary methods. The assessment compares existing
 MCP stops, thread stacks and shallow locals; none represents a reconstructed
 logical coroutine stack. A bounded step attempt is recorded as an observation,
@@ -33,7 +35,10 @@ independently as a workaround.
 
 The runner checks pause guards, old frame rejection, event-wait cancellation,
 completion/cancellation UI recovery and owned ADB forward cleanup. Finally it
-removes its package and temporary build/signing output. SIGKILL/host loss cannot
+removes its package and temporary build/signing output. The overall JSON PASS is
+emitted only after cleanup; cleanup failures emit JSON FAIL and reject the run.
+Forward comparisons filter the selected serial and sort entries, so another
+device changing its forwards does not fail this journey. SIGKILL/host loss cannot
 execute finally; inspect outstanding sessions/packages manually after such loss.
 Local output includes synthetic fixture values, source/APK/server/dependency hashes
 and compiler metadata. Redirect stdout/stderr to an intentional local evidence

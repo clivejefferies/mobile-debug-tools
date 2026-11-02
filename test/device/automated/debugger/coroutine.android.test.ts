@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { readFile, readdir, rm } from 'node:fs/promises'
 import { buildCoroutineFixture, coroutineAppId } from '../../../fixtures/coroutine-app/build.js'
 import { CoroutineJourney, fingerprint, type Stop } from './coroutine-support.js'
+import { deviceForwards, reportAfterCleanup } from './coroutine-lifecycle.js'
 
 const device = process.env.MCP_COROUTINE_DEVICE
 const source = await readFile(new URL('../../../fixtures/coroutine-app/MainActivity.kt', import.meta.url), 'utf8')
@@ -26,9 +27,9 @@ async function completion(journey: CoroutineJourney) {
   await journey.attach()
   const beforeBp = await journey.breakpoint('BREAK_BEFORE')
   const afterBp = await journey.breakpoint('BREAK_AFTER')
-  const dispatchBp = await journey.breakpoint('BREAK_DISPATCH', '$completeWork$2')
+  const dispatchBp = await journey.breakpoint('BREAK_DISPATCH', '$completeWork$3')
   const helperBp = await journey.breakpoint('BREAK_HELPER')
-  const resultBp = await journey.breakpoint('BREAK_RESULT', '$completeWork$2')
+  const resultBp = await journey.breakpoint('BREAK_RESULT', '$completeWork$3')
   const tap = await journey.tap('Complete run')
   const before = await requiredStop(journey, 'BREAK_BEFORE')
   const values = await journey.inspect(before, 'before suspension')
@@ -127,8 +128,9 @@ async function run(deviceId: string) {
   const interrupt = () => journey.interruption.abort()
   process.once('SIGINT', interrupt)
   process.once('SIGTERM', interrupt)
-  const forwards = journey.adb('forward', '--list').trim()
-  try {
+  const forwards = () => deviceForwards(journey.adb('forward', '--list'), deviceId)
+  const baselineForwards = forwards()
+  await reportAfterCleanup(async () => {
     try { fixture = buildCoroutineFixture() } catch (error) {
       console.error('BLOCKED coroutine fixture build: check documented local compiler, jars and SDK prerequisites')
       throw error
@@ -146,12 +148,9 @@ async function run(deviceId: string) {
     await journey.visible('Coroutine ready')
     await cancellation(journey)
     await journey.detach()
-    assert.equal(journey.adb('forward', '--list').trim(), forwards)
-    console.log(JSON.stringify({ status: 'PASS', device: deviceId, api: journey.adb('shell', 'getprop', 'ro.build.version.sdk').trim(), runtime: process.version, ...fingerprints, observations: journey.observations }))
-  } catch (error) {
-    console.error(JSON.stringify({ status: 'FAIL', device: deviceId, observations: journey.observations }))
-    throw error
-  } finally {
+    assert.deepEqual(forwards(), baselineForwards)
+    return { api: journey.adb('shell', 'getprop', 'ro.build.version.sdk').trim(), runtime: process.version, ...fingerprints }
+  }, async () => {
     process.removeListener('SIGINT', interrupt)
     process.removeListener('SIGTERM', interrupt)
     try { await journey.detach() } finally {
@@ -159,9 +158,12 @@ async function run(deviceId: string) {
         try { if (installed) journey.adb('uninstall', coroutineAppId) } finally { if (fixture) await rm(fixture.directory, { recursive: true, force: true }) }
       }
     }
-    assert.equal(journey.adb('forward', '--list').trim(), forwards, 'Owned forward cleanup')
-    console.log('PASS coroutine fixture cleanup: package, temporary directory and owned forwards removed')
-  }
+    assert.deepEqual(forwards(), baselineForwards, 'Owned forward cleanup')
+  }, (status, fingerprints, error) => {
+    const record = JSON.stringify({ status, device: deviceId, ...fingerprints, observations: journey.observations, ...(error ? { error: error instanceof Error ? error.message : String(error) } : {}) })
+    if (status === 'PASS') console.log(record)
+    else console.error(record)
+  })
 }
 if (!device) console.log('UNRUN coroutine debugger fixture: set MCP_COROUTINE_DEVICE, MCP_KOTLINC, MCP_KOTLIN_STDLIB and MCP_COROUTINES_CORE')
 else await run(device)
