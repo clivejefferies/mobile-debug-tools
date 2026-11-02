@@ -161,6 +161,13 @@ an older installed server may lack them. This requires JDK 17+ and a running,
 debuggable Android app. iOS and native debugging are unsupported. Keep ordinary
 navigation and UI verification on the existing interaction path.
 
+For routine debugger calls, opt into `responseMode: "compact"` to omit repeated
+`device`, `target` and `capabilities`. Default `debug` preserves full output;
+attach, capabilities and state remain full in either mode. Use `get_debugger_state`
+to recover the baseline. Errors, diagnostics, IDs, stop/execution state, limits,
+truncation and cleanup remain available. Compact output is not privacy redaction
+and does not establish execution recovery.
+
 1. Call `get_debugger_capabilities` with `platform: "android"`, explicit `deviceId`
    and `appId`. Inspect `supported`, prerequisites and candidate processes. Provide
    `processId` when ambiguous; general system health does not prove attach support.

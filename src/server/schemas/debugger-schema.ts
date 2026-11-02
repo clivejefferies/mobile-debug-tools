@@ -31,13 +31,13 @@ function jsonField(schema: z.ZodType): Record<string, unknown> {
   throw new Error('Unsupported debugger field schema')
 }
 export const debuggerContracts = Object.fromEntries(Object.entries(specs).map(([name, spec]) => [name, {
-  ...spec, schema: z.object({ ...spec.fields, timeoutMs: timeout.default(name === 'wait_for_debugger_event' ? 1000 : 10000) }).strict()
+  ...spec, schema: z.object({ ...spec.fields, responseMode: z.enum(['compact', 'debug']).default('debug'), timeoutMs: timeout.default(name === 'wait_for_debugger_event' ? 1000 : 10000) }).strict()
 }]))
 export const debuggerTools = Object.entries(debuggerContracts).map(([name, spec]) => ({
   name, description: spec.description,
   inputSchema: {
     type: 'object' as const, additionalProperties: false,
     required: Object.entries(spec.fields).filter(([, field]) => !field.isOptional()).map(([key]) => key),
-    properties: { ...Object.fromEntries(Object.entries(spec.fields).map(([key, field]) => [key, jsonField(field)])), timeoutMs: { type: 'integer', minimum: 100, maximum: 30000, default: name === 'wait_for_debugger_event' ? 1000 : 10000 } }
+    properties: { responseMode: { type: 'string', enum: ['compact', 'debug'], default: 'debug' }, ...Object.fromEntries(Object.entries(spec.fields).map(([key, field]) => [key, jsonField(field)])), timeoutMs: { type: 'integer', minimum: 100, maximum: 30000, default: name === 'wait_for_debugger_event' ? 1000 : 10000 } }
   }
 }))

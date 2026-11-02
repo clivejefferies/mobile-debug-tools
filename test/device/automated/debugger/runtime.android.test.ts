@@ -1,3 +1,5 @@
+import { debuggerResponse } from '../../../../src/server/handlers/debugger-response.js'
+import { debuggerContracts } from '../../../../src/server/schemas/debugger-schema.js'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
 import { readFile, readdir, rm, writeFile } from 'node:fs/promises'
@@ -14,10 +16,23 @@ if (!process.env.MCP_DEBUGGER_DEVICE) {
   const adb = (...args: string[]) => execFileSync(process.env.ADB_PATH || 'adb', ['-s', deviceId, ...args], { encoding: 'utf8', timeout: 15000 })
   const client = new Client({ name: 'android-debugger-smoke', version: '1.0.0' })
   const transport = new StdioClientTransport({ command: process.execPath, args: ['dist/server.js'], stderr: 'pipe' })
+  const compactMode = process.env.MCP_DEBUGGER_RESPONSE_MODE === 'compact'
+  const measurements: { tool: string; debug_bytes: number; compact_bytes: number }[] = []
   const call = async (name: string, args: Record<string, unknown>) => {
-    const response = await client.callTool({ name, arguments: args }, undefined, { timeout: 45000 })
+    const response = await client.callTool({ name, arguments: { ...args, ...(debuggerContracts[name] && compactMode ? { responseMode: 'compact' } : {}) } }, undefined, { timeout: 45000 })
     const text = (response.content as any[]).find(c => c.type === 'text')!.text!
-    return JSON.parse(text)
+    const payload = JSON.parse(text)
+    if (debuggerContracts[name]) {
+      const command = debuggerContracts[name].command
+      if (compactMode && !['attach', 'state', 'capabilities'].includes(command) && payload.debug_session_id != null) {
+        for (const field of ['device', 'target', 'capabilities']) assert.ok(!Object.hasOwn(payload, field))
+      }
+      if (!compactMode) {
+        const compact = debuggerResponse(command, 'compact', payload)
+        measurements.push({ tool: name, debug_bytes: Buffer.byteLength(JSON.stringify(response)), compact_bytes: Buffer.byteLength(JSON.stringify({ ...response, content: [{ type: 'text', text: JSON.stringify(compact, null, 2) }] })) })
+      }
+    }
+    return payload
   }
   const hash = createHash('sha256')
   const fingerprint = async (directory: string): Promise<void> => {
@@ -193,6 +208,7 @@ if (!process.env.MCP_DEBUGGER_DEVICE) {
       assert.ok(treeAfterShutdown.elements.some((e: any) => e.text === 'Result 43'), 'fresh UI proves paused fixture resumed after server shutdown')
     } finally { await verifier.close() }
     console.log(JSON.stringify({ status: 'PASS', build_sha256: buildHash, device: deviceId, api: adb('shell', 'getprop', 'ro.build.version.sdk').trim(), runtime: process.version, transport: 'MCP stdio', extended: process.env.MCP_DEBUGGER_EXTENDED === '1' }))
+    console.log('Debugger response measurement', JSON.stringify({ mode: compactMode ? 'compact' : 'debug', calls: measurements, debug_bytes: measurements.reduce((sum, row) => sum + row.debug_bytes, 0), compact_bytes: measurements.reduce((sum, row) => sum + row.compact_bytes, 0) }))
     console.log('PASS Android debugger: explicit attach, source stop, stack/known locals, pause guards, into/over/out, stale frame, resume UI, detach/forward ownership')
   } finally {
     if (debugSessionId) await call('detach_debugger', { debugSessionId }).catch(() => {})
