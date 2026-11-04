@@ -170,3 +170,36 @@ that commit. Later PR-head checks must be assessed separately.
 
 The broader device-suite failures above remain separate; this fix does not claim
 that their causes were established or corrected. Simulator shutdown was restored.
+
+
+## PR #103 stored-handle guard follow-up — 2026-11-04
+
+[Outside-diff review finding](https://github.com/clivejefferies/mobile-debug-tools/pull/103#pullrequestreview-5772655824):
+`tap_element` could execute on its stored iOS handle's device while the central
+guard selected Android when platform hints were omitted. The guard now obtains
+its target through the same handle/platform/device validation used by execution.
+Other tool defaults remain unchanged; explicit conflicting hints still reject
+handle use rather than retargeting input.
+
+- **PASS** regression using real handle creation with mocked device/UI/input
+  boundaries: omitted/partial hints select the stored iOS device, known pauses
+  prevent UI reads/input, a racing pause prevents native dispatch, and unrelated
+  platforms/devices remain usable. Mismatched and missing handles retain rejection.
+- **PASS** mutation check: restoring the original Android-default guard route
+  makes that regression fail; fixed source was restored before verification.
+- **PASS** `npm run verify`: lint/quality/architecture, build, all 98 unit files,
+  and plugin consistency. Log: `/tmp/pr103-handle-verify.log`.
+- **PASS** updated real simulator MCP journey: obtain an iOS handle while running,
+  stop at a source breakpoint, then call `tap_element` with only that handle and
+  controls, omitting both platform and device ID. Observed `DEBUGGER_PAUSED`,
+  `delivery_status: not_delivered`, `dispatch_started: false`, and the correct
+  iOS debugger/device metadata. This proves pause rejection, not successful HID
+  injection. The existing core/async/cancellation/process-exit/shutdown journey
+  also passed on the same Xcode/LLDB/Swift/runtime matrix.
+
+Native build fingerprint:
+`28e56d77b9ba4caad778c223306609c3bb284b210b1ea996b927aca47134cf55`.
+Log: `/tmp/pr103-handle-ios.log`. No fixture source change or timeout/assertion
+weakening was needed. Device tests were run after repository verification to keep
+the checks separate. The fixture was removed and simulator shutdown restored.
+The earlier broader-suite limitations remain recorded above.

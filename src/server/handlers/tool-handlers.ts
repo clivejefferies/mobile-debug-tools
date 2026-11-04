@@ -1,3 +1,4 @@
+import { ToolsInteract } from '../../interact/index.js'
 import type { DeviceInfo } from '../../types.js'
 import { handleDebugger } from './debugger-handlers.js'
 import { debuggerContracts } from '../schemas/debugger-schema.js'
@@ -81,6 +82,14 @@ for (const name of ['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint
   toolHandlers[name] = correlatedHandler(name, toolHandlers[name], name === 'adjust_control', name === 'run_journey')
 }
 
+function resolveGuardDevice(name: string, args: ToolCallArgs) {
+  const platform = args.platform as 'android' | 'ios' | undefined
+  const deviceId = args.deviceId as string | undefined
+  const stored = name === 'tap_element' && typeof args.elementId === 'string'
+    ? ToolsInteract.getResolvedElementTarget(args.elementId, platform, deviceId) : null
+  return resolveTargetDevice(stored ?? { platform: platform === 'ios' ? 'ios' : 'android', deviceId })
+}
+
 async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: ToolHandler, addTiming: (response: ToolCallResult) => ToolCallResult) {
   const sessions = device.platform === 'ios' ? iosDebuggerSessions : debuggerSessions
   return withResolvedDevice(device, () => withDebuggerGuard(device.platform, device.id, async () => {
@@ -146,7 +155,7 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}, sign
       if (!systemTraceToolNames.has(name)) validateExpectedState(name, args)
       const guarded = ['start_app', 'terminate_app', 'restart_app', 'reset_app_data', 'install_app', 'build_and_install', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'adjust_control', 'run_journey', 'wait_for_ui', 'wait_for_ui_change', 'wait_for_screen_change', 'expect_screen', 'expect_element_visible', 'expect_state'].includes(name)
       if (guarded && (debuggerSessions.hasActiveSessions() || iosDebuggerSessions.hasActiveSessions())) {
-        const device = await resolveTargetDevice({ platform: args.platform === 'ios' ? 'ios' : 'android', deviceId: args.deviceId as string | undefined })
+        const device = await resolveGuardDevice(name, args)
         return dispatchGuarded(device, args, handler, addTiming)
       }
       const response = await handler(args)

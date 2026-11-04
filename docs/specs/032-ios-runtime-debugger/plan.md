@@ -81,3 +81,15 @@ unrun variants and original failed observations.
 
 See the [report follow-up](report.md#pr-103-preparation-cache-follow-up--2026-11-04)
 for exact evidence and retained broader-suite limitations.
+
+
+## PR #103 stored-handle pause guard repair
+
+- [x] Validate guard targets through the stored-handle execution lookup.
+- [x] Cover omitted/partial hints, known/racing pauses, platform/device isolation,
+      and explicit mismatches; prove regression detects the original route.
+- [x] Run `npm run verify` (98 unit files) and the updated real iOS MCP journey.
+- [x] Restore fixture/device state and prepare the narrow repair for PR publication.
+
+The finding is in an outside-diff review summary, with no new inline thread to
+resolve. See the [report](report.md) for exact evidence and retained limitations.

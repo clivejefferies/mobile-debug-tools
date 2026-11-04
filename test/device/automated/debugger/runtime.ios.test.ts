@@ -119,6 +119,9 @@ if (!process.env.MCP_IOS_DEBUGGER_DEVICE) {
     assert.equal(pending.result.status, 'pending'); await remove(pending.result.breakpoint_id)
     const noncode = await call('set_debugger_breakpoint', { ...session(), sourceFile: iosDebuggerSource, line: 9999 })
     assert.equal(noncode.result.status, 'rejected'); await remove(noncode.result.breakpoint_id)
+    const storedHandle = await call('wait_for_ui', { platform: 'ios', deviceId, selector: { text: 'Calculate' }, condition: 'exists', timeout_ms: 10000 })
+    assert.equal(storedHandle.status, 'success', JSON.stringify(storedHandle))
+    assert.ok(storedHandle.element.elementId)
     await tap('Calculate')
     let event = await stop()
     const originalStop = event
@@ -126,6 +129,11 @@ if (!process.env.MCP_IOS_DEBUGGER_DEVICE) {
     const inspected = await locals(event); expectLocal(inspected.result, 'known', '41')
     const guarded = await call('tap', { platform: 'ios', deviceId, x: 10, y: 10 })
     assert.equal(guarded.failure_code, 'DEBUGGER_PAUSED'); assert.equal(guarded.delivery_status, 'not_delivered')
+    const storedTap = await call('tap_element', { elementId: storedHandle.element.elementId, verificationMode: 'none', responseMode: 'compact' })
+    assert.equal(storedTap.failure_code, 'DEBUGGER_PAUSED', JSON.stringify(storedTap))
+    assert.equal(storedTap.delivery_status, 'not_delivered'); assert.equal(storedTap.dispatch_started, false)
+    assert.deepEqual(storedTap.debugger.device, { platform: 'ios', id: deviceId })
+    console.log('PASS paused stored iOS handle without platform/device hints rejected before dispatch')
     assert.equal((await call('get_app_readiness', { platform: 'ios', deviceId })).readiness.state, 'debugger_paused')
     await remove(bp)
     for (const kind of ['into', 'over', 'out']) {
