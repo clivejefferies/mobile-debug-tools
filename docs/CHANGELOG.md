@@ -8,7 +8,9 @@ and [tool reference](tools/TOOLS.md) for the current checkout.
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## Unreleased
+## [0.36.0]
+
+- Updated the agent plugin to `0.0.6`, pinned to MCP `0.36.0`.
 
 - Add an optional iOS simulator LLDB backend to the existing debugger tools,
   including exact source-file breakpoints, bounded static inspection, stepping,
