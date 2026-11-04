@@ -1,9 +1,10 @@
-# Android system traces
+# System traces for Android and iOS
 
 [Documentation](../README.md) · [Tool reference](TOOLS.md)
 
 Use system traces to collect scheduling and system annotations around a slow
-interaction. Capture is optional, device-wide and Android-only; it does not
+interaction. Capture is optional; Android uses device-wide Perfetto and iOS simulators use
+app-attached Instruments Time Profiler. It does not
 automatically diagnose performance problems. No root or Android CLI installation
 is required. The device must provide Perfetto (Android API 29+), authorised ADB,
 tracing services, required sched/input categories, readable process identity,
@@ -11,14 +12,14 @@ base64 decoding and writable `/data/misc/perfetto-traces` storage.
 
 ## Tools
 
-All inputs reject unknown fields. `platform` is `android` or `ios`; iOS is
-unsupported and never starts capture. Optional `deviceId` uses existing device
-resolution; supplying one is recommended when multiple devices are connected.
+All inputs reject unknown fields. `platform` is `android` or `ios`. Android's
+optional `deviceId` uses existing device resolution. iOS requires an explicit
+booted simulator UDID, plus `appId` for start; it never records the Mac host.
 
 | Tool | Arguments | Result |
 | --- | --- | --- |
-| `get_system_trace_capabilities` | `platform`, `deviceId?` | `supported`, `backend`, resolved `device`, prerequisite booleans, reasons, enabled sources, unavailable categories, limitations. No recording. |
-| `start_system_trace` | `platform`, `deviceId?`, `durationMs?` | Owned recording session after data-source acknowledgement. Duration is an integer 1,000–120,000 ms, default 30,000. |
+| `get_system_trace_capabilities` | `platform`, `deviceId?`, `appId?`, `template?` | Common: `supported`, `backend`, resolved `device`, reasons and limitations. Android: prerequisite booleans, `enabled_sources`, `unavailable_categories`. iOS: prerequisites as `available`/`missing`/`unknown`, `discovered_templates`, `templates`, `app`, `xcode_version`, `recovery`. No recording. |
+| `start_system_trace` | `platform`, `deviceId?`, `durationMs?`, `appId?`, `template?` | Owned recording session after native readiness acknowledgement. Duration is an integer 1,000–120,000 ms, default 30,000. |
 | `get_system_trace_status` | `traceId` | Reconcile process/deadline and finalise ended recording. |
 | `stop_system_trace` | `traceId` | Gracefully stop and retrieve local artifact; retry transfer/cleanup after failure. |
 | `cancel_system_trace` | `traceId` | Stop and discard partial files. Already retrieved artifacts remain local. |
@@ -26,7 +27,7 @@ resolution; supplying one is recommended when multiple devices are connected.
 Trace control IDs are UUIDs and cannot redirect to another device. One capture
 per device and four pending sessions per server are allowed. Pending failed
 cleanup reserves its slot until resolved. Terminal records with complete cleanup
-expire after 10 minutes or eviction beyond 100 records. Server restart invalidates
+expire after 10 minutes or eviction beyond 100 records per backend (the router retains at most 100 completed IDs). Server restart invalidates
 IDs. Repeated terminal operations return the stored outcome.
 
 ## Capture workflow
@@ -89,12 +90,13 @@ proof of causality; host intervals are not aligned with device trace clocks.
 ## Session response and failures
 
 JSON responses contain `trace_id`, process-scoped `session_id`, `device`,
-`backend:"perfetto"`, `state` (starting/recording/stopping/completed/cancelled/failed),
+`backend:"perfetto"` (Android) or `"xctrace"` (iOS), `state` (starting/recording/stopping/completed/cancelled/failed),
 nullable `reason` and `completion_reason`, host UTC capture bounds, nullable
-`artifact`, `cleanup`, `correlation_ids`, `enabled_sources`, and
-`unavailable_categories`. Capture bounds include command/acknowledgement latency.
+`artifact`, `cleanup`, and `correlation_ids`. Android additionally returns
+`enabled_sources` and `unavailable_categories`. Capture bounds include command/acknowledgement latency.
 
-`artifact` contains absolute `path`, `format:"perfetto"` and `size_bytes`.
+Android `artifact` contains absolute `path`, `format:"perfetto"` and `size_bytes`;
+see the iOS section below for Instruments artifact and session fields.
 `cleanup` contains `status` (pending/complete/failed) and `remaining_resources`.
 Errors preserve known session metadata and set MCP `isError`. Argument/unknown-ID
 errors return `{error:{tool,code,message}}` without a session. Codes include
@@ -105,7 +107,7 @@ Capability failures return ordinary `supported:false` responses with reasons.
 Read state/cleanup independently: a successful artifact transfer can still have
 failed device-file cleanup. Retry stop/status, or cancel to discard failed output.
 
-## Limits and privacy
+## Android limits and privacy
 
 The fixed preset requests sched, freq, idle, am, wm, gfx, view and input categories,
 a 16 MiB ring buffer and a 32 MiB maximum output. Missing optional categories are
@@ -126,6 +128,71 @@ shutdown attempts owned cleanup for up to 10 seconds. A server crash can leave
 a uniquely named bounded device file for manual removal; restart performs no
 broad cleanup sweep. Device suspend can extend Perfetto's own monotonic duration
 limit; the server timer bounds wall-clock lifetime while the server is running.
+
+## iOS simulator Instruments capture
+
+Requires macOS, full Xcode with Instruments and clang, a booted simulator visible
+in both `simctl` and `xctrace list devices`, and an already running development
+app. Journey input also needs a compatible idb companion; capability discovery
+for capture does not establish HID input support. The initial verified target is iPhone 17 Pro simulator / iOS 26.4.1 with
+Xcode 27.2. Physical-device capture is unsupported and unrun. Tool installation,
+OS profiling permissions and pairing/security changes are user actions.
+
+```json
+{"platform":"ios","deviceId":"<simulator-UDID>","appId":"<bundle-id>","template":"Time Profiler","durationMs":60000}
+```
+
+Use this target with capabilities and start, then bracket a `run_journey` on the
+same simulator using the returned `systemTraceId`, and stop/cancel as above.
+Omitting `template` defaults to Time Profiler. `appId` and `template` are rejected
+on Android. Capabilities do not start capture; permissions and symbols remain
+`unknown` until separately established. Installed templates are listed separately
+from support: System Trace scheduling coverage is unverified, Animation Hitches
+reported unsupported on the tested simulator, and Hangs is bundled within Time
+Profiler rather than a selectable standalone template. No silent substitution.
+
+The server resolves the bundle to an exact current executable/PID, pins the UDID,
+and waits for a uniquely named Darwin recording-start notification before
+returning `recording`. It compiles a small private listener with Xcode clang in
+the owned temporary directory. A failed/uncertain start cleans up and returns a
+failure, not an automatic retry. Errors such as `APP_NOT_RUNNING`,
+`PROFILING_PERMISSION_REQUIRED`, `READINESS_TIMEOUT` and `TARGET_DISCONNECTED`
+include bounded recovery guidance; raw recorder output is not returned.
+
+Only the session-owned recorder is signalled; cleanup never terminates the app.
+iOS readiness has a 35-second budget, stop/finalisation 30 seconds and artifact
+validation 30 seconds. Recording is bounded by native duration and server
+monitoring. Monitoring retains the pinned app identity and tolerates two consecutive
+non-definitive command failures, resetting after a successful poll. The third
+fails capture with its bounded reason (`COMMAND_FAILED`, `ACTION_TIMEOUT`, or
+`TRACE_MONITOR_FAILED` for an unclassified failure). Storage limits, changed app
+identity and a missing running app fail immediately. Expiry and recorder exit
+are still checked after a tolerated poll failure. Shutdown attempts cancellation under an overall ten-second budget.
+Failed export can be retried using stop/status without starting another recording;
+cancel removes owned partial files. Completed artifacts remain for user deletion.
+
+The `.trace` result may be a bundle/directory. `artifact` adds
+`format:"instruments"`, `kind`, recursive `size_bytes`, and
+`validation:{readable,schema,sample_rows}`. Validation checks a readable TOC,
+matching target UUID/PID/template, `time-sample` schema and exported sample data.
+Zero rows mean no CPU sample evidence. Warnings are preserved as bounded
+classifications. This establishes readable capture, not successful symbolication,
+working hang detection or root-cause diagnosis. Do not treat a saved failed trace
+as a successful recording.
+
+Results also include `app_id`, `pid`, `executable`, `template`,
+`recording_ready_at_ms`, `warnings` and `clock_alignment:"unknown"`. The profiled
+app stays pinned even if the journey navigates elsewhere; linked IDs do not prove
+that other apps are captured. Start/stop during a linked journey reports partial
+coverage. Host capture bounds include startup/finalisation uncertainty.
+
+At least 1 GiB free output space is required before recording. The server checks
+a 256 MiB recursive size threshold each second; this is a soft limit and can be
+overshot during polling/finalisation. Oversized output fails and is discarded.
+Final bundles reject symlinks and use restricted file/directory permissions.
+Even app-attached capture may include sensitive system metadata, paths, symbols,
+logs and signposts. Keep artifacts local and delete them when finished; no upload,
+base64 response, permission bypass or restart-wide cleanup sweep occurs.
 
 ## Related guides
 

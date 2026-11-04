@@ -10,6 +10,16 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Preserve iOS trace capture through isolated monitoring command failures; require
+  three consecutive non-definitive failures before discarding, while identity and
+  storage failures remain immediate and capture expiry still reconciles.
+
+- Add optional iOS simulator Time Profiler capture through Instruments, with explicit
+  device/app targeting, recording-start notification, local `.trace` validation,
+  journey evidence linkage and owned cleanup. Physical devices and other templates
+  remain unsupported in the initial matrix. Android tracing retains its preset.
+
+
 - Added plugin `0.0.5` Antigravity compatibility and a standalone distribution
   export. Generated a Cursor-native package for its supported path variables,
   and checked/refined installation instructions for all four clients.

@@ -1,0 +1,32 @@
+{
+  "linked_baseline": "PASS; Ready asserted via built-server journey",
+  "journey": {
+    "status": "PASS",
+    "trace_id": "ec906d78-08bf-495b-a824-2cdaf84536ba",
+    "correlation_id": "78d5c21f-435e-4b9c-822a-1cdfb23a1d63",
+    "ready_at_ms": 1793794165955,
+    "journey_submitted_at_ms": 1793794170369,
+    "outcome": "Done visible via journey UI-tree assertion",
+    "sample_rows": 66,
+    "artifact_bytes": 12304469,
+    "warnings": [
+      "INSTRUMENTS_RUN_WARNING: one or more Instruments warnings; coverage may be incomplete."
+    ]
+  },
+  "stale_id": "PASS; rejected tap left prior fixture label visible",
+  "cancel": "PASS",
+  "expiry": "PASS",
+  "failed_journey": "PASS; failure retained capture for explicit stop",
+  "status": "FAIL",
+  "error": "AssertionError [ERR_ASSERTION]: {\"error\":{\"tool\":\"start_system_trace\",\"code\":\"TRACE_UNSUPPORTED\",\"message\":\"TRACE_UNSUPPORTED\"}}\n+ actual - expected\n\n+ undefined\n- 'recording'\n",
+  "cleanup": {
+    "trace_errors": [
+      "ec906d78-08bf-495b-a824-2cdaf84536ba",
+      "7f89df16-af5c-4c1f-a21d-bb1f5b702dc5",
+      "379e63fc-d780-4a80-96d3-1eca3cda1c28"
+    ],
+    "fixture_removed": true,
+    "simulator_shutdown": false,
+    "host_artifacts_removed": true
+  }
+}

@@ -8,6 +8,7 @@ import { withEvidence, bindSystemTrace, bindEvidenceDevice } from '../../../src/
 const parse = (r: any) => JSON.parse(r.content[0].text)
 async function run() {
   const originalLink = systemTraces.link, originalStart = systemTraces.start, originalControl = systemTraces.control
+  const originalCapabilities = systemTraces.iosCapabilities
   const originalApp = AndroidManage.prototype.startApp
   const id = '62a51510-c303-4a1b-af0e-f97cc976d740'
   let dispatched = 0, starts = 0
@@ -24,8 +25,16 @@ async function run() {
     }
     systemTraces.start = async () => { starts++; throw new Error('must not run') }
     const ios = await handleToolCall('start_system_trace', { platform: 'ios' })
-    assert.equal(parse(ios).error.code, 'UNSUPPORTED_PLATFORM'); assert.equal(starts, 0)
-    assert.equal(parse(await handleToolCall('get_system_trace_capabilities', { platform: 'ios' })).supported, false)
+    assert.equal(parse(ios).error.code, 'INVALID_ARGUMENT'); assert.equal(starts, 0)
+    assert.equal(parse(await handleToolCall('get_system_trace_capabilities', { platform: 'ios' })).error.code, 'INVALID_ARGUMENT')
+    for (const args of [{platform:'ios',deviceId:'sim'}, {platform:'android',appId:'fixture'}, {platform:'android',template:'Time Profiler'}, {platform:'ios',deviceId:'sim',appId:'fixture',template:'Other'}, {platform:'ios',deviceId:'sim',appId:'invalid bundle'}]) {
+      assert.equal(parse(await handleToolCall('start_system_trace', args)).error.code, 'INVALID_ARGUMENT')
+    }
+    systemTraces.iosCapabilities = async (deviceId, appId, template) => {
+      assert.equal(deviceId, 'sim'); assert.equal(appId, 'fixture'); assert.equal(template, 'Time Profiler')
+      return {supported: false, backend:'xctrace'} as any
+    }
+    assert.equal(parse(await handleToolCall('get_system_trace_capabilities', {platform:'ios',deviceId:'sim',appId:'fixture',template:'Time Profiler'})).backend, 'xctrace')
     for (const name of ['stop_system_trace', 'cancel_system_trace', 'get_system_trace_status']) {
       assert.equal(parse(await handleToolCall(name, { traceId: id, deviceId: 'wrong' })).error.code, 'INVALID_ARGUMENT')
       assert.equal(parse(await handleToolCall(name, { traceId: id })).error.code, 'TRACE_NOT_FOUND')
@@ -57,7 +66,7 @@ async function run() {
     assert.equal(independent.evidence.trace_context.trace_id, null)
     console.log('system trace tool contracts and journey evidence: PASS')
   } finally {
-    systemTraces.link = originalLink; systemTraces.start = originalStart; systemTraces.control = originalControl
+    systemTraces.iosCapabilities = originalCapabilities; systemTraces.link = originalLink; systemTraces.start = originalStart; systemTraces.control = originalControl
     AndroidManage.prototype.startApp = originalApp; _resetDeviceListersForTests()
   }
 }

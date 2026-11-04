@@ -11,7 +11,7 @@ Use the guides below when you need a tool contract or a specific workflow.
 - [Interaction](interact.md) — UI resolution, actions, waits, and deterministic verification.
 - [Environment diagnostics](system.md) — toolchain discovery and health checks.
 - [Evidence correlation](correlated-evidence.md) — action references, capture timing, and freshness.
-- [Android system traces](system-traces.md) — performance capture and local Perfetto artifacts.
+- [System traces](system-traces.md) — Android Perfetto and iOS simulator Time Profiler capture with local artifacts.
 - [Android runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.
 
 ## Interaction principles
