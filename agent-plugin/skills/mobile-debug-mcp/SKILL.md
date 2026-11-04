@@ -90,8 +90,8 @@ When a visible target may still be loading or transitioning, use
 `get_app_readiness` reports loading, transitioning, settled, or unknown with
 supporting evidence. A single tree cannot establish settled state. Settled means
 normalized foreground UI stability, not proven responsiveness, app identity, or
-backend completion. Managed Android debugger sessions can establish
-`debugger_paused`; external-debugger and iOS pause detection remain unsupported.
+backend completion. Managed Android and supported iOS simulator debugger sessions can establish
+`debugger_paused`; external-debugger pause detection remains unsupported.
 Unresponsive detection is unsupported. Timeouts and screenshots alone do not
 establish either state.
 
@@ -163,12 +163,15 @@ claim. Otherwise report capture verified and analysis unrun, and provide the
 artifact for further investigation. Nonempty output alone does not establish
 valid trace contents or a performance diagnosis.
 
-## Investigate Android runtime behaviour
+## Investigate runtime behaviour
 
 Use runtime debugging to test a concrete execution hypothesis when UI and logs
 are insufficient. Check that the connected server exposes the debugger tools;
-an older installed server may lack them. This requires JDK 17+ and a running,
-debuggable Android app. iOS and native debugging are unsupported. Keep ordinary
+an older installed server may lack them or advertise only Android in the platform
+schema. Android requires JDK 17+ and a running debuggable app. When the connected
+server advertises iOS debugging, it requires a booted simulator and Xcode's
+Swift-enabled LLDB/Python. Physical iOS devices and native-specific inspection
+remain unsupported. Keep ordinary
 navigation and UI verification on the existing interaction path.
 
 For routine debugger calls, opt into `responseMode: "compact"` to omit repeated
@@ -178,13 +181,14 @@ to recover the baseline. Errors, diagnostics, IDs, stop/execution state, limits,
 truncation and cleanup remain available. Compact output is not privacy redaction
 and does not establish execution recovery.
 
-1. Call `get_debugger_capabilities` with `platform: "android"`, explicit `deviceId`
+1. Call `get_debugger_capabilities` with the advertised `platform` (`android` or `ios`), explicit `deviceId`
    and `appId`. Inspect `supported`, prerequisites and candidate processes. Provide
    `processId` when ambiguous; general system health does not prove attach support.
 2. Call `attach_debugger`, retain `debug_session_id`, then use it as the
    `debugSessionId` input. Set a source breakpoint with `set_debugger_breakpoint`
-   using exact binary `className` and 1-based executable `line`. Check its status:
-   `pending` waits for class loading; only resolved locations establish binding.
+   using Android binary `className` or iOS absolute `sourceFile` (exactly one),
+   plus 1-based executable `line`. For iOS use the exact simulator UDID. Check its
+   status: `pending` waits for class/image loading; actual locations establish binding.
 3. Trigger the reproduction and call `wait_for_debugger_event`, carrying forward
    `next_cursor` as `afterSequence`. A stopped event supplies `stop_id` and
    `thread_id`. Empty event waits do not mean execution stopped; report overflow
@@ -196,6 +200,12 @@ and does not establish execution recovery.
    the frame has no locals. On Kotlin assignment lines, the local may not yet be
    initialized or in its emitted variable scope; compare a stop after assignment
    and compiler metadata before diagnosing a worker defect.
+   For Swift async work, inspect `async_execution_inspection` and `async_stepping`
+   capabilities. Breakpoints on either side of await establish separate execution
+   observations; a step acknowledgement does not prove continuation following.
+   Inspect the subsequent source stop. Swift aggregate values (including strings)
+   may supply type summaries, and non-live locals may be unavailable. No suspended
+   task enumeration or complete logical async stack is promised.
    Values can contain private data; report only what is
    needed for the investigation.
 5. Use `step_debugger` (`kind: into/over/out`) or `resume_debugger` with the current
@@ -204,7 +214,7 @@ and does not establish execution recovery.
 6. On operation failure, inspect `error.diagnostic.stage`, `.reason` and `.recovery`
    when present. These are bounded classifications and static guidance, not raw
    worker output or proof of root cause. Capability probes may return ordered
-   `diagnostics` (JDK, then target) while retaining `success: true` and
+   `diagnostics` (platform prerequisites, then target) while retaining `success: true` and
    `supported: false`. Terminal state retains sanitized failure diagnostics.
    Timeout/cancellation can leave execution uncertain: reconcile state and cleanup
    before another state-changing command; never automatically retry attach/step/resume.

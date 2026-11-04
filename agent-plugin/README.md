@@ -34,7 +34,7 @@ agent through device selection, observation, interaction and verification.
 The usage skill prefers screenshots for routine visual checks and reserves
 hierarchy reads for semantic selection and structured assertions. Assertion
 timeouts must cover a fresh tree read as well as the expected app transition.
-It also covers optional Android runtime debugging: capability checks, explicit
+It also covers optional Android and supported iOS simulator runtime debugging: capability checks, explicit
 process attach, source stops, bounded inspection, stepping and owned cleanup.
 Debugger guidance applies only when the connected server exposes those tools;
 updating the skill does not update the pinned server or installed plugin.

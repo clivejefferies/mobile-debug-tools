@@ -12,7 +12,7 @@ Use the guides below when you need a tool contract or a specific workflow.
 - [Environment diagnostics](system.md) — toolchain discovery and health checks.
 - [Evidence correlation](correlated-evidence.md) — action references, capture timing, and freshness.
 - [System traces](system-traces.md) — Android Perfetto and iOS simulator Time Profiler capture with local artifacts.
-- [Android runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.
+- [Android and iOS simulator runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.
 
 ## Interaction principles
 

@@ -198,4 +198,4 @@ base64 response, permission bypass or restart-wide cleanup sweep occurs.
 
 - [Interaction](interact.md#interaction-execution-controls-rfc-018): run the journey being measured.
 - [Evidence correlation](correlated-evidence.md): interpret action and observation timing.
-- [Android runtime debugger](debugger.md): inspect paused application state.
+- [Runtime debugger](debugger.md): inspect paused application state.

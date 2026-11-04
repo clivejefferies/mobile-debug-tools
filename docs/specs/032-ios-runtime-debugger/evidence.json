@@ -1,0 +1,176 @@
+{
+  "date": "2026-11-04",
+  "status": "PASS",
+  "transport": "MCP stdio",
+  "runtime": "v23.11.0",
+  "deviceId": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+  "server_sha256": "6a00a33d994a449ecbb54d5dbf894780f48a1c0e5a89fc871b91dd7048f4ecdc",
+  "source_sha256": "295ff0f30f5670530f9cdd7073b958917c1c574ccca9c7b921e295d0d902b699",
+  "xcode": "Xcode 27.2\nBuild version 27B52",
+  "lldb": "lldb-2103.0.34.407\nApple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
+  "fixture": "test/fixtures/ios-debugger-app/Main.swift",
+  "fixture_triggers": "Atomic command file; installed idb HID backend unavailable; not proof of successful MCP tap injection",
+  "extended_pause_expiry": true,
+  "process_exit": true,
+  "server_shutdown_recovery": true,
+  "tests_sha256": "37fbda265b5735b1b826aa448aa937359c45db0e55f8f1998a169b1aa3073acc",
+  "observations": [
+    {
+      "reason": "breakpoint",
+      "line": 49,
+      "method": "DebuggerFixture.Controller.calculate() -> ()"
+    },
+    {
+      "reason": "step",
+      "line": 8,
+      "method": "DebuggerFixture.helper(Swift.Int) -> Swift.Int"
+    },
+    {
+      "reason": "step",
+      "line": 9,
+      "method": "DebuggerFixture.helper(Swift.Int) -> Swift.Int"
+    },
+    {
+      "reason": "step",
+      "line": 49,
+      "method": "DebuggerFixture.Controller.calculate() -> ()"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 20,
+      "method": "(1) suspend resume partial function for DebuggerFixture.AsyncWork.calculate(Swift.Int) async -> Swift.Int"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 21,
+      "method": "(3) suspend resume partial function for DebuggerFixture.AsyncWork.calculate(Swift.Int) async -> Swift.Int"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 20,
+      "method": "(1) suspend resume partial function for DebuggerFixture.AsyncWork.calculate(Swift.Int) async -> Swift.Int"
+    },
+    {
+      "reason": "step",
+      "line": 21,
+      "method": "(3) suspend resume partial function for DebuggerFixture.AsyncWork.calculate(Swift.Int) async -> Swift.Int"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 66,
+      "method": "(3) suspend resume partial function for closure #1 () async -> () in DebuggerFixture.Controller.startCancellation() -> ()"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 49,
+      "method": "DebuggerFixture.Controller.calculate() -> ()"
+    },
+    {
+      "reason": "breakpoint",
+      "line": 49,
+      "method": "DebuggerFixture.Controller.calculate() -> ()"
+    }
+  ],
+  "locals": [
+    [
+      {
+        "name": "known",
+        "type": "Swift.Int",
+        "value": "41"
+      }
+    ],
+    [
+      {
+        "name": "seed",
+        "type": "Swift.Int",
+        "value": "42"
+      },
+      {
+        "name": "known",
+        "type": "Swift.Int",
+        "value": "42"
+      }
+    ],
+    [
+      {
+        "name": "seed",
+        "type": "Swift.Int",
+        "value": "42"
+      },
+      {
+        "name": "known",
+        "type": "Swift.Int",
+        "value": "42"
+      },
+      {
+        "name": "after",
+        "type": "Swift.Int",
+        "value": "43"
+      }
+    ],
+    [
+      {
+        "name": "cancelled",
+        "type": "Swift.Bool",
+        "value": "true"
+      }
+    ]
+  ],
+  "async_boundary_step": {
+    "expected_line": 21,
+    "observed": {
+      "source_file": "test/fixtures/ios-debugger-app/Main.swift",
+      "line": 21,
+      "method_name": "(3) suspend resume partial function for DebuggerFixture.AsyncWork.calculate(Swift.Int) async -> Swift.Int",
+      "class_name": null
+    }
+  },
+  "assertions": [
+    "Exact source binding and pending source creation",
+    "Known primitive locals",
+    "Into/over/out",
+    "Stop/frame stale rejection",
+    "Paused tap rejected before dispatch",
+    "Paused readiness without UI acquisition",
+    "Cancelled event wait preserves session",
+    "Before/after await values and nested async child",
+    "Step over await reaches after-await source line",
+    "Task cancellation and fresh Task cancelled UI",
+    "Real 60-second pause expiry and fresh result UI",
+    "Target self-exit, disconnected state and complete cleanup",
+    "Idempotent detach with no remaining resources",
+    "Server shutdown while paused then independent UI recovery"
+  ],
+  "unrun": [
+    "physical iOS devices",
+    "other Xcode/Swift versions",
+    "optimized apps",
+    "installed/published package",
+    "forced host termination",
+    "real device disconnect",
+    "live idle/absolute expiry",
+    "late-loaded-image binding"
+  ],
+  "scope": "Focused real MCP iOS simulator debugger journey, including extended pause expiry",
+  "repository_verification": {
+    "status": "PASS",
+    "unit_files": 96,
+    "command": "npm run verify"
+  },
+  "broader_device_suite": {
+    "status": "FAIL",
+    "observations": [
+      "Initial Android interaction SDK timeout; isolated unchanged retry passed",
+      "Retry failed Android Perfetto shutdown-artifact assertion; isolated baseline and current checks passed"
+    ],
+    "root_cause": "unestablished",
+    "full_suite_pass_claimed": false
+  },
+  "cleanup": {
+    "ios_simulator": "restored to initial shutdown state",
+    "swift_fixture_build_directories_remaining": 0,
+    "owned_adb_forwards_remaining": 0,
+    "owned_perfetto_artifacts_remaining": 0,
+    "unrelated_installed_fixtures": "preserved"
+  }
+}

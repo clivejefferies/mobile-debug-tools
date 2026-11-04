@@ -1,10 +1,35 @@
 [
   {
     "name": "get_debugger_capabilities",
-    "description": "Probe optional Android JDK/JDWP prerequisites and matching running debuggable processes; does not attach.",
+    "description": "Probe optional platform debugger prerequisites and matching running debuggable processes; does not attach.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "platform": {
+                "const": "ios"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "deviceId": {
+                "pattern": "^[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12}$"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ],
       "required": [
         "platform",
         "deviceId",
@@ -22,7 +47,8 @@
         "platform": {
           "type": "string",
           "enum": [
-            "android"
+            "android",
+            "ios"
           ]
         },
         "deviceId": {
@@ -34,7 +60,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "pattern": "^[A-Za-z][\\w]*(?:\\.[A-Za-z][\\w]*)+$"
+          "pattern": "^[A-Za-z][\\w-]*(?:\\.[A-Za-z][\\w-]*)+$"
         },
         "processId": {
           "type": "integer",
@@ -47,24 +73,40 @@
           "maximum": 30000,
           "default": 10000
         }
-      },
-      "allOf": [
-        {
-          "not": {
-            "required": [
-              "expectedState"
-            ]
-          }
-        }
-      ]
+      }
     }
   },
   {
     "name": "attach_debugger",
-    "description": "Attach an owned Android JDI session. Requires an explicit device and debuggable app; choose processId when ambiguous. Stops suspend all app threads. Auto-detach: 60s paused, 5m idle, 30m total.",
+    "description": "Attach an owned Android JDI or iOS simulator LLDB session. Requires an explicit device and debuggable app; choose processId when ambiguous. Stops suspend all app threads. Auto-detach: 60s paused, 5m idle, 30m total.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "platform": {
+                "const": "ios"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "deviceId": {
+                "pattern": "^[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12}$"
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "expectedState"
+            ]
+          }
+        }
+      ],
       "required": [
         "platform",
         "deviceId",
@@ -82,7 +124,8 @@
         "platform": {
           "type": "string",
           "enum": [
-            "android"
+            "android",
+            "ios"
           ]
         },
         "deviceId": {
@@ -94,7 +137,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "pattern": "^[A-Za-z][\\w]*(?:\\.[A-Za-z][\\w]*)+$"
+          "pattern": "^[A-Za-z][\\w-]*(?:\\.[A-Za-z][\\w-]*)+$"
         },
         "processId": {
           "type": "integer",
@@ -107,16 +150,7 @@
           "maximum": 30000,
           "default": 10000
         }
-      },
-      "allOf": [
-        {
-          "not": {
-            "required": [
-              "expectedState"
-            ]
-          }
-        }
-      ]
+      }
     }
   },
   {
@@ -162,13 +196,34 @@
   },
   {
     "name": "set_debugger_breakpoint",
-    "description": "Set an exact binary-class and executable-source-line breakpoint; unloaded classes remain pending. No silent line relocation.",
+    "description": "Set an exact source breakpoint: Android className or iOS absolute sourceFile (exactly one), plus line; unloaded classes/images remain pending. No silent line relocation.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "className"
+          ],
+          "not": {
+            "required": [
+              "sourceFile"
+            ]
+          }
+        },
+        {
+          "required": [
+            "sourceFile"
+          ],
+          "not": {
+            "required": [
+              "className"
+            ]
+          }
+        }
+      ],
       "required": [
         "debugSessionId",
-        "className",
         "line"
       ],
       "properties": {
@@ -190,6 +245,12 @@
           "minLength": 1,
           "maxLength": 512,
           "pattern": "^[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)*$"
+        },
+        "sourceFile": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^\\/[^\\0\\r\\n]+$"
         },
         "line": {
           "type": "integer",
@@ -372,7 +433,7 @@
   },
   {
     "name": "get_debugger_locals",
-    "description": "Read at most 100 shallow locals. Sensitive values returned only on request; strings truncate at 256 characters. No evaluation or field traversal.",
+    "description": "Read at most 100 shallow locals. Sensitive values returned only on request; strings truncate at 256 characters; iOS aggregates return type summaries. No evaluation or field traversal.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
@@ -534,7 +595,7 @@
   },
   {
     "name": "detach_debugger",
-    "description": "Dispose the owned debugger connection, release owned suspension and remove its exact forward. Idempotent; retries incomplete cleanup.",
+    "description": "Dispose the owned debugger connection, release owned suspension and remove its owned transport. Idempotent; retries incomplete cleanup.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,

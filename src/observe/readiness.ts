@@ -21,7 +21,7 @@ export class ReadinessTracker {
     this.summary = {
       state: 'unknown', scope: 'device_ui', basis: 'insufficient', captured_at_ms: null,
       sample_count: 0, stable_for_ms: 0, snapshot_session_id: null, snapshot_revision: null,
-      evidence: [], limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', 'INSUFFICIENT_SAMPLES'], capabilities: { ...capabilities, debugger_paused: this.platform === 'android' }
+      evidence: [], limitations: [...baselineLimitations, ['android', 'ios'].includes(this.platform) ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', 'INSUFFICIENT_SAMPLES'], capabilities: { ...capabilities, debugger_paused: ['android', 'ios'].includes(this.platform) }
     }
 
   }
@@ -30,7 +30,7 @@ export class ReadinessTracker {
     this.signature = null
     this.summary = {
       ...this.summary, state: 'unknown', basis: 'insufficient', stable_for_ms: 0,
-      sample_count: this.summary.sample_count + 1, limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', code],
+      sample_count: this.summary.sample_count + 1, limitations: [...baselineLimitations, ['android', 'ios'].includes(this.platform) ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', code],
       evidence: [...this.summary.evidence, { code, source: 'ui_tree', captured_at_ms: null, snapshot_revision: null }].slice(-8)
     }
     return this.summary
@@ -42,7 +42,7 @@ export class ReadinessTracker {
   }
 
   observe(sample: unknown, acquisitionStartedAtMs: number, now = performance.now()): ReadinessSummary {
-    const paused = this.platform === 'android' ? pausedReadiness(this.deviceId) : null
+    const paused = pausedReadiness(this.deviceId, this.platform)
     if (paused) { this.summary = paused; return this.summary }
     const tree = sample as GetUITreeResponse | null | undefined
     if (tree?.error) return this.unavailable('OBSERVATION_FAILED')
@@ -64,7 +64,7 @@ export class ReadinessTracker {
       captured_at_ms: tree.captured_at_ms, snapshot_session_id: tree.snapshot_session_id, snapshot_revision: tree.snapshot_revision,
       sample_count: this.summary.sample_count + 1, stable_for_ms: stableFor,
       evidence: [...this.summary.evidence, { code, source: 'ui_tree', captured_at_ms: tree.captured_at_ms, snapshot_revision: tree.snapshot_revision }].slice(-8),
-      limitations: [...baselineLimitations, this.platform === 'android' ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', ...(state === 'unknown' ? ['INSUFFICIENT_SAMPLES'] : [])], capabilities: { ...capabilities, debugger_paused: this.platform === 'android' }
+      limitations: [...baselineLimitations, ['android', 'ios'].includes(this.platform) ? 'MANAGED_DEBUGGER_ONLY' : 'DEBUGGER_SIGNAL_UNSUPPORTED', ...(state === 'unknown' ? ['INSUFFICIENT_SAMPLES'] : [])], capabilities: { ...capabilities, debugger_paused: ['android', 'ios'].includes(this.platform) }
     }
     return this.summary
   }

@@ -10,6 +10,12 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Add an optional iOS simulator LLDB backend to the existing debugger tools,
+  including exact source-file breakpoints, bounded static inspection, stepping,
+  platform-scoped pause guards and owned cleanup. A separate Swift concurrency
+  fixture checks inspection around await, cancellation and recovery; verification
+  coverage is recorded in specification 032. Physical iOS devices remain unsupported.
+
 - Preserve iOS trace capture through isolated monitoring command failures; require
   three consecutive non-definitive failures before discarding, while identity and
   storage failures remain immediate and capture expiry still reconciles.

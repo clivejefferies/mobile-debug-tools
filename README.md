@@ -28,10 +28,10 @@ can include feedback from the device as well as the source code. For example:
 - **Investigate an app failure.** Collect logs, screenshots and a debug snapshot
   around a failing action to understand what happened. [Evidence
   correlation](docs/tools/correlated-evidence.md) links observations to the action.
-- **Investigate Android performance or runtime behaviour.** Capture a
+- **Investigate mobile performance or runtime behaviour.** Capture a
   [Perfetto or iOS simulator Instruments trace](docs/tools/system-traces.md) during a slow flow, or attach the
   [runtime debugger](docs/tools/debugger.md) to a debuggable app to inspect
-  breakpoints, call stacks and locals.
+  breakpoints, call stacks and locals on Android or an iOS simulator.
 
 ## How it works
 
@@ -64,7 +64,7 @@ Check the [requirements](#requirements) for your platform before installing.
 - [Android SDK](https://developer.android.com/studio) (adb) for Android support
 - Xcode and its command-line tools on macOS for iOS support
 - [idb](https://github.com/facebook/idb) for iOS UI inspection and interaction
-- JDK 17+ for optional [Android runtime debugging](docs/tools/debugger.md)
+- JDK 17+ for optional [Android runtime debugging](docs/tools/debugger.md); Xcode’s Swift-enabled LLDB/Python for optional iOS simulator debugging
 
 ## Agent plugin
 

@@ -111,7 +111,9 @@ requires reviewing its exception rather than silently transferring it.
   it is not packet capture or a proxy. Results depend on the app logging requests,
   and the current implementation does not measure request duration.
 - `src/debugger/protocol.ts` validates worker messages. The session manager owns
-  serialized transitions and cleanup; the Java worker owns JDI operations.
+  serialized transitions and cleanup; the Java worker owns Android JDI operations.
+  The optional `lldb/` Python worker owns iOS simulator LLDB operations and static
+  inspection; `ios.ts` verifies simulator/app/process membership before attach.
 
 The [refactoring plan](specs/026-code-structure-and-quality-gates/plan.md) records
 progress and verification. The [follow-on health cleanup](specs/026-code-structure-and-quality-gates/health-plan.md)

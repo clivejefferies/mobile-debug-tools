@@ -1,7 +1,7 @@
 import type { DeviceInfo } from '../../types.js'
 import { handleDebugger } from './debugger-handlers.js'
 import { debuggerContracts } from '../schemas/debugger-schema.js'
-import { debuggerSessions } from '../../debugger/sessions.js'
+import { debuggerSessions, iosDebuggerSessions } from '../../debugger/sessions.js'
 import { withDebuggerGuard, guardDispatched } from '../../debugger/guard.js'
 import { TraceError } from '../../observe/system-trace.js'
 import { systemTraceTools } from '../schemas/system-trace-schema.js'
@@ -82,15 +82,16 @@ for (const name of ['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint
 }
 
 async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: ToolHandler, addTiming: (response: ToolCallResult) => ToolCallResult) {
-  return withResolvedDevice(device, () => withDebuggerGuard('android', device.id, async () => {
-    const before = debuggerSessions.paused(device.id)
+  const sessions = device.platform === 'ios' ? iosDebuggerSessions : debuggerSessions
+  return withResolvedDevice(device, () => withDebuggerGuard(device.platform, device.id, async () => {
+    const before = sessions.paused(device.id)
     if (before) return wrapResponse({ success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before })
     let response: ToolCallResult
     try { response = await handler(args) } catch (error) {
-      if (!debuggerSessions.paused(device.id)) throw error
+      if (!sessions.paused(device.id)) throw error
       response = wrapResponse({ success: false })
     }
-    const pause = debuggerSessions.paused(device.id)
+    const pause = sessions.paused(device.id)
     if (pause) {
       const item = response.content.find(item => item.type === 'text')
       if (item?.text) {
@@ -106,14 +107,15 @@ async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: 
 }
 
 function attachPausedObservation(name: string, args: ToolCallArgs, response: ToolCallResult) {
-  if (['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'get_current_screen', 'read_log_stream'].includes(name) && args.platform !== 'ios') {
+  if (['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'get_current_screen', 'read_log_stream'].includes(name)) {
     const item = response.content.find(item => item.type === 'text')
     if (item?.text) {
       try {
         const payload = JSON.parse(item.text)
         const device = payload.device ?? payload.evidence?.device
         const id = device?.id ?? args.deviceId
-        const pause = id && device?.platform !== 'ios' ? debuggerSessions.paused(String(id)) : null
+        const sessions = (device?.platform ?? args.platform) === 'ios' ? iosDebuggerSessions : debuggerSessions
+        const pause = id ? sessions.paused(String(id)) : null
         if (pause) item.text = JSON.stringify({ ...payload, debugger: pause })
       } catch { /* Non-JSON observation */ }
     }
@@ -143,8 +145,8 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}, sign
     try {
       if (!systemTraceToolNames.has(name)) validateExpectedState(name, args)
       const guarded = ['start_app', 'terminate_app', 'restart_app', 'reset_app_data', 'install_app', 'build_and_install', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'adjust_control', 'run_journey', 'wait_for_ui', 'wait_for_ui_change', 'wait_for_screen_change', 'expect_screen', 'expect_element_visible', 'expect_state'].includes(name)
-      if (guarded && args.platform !== 'ios' && debuggerSessions.hasActiveSessions()) {
-        const device = await resolveTargetDevice({ platform: 'android', deviceId: args.deviceId as string | undefined })
+      if (guarded && (debuggerSessions.hasActiveSessions() || iosDebuggerSessions.hasActiveSessions())) {
+        const device = await resolveTargetDevice({ platform: args.platform === 'ios' ? 'ios' : 'android', deviceId: args.deviceId as string | undefined })
         return dispatchGuarded(device, args, handler, addTiming)
       }
       const response = await handler(args)

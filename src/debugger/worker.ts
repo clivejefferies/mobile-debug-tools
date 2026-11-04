@@ -58,7 +58,7 @@ export interface DebugWorker {
   close(): Promise<void>
 }
 type WorkerFailureReason = 'spawn_failed' | 'process_exited' | 'write_failed' | 'invalid_message' | 'message_limit'
-export class JdiWorker implements DebugWorker {
+export class DebuggerProcess implements DebugWorker {
   private child: ChildProcessWithoutNullStreams
   private pending = new Map<number, { resolve(value: WorkerReply): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout>; command: string }>()
   private sequence = 0
@@ -66,8 +66,8 @@ export class JdiWorker implements DebugWorker {
   private failure?: DebuggerError
   private replied = false
   private exited: Promise<void>
-  constructor(java: string, directory: string, private onEvent: (event: WorkerEvent) => void) {
-    this.child = spawn(java, ['-Xmx128m', '--add-modules', 'jdk.jdi', '-cp', directory, 'DebuggerWorker'], { stdio: ['pipe', 'pipe', 'pipe'] })
+  constructor(java: string, directory: string, private onEvent: (event: WorkerEvent) => void, launch?: { args: string[]; env: NodeJS.ProcessEnv }) {
+    this.child = spawn(java, launch?.args ?? ['-Xmx128m', '--add-modules', 'jdk.jdi', '-cp', directory, 'DebuggerWorker'], { stdio: ['pipe', 'pipe', 'pipe'], ...(launch ? { env: launch.env } : {}) })
     let buffer = ''
     this.exited = new Promise(resolve => { this.child.once('exit', () => { this.fail('process_exited'); resolve() }); this.child.once('error', () => { this.fail('spawn_failed'); resolve() }) })
     this.child.stdin.on('error', () => this.fail('write_failed'))
@@ -131,5 +131,8 @@ export class JdiWorker implements DebugWorker {
 }
 export async function createWorker(onEvent: (event: WorkerEvent) => void) {
   const { java, directory } = await prepareWorker()
-  return new JdiWorker(java, directory, onEvent)
+  return new DebuggerProcess(java, directory, onEvent)
 }
+
+// Compatibility export for existing JDI transport callers/tests.
+export { DebuggerProcess as JdiWorker }

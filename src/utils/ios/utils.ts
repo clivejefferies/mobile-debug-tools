@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../../debugger/guard.js'
 import { remainingBudget } from '../operation-budget.js'
 import { execFile, spawn, execSync, spawnSync } from "child_process"
 import { DeviceInfo } from "../../types.js"
@@ -85,6 +86,7 @@ export function execCommand(args: string[], deviceId: string = "booted"): Promis
   return new Promise((resolve, reject) => {
     // Use spawn for better stream control and consistency with Android implementation
     const budgetMs = remainingBudget()
+    checkDebuggerGuard()
     const child = spawn(getXcrunCmd(), args)
 
     let stdout = ''
@@ -132,6 +134,7 @@ export function execCommandWithDiagnostics(args: string[], deviceId: string = "b
   const DEFAULT_XCRUN_LOG_TIMEOUT = parseInt(process.env.MCP_XCRUN_LOG_TIMEOUT || '', 10) || 30000
   const DEFAULT_XCRUN_CMD_TIMEOUT = parseInt(process.env.MCP_XCRUN_TIMEOUT || '', 10) || 60000
   const timeoutMs = budgetMs || (args.includes('log') ? DEFAULT_XCRUN_LOG_TIMEOUT : DEFAULT_XCRUN_CMD_TIMEOUT)
+  checkDebuggerGuard()
   const res = spawnSync(getXcrunCmd(), args, { encoding: 'utf8', timeout: timeoutMs })
   const runResult = {
     exitCode: typeof res.status === 'number' ? res.status : null,
