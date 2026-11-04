@@ -133,3 +133,33 @@ Focused review covers target membership/start identity, source resolution, stric
 schema/dispatch parity, bounded IPC/inspection, stop epochs, diagnostic privacy,
 platform guards, expiry and owned teardown. Android contract compatibility remains
 covered by its existing fixture and unit tests; iOS scope is simulator-only.
+
+
+## PR #103 preparation-cache follow-up — 2026-11-04
+
+[Review comment](https://github.com/clivejefferies/mobile-debug-tools/pull/103#discussion_r4470121366)
+identified duplicated prerequisite subprocesses during attach. Preparation now
+shares its in-flight/successful promise per server process and clears a rejected
+promise, preserving platform checks, readiness validation and worker configuration.
+No tool schema, timeout or inspection behaviour changes.
+
+- **PASS** isolated fake-toolchain regression: concurrent calls share preparation,
+  failure permits retry, successful configuration is reused, and worker creation
+  adds no extra prerequisite probes.
+- **PASS** real Xcode preparation followed by cached reuse within a 100 ms budget;
+  no app was attached by that probe.
+- **PASS** focused real iOS MCP runtime/async/cancellation/process-exit/shutdown
+  journey on the same simulator/toolchain. Build fingerprint:
+  `0200deeb0cff9f04b54ed929258ebd19185c8be86e2badb6cdcbfa21f798fdb1`.
+  Source fingerprint remains `295ff0f30f5670530f9cdd7073b958917c1c574ccca9c7b921e295d0d902b699`.
+  Log: `/tmp/pr103-cache-ios.log`. Extended pause expiry was not repeated for
+  this preparation-only fix; the earlier extended evidence remains above.
+- **PASS** quiet `npm run verify`: lint/quality/architecture, build, all 97 unit
+  files and plugin consistency. Log: `/tmp/pr103-cache-verify-final.log`.
+  A prior run alongside native testing failed the unchanged conditional-action
+  timing assertion. Its isolated retry passed, as did the quiet full verification;
+  no assertion or timeout was modified. Original/retry logs:
+  `/tmp/pr103-cache-verify.log`, `/tmp/pr103-cache-conditional-retest.log`.
+
+The broader device-suite failures above remain separate; this fix does not claim
+that their causes were established or corrected. Simulator shutdown was restored.

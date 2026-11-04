@@ -70,3 +70,14 @@ concrete blocker. Do not treat mock/native readiness checks as live verification
 
 See [verification report](report.md) for evidence boundaries, resolved findings,
 unrun variants and original failed observations.
+
+
+## PR #103 review repair
+
+- [x] Cache shared iOS preparation and reset rejected preparation for retry.
+- [x] Add fake-toolchain coverage for concurrent reuse, retry and worker creation.
+- [x] Check real Xcode cached preparation and rerun the focused iOS MCP journey.
+- [x] Complete quiet repository verification (97 unit files); repair ready for PR publication.
+
+See the [report follow-up](report.md#pr-103-preparation-cache-follow-up--2026-11-04)
+for exact evidence and retained broader-suite limitations.

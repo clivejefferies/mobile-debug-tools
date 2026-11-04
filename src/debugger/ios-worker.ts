@@ -7,15 +7,19 @@ export const iosCapabilities = { attach: true, breakpoints: true, stacks: true, 
   evaluation: false, mutation: false, coroutines: false, native: false, async_execution_inspection: true, async_stepping: true }
 export const iosLimitations = ['IOS_SIMULATOR_ONLY', 'DEBUG_METADATA_REQUIRED', 'SHALLOW_LOCALS', 'ALL_THREADS_SUSPEND', 'DEVICE_WIDE_UI_GUARD', 'ASYNC_STEPPING_TOOLCHAIN_DEPENDENT', 'AGGREGATE_VALUES_TYPE_ONLY', 'NO_TASK_ENUMERATION']
 export const iosWorkerSource = fileURLToPath(new URL('../../src/debugger/lldb/worker.py', import.meta.url))
-export async function prepareIOSWorker() {
-  if (process.platform !== 'darwin') throw new DebuggerError('DEBUGGER_UNSUPPORTED')
-  const pythonPath = await iosExec(getXcrunCmd(), ['lldb', '-P'])
-  const python = await iosExec(getXcrunCmd(), ['--find', 'python3'])
-  // Ignore user Python startup/customisation and LLDB init files.
-  const env = { PATH: process.env.PATH, HOME: process.env.HOME, PYTHONPATH: pythonPath, PYTHONNOUSERSITE: '1' }
-  const ready = await iosExec(python, ['-s', '-B', '-c', 'import lldb; d=lldb.SBDebugger.Create(False); print("ready" if d.IsValid() else "unavailable"); lldb.SBDebugger.Destroy(d)'], env)
-  if (ready !== 'ready') throw new DebuggerError('DEBUGGER_UNSUPPORTED')
-  return { python, env }
+let prepared: Promise<{ python: string; env: NodeJS.ProcessEnv }> | undefined
+export function prepareIOSWorker() {
+  prepared ??= (async () => {
+    if (process.platform !== 'darwin') throw new DebuggerError('DEBUGGER_UNSUPPORTED')
+    const pythonPath = await iosExec(getXcrunCmd(), ['lldb', '-P'])
+    const python = await iosExec(getXcrunCmd(), ['--find', 'python3'])
+    // Ignore user Python startup/customisation and LLDB init files.
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME, PYTHONPATH: pythonPath, PYTHONNOUSERSITE: '1' }
+    const ready = await iosExec(python, ['-s', '-B', '-c', 'import lldb; d=lldb.SBDebugger.Create(False); print("ready" if d.IsValid() else "unavailable"); lldb.SBDebugger.Destroy(d)'], env)
+    if (ready !== 'ready') throw new DebuggerError('DEBUGGER_UNSUPPORTED')
+    return { python, env }
+  })().catch(error => { prepared = undefined; throw error })
+  return prepared
 }
 export async function createIOSWorker(onEvent: (event: WorkerEvent) => void) {
   const { python, env } = await prepareIOSWorker()
