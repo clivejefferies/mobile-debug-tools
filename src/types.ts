@@ -355,6 +355,7 @@ export interface ActionConditionResult {
 }
 
 export interface ActionExecutionResult {
+  device_readiness?: import('./contracts/device-readiness.js').DeviceReadiness;
   action_id: string;
   timestamp: string;
   action_type: string;

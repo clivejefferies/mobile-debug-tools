@@ -1,0 +1,116 @@
+# Implementation and verification plan
+
+Scope: [intent](intent.md), [approved specification](spec.md). User approved the
+revised contract with “ok, lets proceed” on 2026-11-04.
+
+## Implementation
+
+- Add typed, bounded device-state probes with conservative Android parsing and
+  capability-based iOS lock evidence; reuse subprocess and operation budgets.
+- Integrate evidence into readiness services, predicate waits, and shared action
+  responses, retaining dispatch outcomes and compact/journey evidence.
+- Cover parsing, partial failure, recovery, deadlines, debugger precedence,
+  targeting and serialization with self-running unit tests.
+- Update tool docs, descriptions, README and changelog. Review all changed callers.
+
+## Verification
+
+Node >=22 (CI Node 22); native Android ADB and local Xcode for iOS probes.
+
+| Criteria | Check |
+| --- | --- |
+| 1, 2: launch, awake/asleep/locked/recovery | Updated server against explicit Android emulator; sleep disposable emulator, launch Settings, inspect readiness, restore awake state |
+| 2: transition/conflict/missing fields | Deterministic parser fixtures and failed native probes |
+| 3: blocker gating and unknown compatibility | Readiness/predicate wait unit integration |
+| 4: debugger, targeting, timestamps, compact/journey | Shared action and probe unit integration; existing debugger guard tests |
+| 5: required checks | `npm run verify`, `npm run test:device` |
+| iOS boundary | Updated probe against explicitly booted iPhone 17 Pro simulator; verify capability rejection and unknown wakefulness, then shutdown |
+
+Device suite is Android-focused and may contain opt-in checks; record skips.
+Physical iOS unavailable; do not claim physical support. CI additionally compiles
+the Java worker with JDK 17 and checks package contents; hosted CI remains unrun.
+Use existing Settings app for launch reproduction, no user app data changes.
+Restore emulator wake state and shutdown any simulator booted for this task.
+
+## Results
+
+Pending implementation and verification. Risks: vendor-specific Android output,
+extra probe latency, iOS capability differences, and budget expiry during probes.
+No publication, release, or protected-branch change is planned.
+
+## Implementation results
+
+Implemented the separate device-readiness contract, Android power/keyguard
+parsers, capability-based iOS lock query, pre-observation wait gating, and shared
+launch/input response evidence. Known blockers break UI-stability continuity;
+recovery requires fresh UI samples. Compact actions and journey action steps
+retain the evidence; the separate adjust_control result also carries it. Dispatch success and verification controls retain their
+existing meanings. Updated tool descriptions and their full compatibility
+fixture, README, tool docs, and changelog.
+
+Focused review covered resolved-device ownership, no cross-call cache, partial
+probe failure, conservative parsing, response preservation on observation
+failure, debugger priority, and operation-budget clipping. CoreDevice requires
+its own timeout argument to be >=5 seconds; the parent process enforces the
+1,000 ms probe deadline. Android 17 repeats a numeric wakefulness enum in a later
+vendor section: parsing now isolates the named current-state section. Both
+runtime discoveries have deterministic regression coverage. No raw native dumps
+are included in the response or retained evidence.
+
+## Device evidence
+
+Local server version 0.36.0, modified checkout based on
+`46f86bae52f09be4499867ac581f9308d3892e41`, Node v23.11.0 (supported >=22).
+This is local source/built-server evidence, not a published package or hosted CI.
+
+- **PASS — Android emulator 16, emulator-5554:** started awake/unlocked;
+  observed a real transitioning-to-asleep state, launched Settings with
+  verification disabled, and established successful dispatch alongside
+  DEVICE_ASLEEP. Readiness wait returned READINESS_TIMEOUT while asleep, then
+  passed after wake-up with fresh settled UI evidence. Restored awake/unlocked
+  and Home. [Evidence](android-evidence.json).
+- **PASS — Pixel 9 Pro, Android 17:** passive state read established
+  DEVICE_LOCKED and input_ready=false. No input or state changes were sent.
+  The first power sample was conservatively unknown because of duplicate
+  vendor-debug fields; the scoped parser subsequently observed awake/unlocked
+  with both timestamped signals. These are separate observations of natural
+  device changes, not an automated lock/unlock journey.
+  [Lock evidence](android-physical-evidence.json),
+  [power evidence](android-physical-power-evidence.json).
+- **PASS — iPhone 17 Pro simulator, iOS 26.4:** updated native probe and actual
+  get_app_readiness MCP call returned lock_state=unsupported from CoreDevice's
+  matching capability rejection, wakefulness=unknown, and input_ready=null.
+  UI readiness could still report settled without claiming input readiness.
+  Simulator restored to shutdown. [Probe](ios-probe-evidence.json),
+  [MCP result](ios-tool-evidence.json).
+- **UNRUN — real locked emulator journey:** this emulator wakes unlocked;
+  security settings were not changed. Locked classifier evidence exists on the
+  physical Pixel, and locked wait gating has deterministic integration coverage.
+- **UNRUN — physical iOS, live debugger-paused reproduction, true iOS sleep and
+  lock/unlock recovery:** no physical iOS device; opt-in debugger fixtures were
+  not run. Managed debugger precedence is covered by deterministic tests, not
+  claimed as a new live debugger journey.
+
+## Verification results
+
+- `npm run verify`: passed, including the rerun after the Android 17 parser
+  refinement. Final lint/build and focused action tests also passed after review. Includes lint, size/dependency checks, TypeScript build,
+  complete unit suite, and agent-plugin consistency.
+- Focused device-readiness parser/probe/action tests, readiness tool/wait tests,
+  and compact journey tests: passed. Covers partial probe failure, explicit
+  unknown/unsupported outcomes, targeting, timestamps, expired budgets, no raw
+  error leakage, blocker gating, fresh recovery, and dispatch preservation.
+- `npm run test:device`: passed with a booted iOS simulator. Android/iOS
+  screenshots, logs, trees and correlated-evidence checks passed; Android system
+  tracing passed with cleanup. Optional coroutine/Kotlin/debugger/interaction
+  fixtures and iOS tracing were unrun. The new explicit emulator readiness
+  journey was run separately with MCP_READINESS_DEVICE=emulator-5554.
+  Initial suite invocation without a booted simulator failed at the iOS
+  screenshot prerequisite; booting the simulator resolved that prerequisite.
+- `git diff --check` and changed documentation relative-path checks: passed.
+- CI uses Node 22, plus JDK 17 worker compilation/package checks. These extra
+  hosted checks were not run here. No commit, push, release or publication.
+
+The GitHub project status move remains unconfirmed; CLI project access lacks
+read:project, and browser actions were interrupted by concurrent user navigation.
+No ticket completion or remote publication is claimed.

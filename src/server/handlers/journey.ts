@@ -1,3 +1,4 @@
+import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import type { z } from 'zod'
 import { debuggerSessions } from '../../debugger/sessions.js'
 import { systemTraces } from '../../observe/system-trace.js'
@@ -85,7 +86,7 @@ async function runSteps(s: Context) {
   for (let index = 0; index < steps.length; index++) {
     const step = steps[index]
     if (platform === 'android' && debuggerSessions.paused(s.deviceId)) {
-      s.results.push({ id: step.id, type: step.type, status: 'failed', success: false, result: { success: false, failure_code: 'DEBUGGER_PAUSED', dispatch_started: false, delivery_status: 'not_delivered' } })
+      s.results.push({ id: step.id, type: step.type, status: 'failed', success: false, result: { device_readiness: await observeDeviceReadiness({ platform, id: s.deviceId }), success: false, failure_code: 'DEBUGGER_PAUSED', dispatch_started: false, delivery_status: 'not_delivered' } })
       s.stoppedAt = step.id
       break
     }

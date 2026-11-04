@@ -1,3 +1,4 @@
+import { withDeviceReadinessProbe } from '../../../src/observe/device-readiness.js'
 import assert from 'node:assert/strict'
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv'
 import { handleToolCall, toolDefinitions } from '../../../src/server-core.js'
@@ -10,6 +11,7 @@ async function run() {
   const originalTree = ToolsObserve.getUITreeHandler
   const originalNative = AndroidObserve.prototype.getUITree
   const device = { platform: 'android', id: 'fixture', model: 'Fixture', osVersion: '16', simulator: true }
+  let deviceState = 'unknown'
   let reads = 0
   let mode = 'stable'
   let delayed = 0
@@ -43,12 +45,33 @@ async function run() {
     queueMicrotask(() => { elapsed += Math.max(0, Number(delay) || 0); callback(...args) })
     return {} as ReturnType<typeof setTimeout>
   }) as typeof setTimeout
-  const call = async (name: string, args: any = {}) => JSON.parse((await handleToolCall(name, { platform: 'android', deviceId: 'fixture', ...args })).content[0].text!)
+  const call = async (name: string, args: any = {}) => withDeviceReadinessProbe(async (_cmd, nativeArgs) => {
+    const power = 'mWakefulness=Awake\nmWakefulnessChanging=false'
+    const keyguard = `KeyguardServiceDelegate\n showing=${deviceState === 'locked'}\n mIsShowing=${deviceState === 'locked'}`
+    return { exitCode: 0, stdout: deviceState === 'unknown' ? '' : nativeArgs.includes('power') ? power : keyguard, stderr: '' }
+  }, async () => JSON.parse((await handleToolCall(name, { platform: 'android', deviceId: 'fixture', ...args })).content[0].text!))
   try {
     let result = await call('get_app_readiness', { stabilityMs: 100 })
     assert.equal(result.readiness.state, 'settled')
     assert.equal(result.success, true)
     assert.equal(reads, 2)
+    deviceState = 'locked'; reads = 0
+    result = await call('get_app_readiness')
+    assert.deepEqual(result.device_readiness.blockers, ['DEVICE_LOCKED'])
+    assert.equal(result.success, true, 'an observed blocker is a successful observation')
+    assert.equal(reads, 0, 'known blocker avoids a slow UI read')
+    result = await call('wait_for_app_ready', { timeoutMs: 300, pollIntervalMs: 100 })
+    assert.equal(result.success, false)
+    assert.equal(result.failure_code, 'READINESS_TIMEOUT')
+    assert.equal(result.device_readiness.input_ready, false)
+    const lockedPredicate = await call('wait_for_ui', { selector: { text: 'Ready' }, requireReady: true, timeout_ms: 300, poll_interval_ms: 100 })
+    assert.equal(lockedPredicate.status, 'timeout')
+    assert.equal(lockedPredicate.device_readiness.lock_state, 'locked')
+    deviceState = 'unlocked'; reads = 0
+    result = await call('wait_for_app_ready', { stabilityMs: 100, timeoutMs: 1500, pollIntervalMs: 100 })
+    assert.equal(result.success, true, 'fresh unlocked evidence permits recovery')
+    assert.equal(result.device_readiness.input_ready, null, 'stable UI and unlocked flags do not prove input readiness')
+    deviceState = 'unknown'
     mode = 'loading'; reads = 0
     result = await call('get_app_readiness')
     assert.equal(result.readiness.state, 'loading')

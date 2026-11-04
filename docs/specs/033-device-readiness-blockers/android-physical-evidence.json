@@ -1,0 +1,28 @@
+{
+  "device": {
+    "platform": "android",
+    "id": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp"
+  },
+  "model": "Pixel 9 Pro",
+  "osVersion": "Android 17",
+  "runtime": "v23.11.0",
+  "scope": "read-only current state; no sleep/lock/unlock/input dispatched",
+  "result": {
+    "wakefulness": "unknown",
+    "lock_state": "locked",
+    "input_ready": false,
+    "blockers": [
+      "DEVICE_LOCKED"
+    ],
+    "evidence": [
+      {
+        "code": "DEVICE_LOCKED",
+        "source": "android_window",
+        "captured_at_ms": 1793824059095
+      }
+    ],
+    "limitations": [
+      "DEVICE_WAKEFULNESS_UNVERIFIED"
+    ]
+  }
+}

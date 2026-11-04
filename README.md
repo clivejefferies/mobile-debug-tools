@@ -297,3 +297,8 @@ Android debugger errors include bounded, sanitized failure classifications and r
 ## License
 
 [Apache-2.0](LICENSE)
+
+Launch and interaction results distinguish dispatch from timestamped
+[device readiness evidence](docs/tools/observe.md#device-readiness-evidence).
+Readiness waits account for observed sleeping/locked device blockers. Unknown or
+unsupported signals are explicit, and no automatic unlock is performed.

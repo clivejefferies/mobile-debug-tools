@@ -791,3 +791,9 @@ for supported states and limits.
 
 Actions and journeys expose identifiers and phase timestamps for linking later
 observations. See [evidence correlation](correlated-evidence.md) for scope and limitations.
+
+Interaction action responses preserve `device_readiness` in compact/debug modes
+and journey action steps, including when verification is disabled. This evidence
+adds no input guard or automatic retry. Readiness-enabled waits reject known
+device blockers; ordinary predicate waits keep their existing semantics.
+See [device readiness evidence](observe.md#device-readiness-evidence).

@@ -51,6 +51,8 @@ export async function listDevices(platform?: "android" | "ios", appId?: string):
 
 const deviceContext = new AsyncLocalStorage<DeviceInfo>()
 
+export function currentResolvedDevice() { return deviceContext.getStore() }
+
 export function withResolvedDevice<T>(device: DeviceInfo, operation: () => Promise<T>): Promise<T> {
   bindEvidenceDevice(device)
   return deviceContext.run(device, operation)

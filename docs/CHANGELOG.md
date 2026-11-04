@@ -8,6 +8,13 @@ and [tool reference](tools/TOOLS.md) for the current checkout.
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## Unreleased
+
+- Add timestamped device-readiness evidence to launch/interaction results and
+  readiness waits, preserving dispatch outcomes and compact/journey evidence.
+  Android power/keyguard blockers prevent readiness success; iOS reports
+  per-signal unknown/unsupported evidence. No automatic wake or unlock.
+
 ## [0.36.0]
 
 - Updated the agent plugin to `0.0.6`, pinned to MCP `0.36.0`.

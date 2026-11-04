@@ -55,7 +55,7 @@ export const toolDefinitions: Tool[] = [
 ...systemTraceTools,
 ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
     name,
-    description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
+    description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android and supported iOS simulator debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
     inputSchema: { type: 'object' as const, additionalProperties: false, required: ['platform'], properties: {
       ...readinessPropertiesJson,
       timeoutMs: { ...readinessPropertiesJson.timeoutMs, default: name === 'get_app_readiness' ? 15000 : 30000 },
@@ -70,7 +70,7 @@ for (const tool of toolDefinitions) {
   tool.inputSchema.properties ??= {}
   if (['wait_for_ui', 'wait_for_ui_change'].includes(tool.name)) {
     tool.inputSchema.properties.requireReady = { type: 'boolean', default: false }
-    tool.description += '\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.'
+    tool.description += '\nDevice-readiness blockers prevent readiness success; unknown/unsupported device signals remain explicit.\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.'
   }
   if (tool.name === 'get_ui_tree') tool.description += '\nSuccessful observations include snapshot_session_id and snapshot_revision for same-device conditional input. Compact errors preserve the error and cannot authorize an expectation.'
   if (tool.name === 'run_journey') tool.description += '\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence even in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.'
@@ -111,6 +111,7 @@ for (const tool of toolDefinitions) {
 // Correlation is explicit; an omitted reference creates an independent observation.
 for (const tool of toolDefinitions) {
   tool.inputSchema.properties ??= {}
+  if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'adjust_control', 'get_app_readiness', 'wait_for_app_ready'].includes(tool.name)) tool.description += '\nResults include device_readiness with timestamped device blocker evidence. Android reports supported power/keyguard signals; iOS signals may be unknown or explicitly unsupported. Launch/input dispatch success does not establish app visibility or input readiness. No automatic unlock or wake is performed.'
   if (['capture_screenshot', 'get_ui_tree', 'get_screen_fingerprint', 'capture_debug_snapshot', 'get_logs', 'read_log_stream'].includes(tool.name)) {
     Object.assign(tool.inputSchema.properties, { actionRef: {
       type: 'object' as const, additionalProperties: false, required: ['sessionId', 'actionId'], properties: {

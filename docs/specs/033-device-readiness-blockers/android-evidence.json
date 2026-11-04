@@ -1,0 +1,437 @@
+{
+  "deviceId": "emulator-5554",
+  "server": "dist/server.js",
+  "server_sha256": "49fa8b8969b5f6bae270c56912b3b1259edb400087b551538dcf0b45855aae34",
+  "runtime": "v23.11.0",
+  "observations": [
+    {
+      "tool": "get_app_readiness",
+      "args": {},
+      "result": {
+        "success": true,
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554",
+          "osVersion": "16",
+          "model": "sdk_gphone64_arm64",
+          "simulator": true,
+          "appInstalled": false
+        },
+        "readiness": {
+          "state": "settled",
+          "scope": "device_ui",
+          "basis": "observed",
+          "captured_at_ms": 1793824169556,
+          "snapshot_session_id": "760cfc72-9c17-4855-8a9e-4491f35284c1",
+          "snapshot_revision": 1,
+          "sample_count": 2,
+          "stable_for_ms": 2774.727875,
+          "evidence": [
+            {
+              "code": "INSUFFICIENT_SAMPLES",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824166781,
+              "snapshot_revision": 1
+            },
+            {
+              "code": "SNAPSHOT_STABLE",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824169556,
+              "snapshot_revision": 1
+            }
+          ],
+          "limitations": [
+            "NORMALIZED_UI_ONLY",
+            "FOREGROUND_APP_UNVERIFIED",
+            "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+            "MANAGED_DEBUGGER_ONLY"
+          ],
+          "capabilities": {
+            "loading": true,
+            "transitioning": true,
+            "settled": true,
+            "unresponsive": false,
+            "debugger_paused": true
+          }
+        },
+        "device_readiness": {
+          "wakefulness": "awake",
+          "lock_state": "unlocked",
+          "input_ready": null,
+          "blockers": [],
+          "evidence": [
+            {
+              "code": "DEVICE_AWAKE",
+              "source": "android_power",
+              "captured_at_ms": 1793824167338
+            },
+            {
+              "code": "DEVICE_UNLOCKED",
+              "source": "android_window",
+              "captured_at_ms": 1793824167382
+            }
+          ],
+          "limitations": []
+        },
+        "elapsed_ms": 5454.18075
+      }
+    },
+    {
+      "tool": "get_app_readiness",
+      "args": {},
+      "result": {
+        "success": true,
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554",
+          "osVersion": "16",
+          "model": "sdk_gphone64_arm64",
+          "simulator": true,
+          "appInstalled": false
+        },
+        "readiness": {
+          "state": "unknown",
+          "scope": "device_ui",
+          "basis": "insufficient",
+          "captured_at_ms": null,
+          "sample_count": 0,
+          "stable_for_ms": 0,
+          "snapshot_session_id": null,
+          "snapshot_revision": null,
+          "evidence": [],
+          "limitations": [
+            "NORMALIZED_UI_ONLY",
+            "FOREGROUND_APP_UNVERIFIED",
+            "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+            "MANAGED_DEBUGGER_ONLY",
+            "INSUFFICIENT_SAMPLES",
+            "DEVICE_BLOCKED"
+          ],
+          "capabilities": {
+            "loading": true,
+            "transitioning": true,
+            "settled": true,
+            "unresponsive": false,
+            "debugger_paused": true
+          }
+        },
+        "device_readiness": {
+          "wakefulness": "asleep",
+          "lock_state": "unlocked",
+          "input_ready": false,
+          "blockers": [
+            "DEVICE_ASLEEP"
+          ],
+          "evidence": [
+            {
+              "code": "DEVICE_ASLEEP",
+              "source": "android_power",
+              "captured_at_ms": 1793824170627
+            },
+            {
+              "code": "DEVICE_UNLOCKED",
+              "source": "android_window",
+              "captured_at_ms": 1793824170662
+            }
+          ],
+          "limitations": []
+        },
+        "elapsed_ms": 1055.0427499999996
+      }
+    },
+    {
+      "tool": "start_app",
+      "args": {
+        "appId": "com.android.settings",
+        "verificationMode": "none",
+        "responseMode": "compact",
+        "actionTimeoutMs": 10000
+      },
+      "result": {
+        "action_id": "fad30314-3242-43b7-b61c-97ec974bf9b4",
+        "device_readiness": {
+          "wakefulness": "asleep",
+          "lock_state": "unlocked",
+          "input_ready": false,
+          "blockers": [
+            "DEVICE_ASLEEP"
+          ],
+          "evidence": [
+            {
+              "code": "DEVICE_ASLEEP",
+              "source": "android_power",
+              "captured_at_ms": 1793824171199
+            },
+            {
+              "code": "DEVICE_UNLOCKED",
+              "source": "android_window",
+              "captured_at_ms": 1793824171242
+            }
+          ],
+          "limitations": []
+        },
+        "action_type": "start_app",
+        "success": true,
+        "lifecycle_state": "pending_verification",
+        "delivery_status": "delivered",
+        "dispatch_started": true,
+        "verification": {
+          "mode": "none",
+          "status": "not_requested"
+        },
+        "timing": {
+          "total_ms": 579.8293329999997
+        },
+        "evidence": {
+          "session_id": "fe501f9e-b707-4763-854c-4a1c81931fe1",
+          "correlation_id": "fad30314-3242-43b7-b61c-97ec974bf9b4",
+          "action_id": "fad30314-3242-43b7-b61c-97ec974bf9b4",
+          "device": {
+            "platform": "android",
+            "id": "emulator-5554"
+          },
+          "association": "self",
+          "association_reason": null,
+          "operation_started_at_ms": 1793824170663,
+          "operation_completed_at_ms": 1793824171242,
+          "dispatch_started_at_ms": 1793824170713,
+          "dispatch_completed_at_ms": 1793824171015,
+          "verification_completed_at_ms": null,
+          "observations": [
+            {
+              "evidence_id": "2d8052cc-f6f2-4f77-98e9-ff1ca0f2e3a5",
+              "kind": "activity",
+              "status": "captured",
+              "capture_started_at_ms": 1793824171015,
+              "capture_completed_at_ms": 1793824171135,
+              "source_captured_at_ms": 1793824171135,
+              "age_ms": 106.934326171875,
+              "freshness": "fresh",
+              "freshness_reasons": [],
+              "device": {
+                "platform": "android",
+                "id": "emulator-5554"
+              },
+              "session_id": "fe501f9e-b707-4763-854c-4a1c81931fe1",
+              "correlation_id": "fad30314-3242-43b7-b61c-97ec974bf9b4",
+              "action_id": "fad30314-3242-43b7-b61c-97ec974bf9b4",
+              "association": "internal"
+            }
+          ],
+          "trace_context": {
+            "supported": false,
+            "trace_id": null,
+            "markers": []
+          }
+        }
+      }
+    },
+    {
+      "tool": "wait_for_app_ready",
+      "args": {
+        "timeoutMs": 1200,
+        "pollIntervalMs": 100
+      },
+      "result": {
+        "success": false,
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554",
+          "osVersion": "16",
+          "model": "sdk_gphone64_arm64",
+          "simulator": true,
+          "appInstalled": false
+        },
+        "readiness": {
+          "state": "unknown",
+          "scope": "device_ui",
+          "basis": "insufficient",
+          "captured_at_ms": null,
+          "sample_count": 0,
+          "stable_for_ms": 0,
+          "snapshot_session_id": null,
+          "snapshot_revision": null,
+          "evidence": [],
+          "limitations": [
+            "NORMALIZED_UI_ONLY",
+            "FOREGROUND_APP_UNVERIFIED",
+            "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+            "MANAGED_DEBUGGER_ONLY",
+            "INSUFFICIENT_SAMPLES",
+            "DEVICE_BLOCKED",
+            "DEADLINE_EXCEEDED"
+          ],
+          "capabilities": {
+            "loading": true,
+            "transitioning": true,
+            "settled": true,
+            "unresponsive": false,
+            "debugger_paused": true
+          }
+        },
+        "device_readiness": {
+          "wakefulness": "unknown",
+          "lock_state": "unknown",
+          "input_ready": null,
+          "blockers": [],
+          "evidence": [],
+          "limitations": [
+            "DEVICE_POWER_OBSERVATION_FAILED",
+            "DEVICE_LOCK_OBSERVATION_FAILED"
+          ]
+        },
+        "elapsed_ms": 1245.8765839999996,
+        "failure_code": "READINESS_TIMEOUT"
+      }
+    },
+    {
+      "tool": "get_app_readiness",
+      "args": {},
+      "result": {
+        "success": true,
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554",
+          "osVersion": "16",
+          "model": "sdk_gphone64_arm64",
+          "simulator": true,
+          "appInstalled": false
+        },
+        "readiness": {
+          "state": "settled",
+          "scope": "device_ui",
+          "basis": "observed",
+          "captured_at_ms": 1793824178604,
+          "snapshot_session_id": "760cfc72-9c17-4855-8a9e-4491f35284c1",
+          "snapshot_revision": 2,
+          "sample_count": 2,
+          "stable_for_ms": 2779.1579999999994,
+          "evidence": [
+            {
+              "code": "INSUFFICIENT_SAMPLES",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824175825,
+              "snapshot_revision": 2
+            },
+            {
+              "code": "SNAPSHOT_STABLE",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824178604,
+              "snapshot_revision": 2
+            }
+          ],
+          "limitations": [
+            "NORMALIZED_UI_ONLY",
+            "FOREGROUND_APP_UNVERIFIED",
+            "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+            "MANAGED_DEBUGGER_ONLY"
+          ],
+          "capabilities": {
+            "loading": true,
+            "transitioning": true,
+            "settled": true,
+            "unresponsive": false,
+            "debugger_paused": true
+          }
+        },
+        "device_readiness": {
+          "wakefulness": "awake",
+          "lock_state": "unlocked",
+          "input_ready": null,
+          "blockers": [],
+          "evidence": [
+            {
+              "code": "DEVICE_AWAKE",
+              "source": "android_power",
+              "captured_at_ms": 1793824176383
+            },
+            {
+              "code": "DEVICE_UNLOCKED",
+              "source": "android_window",
+              "captured_at_ms": 1793824176424
+            }
+          ],
+          "limitations": []
+        },
+        "elapsed_ms": 6075.207875
+      }
+    },
+    {
+      "tool": "wait_for_app_ready",
+      "args": {
+        "timeoutMs": 15000,
+        "stabilityMs": 100,
+        "pollIntervalMs": 100
+      },
+      "result": {
+        "success": true,
+        "device": {
+          "platform": "android",
+          "id": "emulator-5554",
+          "osVersion": "16",
+          "model": "sdk_gphone64_arm64",
+          "simulator": true,
+          "appInstalled": false
+        },
+        "readiness": {
+          "state": "settled",
+          "scope": "device_ui",
+          "basis": "observed",
+          "captured_at_ms": 1793824183495,
+          "snapshot_session_id": "760cfc72-9c17-4855-8a9e-4491f35284c1",
+          "snapshot_revision": 2,
+          "sample_count": 2,
+          "stable_for_ms": 2404.0407909999994,
+          "evidence": [
+            {
+              "code": "INSUFFICIENT_SAMPLES",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824181091,
+              "snapshot_revision": 2
+            },
+            {
+              "code": "SNAPSHOT_STABLE",
+              "source": "ui_tree",
+              "captured_at_ms": 1793824183495,
+              "snapshot_revision": 2
+            }
+          ],
+          "limitations": [
+            "NORMALIZED_UI_ONLY",
+            "FOREGROUND_APP_UNVERIFIED",
+            "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+            "MANAGED_DEBUGGER_ONLY"
+          ],
+          "capabilities": {
+            "loading": true,
+            "transitioning": true,
+            "settled": true,
+            "unresponsive": false,
+            "debugger_paused": true
+          }
+        },
+        "device_readiness": {
+          "wakefulness": "awake",
+          "lock_state": "unlocked",
+          "input_ready": null,
+          "blockers": [],
+          "evidence": [
+            {
+              "code": "DEVICE_AWAKE",
+              "source": "android_power",
+              "captured_at_ms": 1793824181241
+            },
+            {
+              "code": "DEVICE_UNLOCKED",
+              "source": "android_window",
+              "captured_at_ms": 1793824181281
+            }
+          ],
+          "limitations": []
+        },
+        "elapsed_ms": 4855.992333
+      }
+    }
+  ],
+  "cleanup": "wake, dismiss disposable keyguard, Home; no security settings changed"
+}
