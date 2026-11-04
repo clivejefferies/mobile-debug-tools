@@ -1,3 +1,4 @@
+import type { IosTemplate } from '../../observe/ios-trace/capabilities.js'
 import { systemTraces, TraceError } from '../../observe/system-trace.js'
 import { traceTargetSchema, traceStartSchema, traceControlSchema } from '../schemas/system-trace-schema.js'
 import { resolveTargetDevice } from '../../utils/resolve-device.js'
@@ -57,10 +58,10 @@ export async function handleSystemTrace(name: string, args: ToolCallArgs) {
   const parsed = schema.safeParse(args)
   if (!parsed.success) throw new TraceError('INVALID_ARGUMENT')
   if (name === 'get_system_trace_capabilities' || name === 'start_system_trace') {
-    const target = parsed.data as { platform: PlatformArg; deviceId?: string; durationMs?: number }
-    if (target.platform !== 'android') {
-      if (name === 'start_system_trace') throw new TraceError('UNSUPPORTED_PLATFORM')
-      return wrapResponse({ supported: false, backend: 'perfetto', device: null, prerequisites: {}, reasons: ['UNSUPPORTED_PLATFORM'], enabled_sources: [], unavailable_categories: [], limitations: ['Android only'] })
+    const target = parsed.data as { platform: PlatformArg; deviceId?: string; durationMs?: number; appId?: string; template?: IosTemplate }
+    if (target.platform === 'android' && (target.appId !== undefined || target.template !== undefined)) throw new TraceError('INVALID_ARGUMENT')
+    if (target.platform === 'ios') {
+      return handleIosTrace(name, target)
     }
     let device
     try { device = await resolveTargetDevice(target) }
@@ -77,3 +78,9 @@ export async function handleSystemTrace(name: string, args: ToolCallArgs) {
   return { ...wrapResponse(result), ...(['failed', 'cancelled'].includes(result.state) ? { isError: true } : {}) }
 }
 
+async function handleIosTrace(name: string, target: { deviceId?: string; appId?: string; durationMs?: number; template?: IosTemplate }) {
+  if (!target.deviceId || (name === 'start_system_trace' && !target.appId)) throw new TraceError('INVALID_ARGUMENT')
+  if (name === 'get_system_trace_capabilities') return wrapResponse(await systemTraces.iosCapabilities(target.deviceId, target.appId, target.template))
+  const result = await systemTraces.start(target.deviceId, target.durationMs, { appId: target.appId!, template: target.template })
+  return { ...wrapResponse(result), ...(result.state === 'failed' ? { isError: true } : {}) }
+}

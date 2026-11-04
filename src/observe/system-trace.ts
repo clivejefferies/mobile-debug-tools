@@ -1,3 +1,4 @@
+import { SystemTraceRouter } from './system-trace-router.js'
 import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
@@ -6,9 +7,8 @@ import { AndroidTraceNative, TRACE_MAX_BYTES, type TraceCapabilities, type Trace
 import { evidenceSessionId } from './evidence.js'
 import { runWithBudget, remainingBudget } from '../utils/operation-budget.js'
 
-export class TraceError extends Error {
-  constructor(public code: string) { super(code) }
-}
+export { TraceError } from './system-trace-error.js'
+import { TraceError } from './system-trace-error.js'
 type State = 'starting' | 'recording' | 'stopping' | 'completed' | 'cancelled' | 'failed'
 type Completion = 'requested' | 'duration_limit' | 'cancelled' | 'error'
 export interface TraceResult {
@@ -224,4 +224,4 @@ export class SystemTraceSessions {
     })
   }
 }
-export const systemTraces = new SystemTraceSessions()
+export const systemTraces = new SystemTraceRouter(new SystemTraceSessions())

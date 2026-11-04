@@ -1,0 +1,47 @@
+{
+  "linked_baseline": "PASS; Ready asserted via built-server journey",
+  "journey": {
+    "status": "PASS",
+    "trace_id": "742664b0-c676-4fe8-9231-26cca3c41009",
+    "correlation_id": "5affcc93-6944-4b58-a4a9-0d6cd0a55954",
+    "ready_at_ms": 1793796042115,
+    "journey_submitted_at_ms": 1793796046237,
+    "outcome": "Done visible via journey UI-tree assertion",
+    "sample_rows": 70,
+    "artifact_bytes": 11961327,
+    "warnings": [
+      "INSTRUMENTS_RUN_WARNING: one or more Instruments warnings; coverage may be incomplete."
+    ]
+  },
+  "stale_id": "PASS; rejected tap left prior fixture label visible",
+  "cancel": "PASS",
+  "expiry": "PASS",
+  "failed_journey": "PASS; failure retained capture for explicit stop",
+  "shutdown": "PASS; owned recording and partial directory removed",
+  "app_survived_cleanup": "PASS",
+  "status": "PASS",
+  "build_sha256": "48eee7b1f71403645ab301def8d83dd14585eec099b221f8ac4f6aaba0941282",
+  "runtime": "v23.11.0",
+  "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+  "server": {
+    "name": "mobile-debug-mcp",
+    "version": "0.35.0"
+  },
+  "physical_device": "UNRUN; unsupported initial matrix",
+  "native_failure_injection": "UNRUN on real target; deterministic unit tests separate",
+  "input_toolchain": "Explicit test companion via IDB_COMPANION; see investigation.md",
+  "cleanup": {
+    "trace_errors": [],
+    "fixture_removed": true,
+    "simulator_shutdown": false,
+    "host_artifacts_removed": true
+  },
+  "task_cleanup": {
+    "original_simulator_state": "Shutdown",
+    "restored_simulator_state": "Shutdown",
+    "fixture_absent": true,
+    "temporary_companion_stopped": true,
+    "temporary_framework_alias_removed": true,
+    "named_probe_artifacts_removed": true
+  }
+}

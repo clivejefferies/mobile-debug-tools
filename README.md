@@ -29,7 +29,7 @@ can include feedback from the device as well as the source code. For example:
   around a failing action to understand what happened. [Evidence
   correlation](docs/tools/correlated-evidence.md) links observations to the action.
 - **Investigate Android performance or runtime behaviour.** Capture a
-  [Perfetto trace](docs/tools/system-traces.md) during a slow flow, or attach the
+  [Perfetto or iOS simulator Instruments trace](docs/tools/system-traces.md) during a slow flow, or attach the
   [runtime debugger](docs/tools/debugger.md) to a debuggable app to inspect
   breakpoints, call stacks and locals.
 

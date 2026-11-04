@@ -118,7 +118,7 @@ For behaviour outside the app's foreground screen, inspect the relevant system
 surface or device state. For content that cannot be established visually, such
 as audio output, use a suitable direct check or state that it was not verified.
 
-## Investigate slow Android journeys
+## Investigate slow mobile journeys
 
 Use system tracing for a reproducible slow or stalled interaction when UI timing,
 state and logs do not explain it. Avoid recording traces for routine navigation.
@@ -126,12 +126,19 @@ Check that the connected server exposes the tracing tools; an older installed
 server may not have them. If absent or unsupported, report that limit and retain
 available UI/log evidence rather than assuming capture is possible.
 
-1. Call `get_system_trace_capabilities` for the explicit Android device and check
-   `supported` and missing prerequisites. iOS tracing is unsupported.
+1. Call `get_system_trace_capabilities` for the explicit device and check
+   `supported` and missing prerequisites. iOS requires macOS/full Xcode, an explicit
+   booted simulator UDID and a running development `appId` for start. Only Time
+   Profiler is initially supported; physical iOS capture is unsupported. Discovery
+   lists installed templates separately and does not prove profiling permissions,
+   symbols, scheduling data or hang detection.
 2. Establish a fresh baseline and a journey with an observable outcome assertion.
    Choose `durationMs` to cover the journey and its observations (default 30,000;
    supported range 1,000–120,000). Android tree reads can take several seconds.
-3. Call `start_system_trace`, retain its `trace_id`, and pass that value as
+3. Call `start_system_trace` (iOS: include `appId`, optionally
+   `template: "Time Profiler"`), check `state: "recording"` and retain its
+   `trace_id`. iOS waits for native recording-start notification; uncertain startup
+   fails without automatic retry. Pass the returned value as
    `systemTraceId` to `run_journey` on the same device.
 4. Stop in cleanup with `stop_system_trace({ traceId })` when retaining diagnostic
    evidence, including after a failed journey. Use `cancel_system_trace` when
@@ -143,8 +150,10 @@ available UI/log evidence rather than assuming capture is possible.
 Report the local `artifact.path`, device, journey outcome, `correlation_ids` and
 journey trace coverage. A completed capture is not proof the app outcome passed.
 Partial coverage and unsynchronised host/device clocks limit conclusions; linked
-IDs do not establish causality. Trace files can contain sensitive device-wide
-annotations. Keep them local unless sharing is authorised, and remove temporary
+IDs do not establish causality. Perfetto files and Instruments `.trace` bundles can contain sensitive system
+metadata, paths, symbols, logs and signposts even with iOS app attachment. The
+iOS artifact includes TOC/table validation and sample row count; zero rows do not
+prove inactivity. The profiled app remains pinned if the journey leaves it. Keep them local unless sharing is authorised, and remove temporary
 artifacts when no longer needed.
 
 Capture tools do not provide automatic CPU, frame or blocked-thread analysis.

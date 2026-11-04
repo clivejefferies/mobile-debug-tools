@@ -575,7 +575,7 @@
   },
   {
     "name": "get_system_trace_capabilities",
-    "description": "Probe Android Perfetto prerequisites without recording. Device-wide system tracing is optional; iOS is unsupported.",
+    "description": "Probe Android Perfetto or iOS Instruments prerequisites without recording. iOS requires explicit booted simulator deviceId; reports template matrix and unknown profiling permissions.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
@@ -593,8 +593,57 @@
         "deviceId": {
           "type": "string",
           "minLength": 1
+        },
+        "appId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._-]+$",
+          "description": "iOS only: running development app bundle identifier; required for iOS start."
+        },
+        "template": {
+          "type": "string",
+          "enum": [
+            "System Trace",
+            "Time Profiler",
+            "Animation Hitches",
+            "Hangs"
+          ],
+          "description": "iOS only. Default Time Profiler; initial simulator support is Time Profiler only."
         }
       },
+      "oneOf": [
+        {
+          "properties": {
+            "platform": {
+              "const": "android"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "appId"
+                ]
+              },
+              {
+                "required": [
+                  "template"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "platform": {
+              "const": "ios"
+            }
+          },
+          "required": [
+            "deviceId"
+          ]
+        }
+      ],
       "allOf": [
         {
           "not": {
@@ -608,7 +657,7 @@
   },
   {
     "name": "start_system_trace",
-    "description": "Start bounded Android Perfetto recording, returning an owned trace_id. Run an existing journey with systemTraceId, then stop to retrieve a local artifact or cancel to discard. Device-wide traces may contain sensitive system annotations; no upload.",
+    "description": "Start bounded Android Perfetto or iOS simulator Time Profiler recording, returning an owned trace_id after readiness. iOS requires explicit deviceId and running appId. Run an existing journey with systemTraceId, then stop to retrieve a local artifact or cancel to discard. Traces can contain sensitive system metadata, logs and paths; local user-managed retention, no upload.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
@@ -627,6 +676,22 @@
           "type": "string",
           "minLength": 1
         },
+        "appId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._-]+$",
+          "description": "iOS only: running development app bundle identifier; required for iOS start."
+        },
+        "template": {
+          "type": "string",
+          "enum": [
+            "System Trace",
+            "Time Profiler",
+            "Animation Hitches",
+            "Hangs"
+          ],
+          "description": "iOS only. Default Time Profiler; initial simulator support is Time Profiler only."
+        },
         "durationMs": {
           "type": "integer",
           "minimum": 1000,
@@ -634,6 +699,40 @@
           "default": 30000
         }
       },
+      "oneOf": [
+        {
+          "properties": {
+            "platform": {
+              "const": "android"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "appId"
+                ]
+              },
+              {
+                "required": [
+                  "template"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "platform": {
+              "const": "ios"
+            }
+          },
+          "required": [
+            "deviceId",
+            "appId"
+          ]
+        }
+      ],
       "allOf": [
         {
           "not": {
@@ -673,7 +772,7 @@
   },
   {
     "name": "stop_system_trace",
-    "description": "Stop owned capture gracefully and retrieve a local Perfetto artifact. Retry after a transfer/cleanup failure.",
+    "description": "Stop owned capture gracefully and retrieve a local Perfetto file or validated Instruments .trace bundle. Retry after a transfer/cleanup failure.",
     "inputSchema": {
       "type": "object",
       "additionalProperties": false,
