@@ -330,8 +330,13 @@ Android reads explicitly targeted power/keyguard flags; missing or contradictory
 flags yield unknown. Known device blockers prevent readiness-wait success even
 when a lock-screen tree is stable. Waits allow natural recovery within the same
 budget; expiry retains READINESS_TIMEOUT and the last device observation.
-Unknown/unsupported signals retain existing UI-stability semantics and cannot
-prove input readiness. Managed debugger pause keeps its existing guard priority.
+Within one wait, an inconclusive device probe retains any last-known blocker
+for that axis, including its original evidence timestamp and the new probe-failure
+limitation. `DEVICE_BLOCKER_EVIDENCE_RETAINED` distinguishes that historical
+evidence; only a fresh conclusive state clears the corresponding blocker.
+Unknown/unsupported signals without an earlier blocker retain existing
+UI-stability semantics and cannot prove input readiness. Managed debugger pause
+keeps its existing guard priority.
 
 On iOS, the CoreDevice lock query reports unsupported only for an explicit
 matching capability rejection; other failures yield unknown. Successful lock

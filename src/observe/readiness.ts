@@ -1,4 +1,5 @@
-import { unknownDeviceReadiness, observeDeviceReadiness } from './device-readiness.js'
+import type { DeviceReadiness } from '../contracts/device-readiness.js'
+import { unknownDeviceReadiness, observeDeviceReadiness, finishDeviceReadiness } from './device-readiness.js'
 import type { GetUITreeResponse } from '../types.js'
 import { pausedReadiness } from '../debugger/guard.js'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -13,11 +14,29 @@ export function isDeviceUnavailable(error: unknown) {
   return /device.*(?:not found|offline|disconnected)|no devices found|READINESS_DEVICE_UNAVAILABLE/i.test(String(error))
 }
 
+function retainBlockedEvidence(previous: DeviceReadiness, next: DeviceReadiness) {
+  const retained: string[] = []
+  if (['unknown', 'unsupported'].includes(next.wakefulness) && ['asleep', 'transitioning'].includes(previous.wakefulness)) {
+    next.wakefulness = previous.wakefulness
+    retained.push('DEVICE_ASLEEP', 'DEVICE_TRANSITIONING')
+  }
+  if (['unknown', 'unsupported'].includes(next.lock_state) && previous.lock_state === 'locked') {
+    next.lock_state = previous.lock_state
+    retained.push('DEVICE_LOCKED')
+  }
+  if (retained.length) {
+    next.evidence = [...previous.evidence.filter(item => retained.includes(item.code)), ...next.evidence].slice(-8)
+    next.limitations = [...new Set([...next.limitations, 'DEVICE_BLOCKER_EVIDENCE_RETAINED'])]
+  }
+  return finishDeviceReadiness(next)
+}
+
 export class ReadinessTracker {
   deviceReadiness = unknownDeviceReadiness()
   get ready() { return this.summary.state === 'settled' && this.deviceReadiness.input_ready !== false }
   async observeDevice() {
-    this.deviceReadiness = await observeDeviceReadiness({ platform: this.platform, id: this.deviceId })
+    const next = await observeDeviceReadiness({ platform: this.platform, id: this.deviceId })
+    this.deviceReadiness = retainBlockedEvidence(this.deviceReadiness, next)
     if (this.deviceReadiness.input_ready === false) {
       this.signature = null
       this.stableSince = 0

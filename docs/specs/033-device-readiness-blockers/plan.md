@@ -114,3 +114,43 @@ This is local source/built-server evidence, not a published package or hosted CI
 The GitHub project status move remains unconfirmed; CLI project access lacks
 read:project, and browser actions were interrupted by concurrent user navigation.
 No ticket completion or remote publication is claimed.
+
+## PR #104 review repairs — 2026-11-04
+
+Lightweight fixes restoring the approved contract, based on the four attached
+unresolved review threads at head `b78268b`:
+
+- Reset UI-change candidate, change kind and stability timestamp when a device
+  blocker skips sampling. A deterministic clock test proves the full change
+  stability window must elapse again after recovery.
+- Retain last-known blocked power/keyguard axes within the same wait when a
+  later probe is inconclusive, including original evidence timestamps and new
+  failure limitations. Fresh conclusive evidence clears each axis independently.
+  Regression tests cover partial recovery, expired probes and READINESS_TIMEOUT.
+- Preserve the native tap/swipe response's resolved device in the action result.
+  No new target resolution or guarded-selection change. Tested implicit,
+  explicit and already-resolved targeting in debug/compact responses.
+- Attempt every emulator restoration command independently and always close the
+  client in a nested finally. Aggregate failures after all attempts; report PASS
+  only after successful cleanup. Injected failures cover each ADB step and close.
+
+All three production regressions were demonstrated to fail against the original
+PR head and pass with these fixes. `npm run verify`, focused regressions and
+final lint passed. Device verification results are recorded below.
+
+PR repair verification used local Node v23.11.0 and server 0.36.0. On Android 16
+`emulator-5554`, the updated stdio MCP server reported DEVICE_ASLEEP alongside
+successful start_app, ordinary tap and swipe dispatches. The readiness wait
+returned READINESS_TIMEOUT with DEVICE_ASLEEP still present, then recovered
+awake/unlocked; all restoration commands and client close completed. The first
+device-suite attempt timed out at the initial readiness RPC before state
+changes. A focused retry passed, as did the same journey in the serial suite
+retry. No timeout or assertion was weakened. Failed-cleanup paths were verified
+with injected failures rather than disconnecting a real emulator.
+
+The serial `MCP_READINESS_DEVICE=emulator-5554 npm run test:device` run passed,
+including Android/iOS screenshots, logs, UI trees, correlated evidence and
+Android trace cleanup. The iPhone 17 Pro iOS 26.4 simulator was temporarily
+booted and restored to shutdown. Optional coroutine/Kotlin/debugger/interaction
+fixtures and iOS tracing remained unrun. Hosted CI/JDK 17 package checks remain
+separate from these local results. `git diff --check` passed.

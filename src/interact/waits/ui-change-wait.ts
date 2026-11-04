@@ -30,7 +30,10 @@ async function sample(s: ChangeWait, deps: ChangeDependencies) {
   if (s.tracker) remainingBudget()
   const started = s.clock.now(), a = s.input
   await observeReadinessDeviceWait()
-  if (s.tracker?.deviceReadiness.input_ready === false) return null
+  if (s.tracker?.deviceReadiness.input_ready === false) {
+    s.candidate = null; s.change = null; s.since = null
+    return null
+  }
   const tree = await deps.observe({ platform: a.platform, deviceId: a.deviceId })
   observeReadinessWait(tree, started)
   const scoped = deps.scope(tree, a.scope, a.target)

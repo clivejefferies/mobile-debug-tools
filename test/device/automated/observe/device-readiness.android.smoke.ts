@@ -1,3 +1,4 @@
+import { cleanupReadinessDevice } from './device-readiness-cleanup.js'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
@@ -23,6 +24,7 @@ else {
     return result
   }
   let restore = false
+  let journeyError: unknown
   try {
     await client.connect(new StdioClientTransport({ command: process.execPath, args: ['dist/server.js'], stderr: 'pipe' }))
     const initial = await call('get_app_readiness')
@@ -40,9 +42,18 @@ else {
     const launch = await call('start_app', { appId: 'com.android.settings', verificationMode: 'none', responseMode: 'compact', actionTimeoutMs: 10000 })
     assert.equal(launch.success, true)
     assert.equal(launch.device_readiness.input_ready, false, 'launch dispatch must not erase the blocker')
+    for (const action of [
+      { name: 'tap', args: { x: 10, y: 10 } },
+      { name: 'swipe', args: { x1: 10, y1: 10, x2: 20, y2: 20, duration: 100 } }
+    ]) {
+      const input = await call(action.name, { ...action.args, verificationMode: 'none', responseMode: 'compact', actionTimeoutMs: 10000 })
+      assert.equal(input.success, true)
+      assert.ok(input.device_readiness.blockers.includes('DEVICE_ASLEEP'), 'ordinary input retains its resolved device blocker')
+    }
     const wait = await call('wait_for_app_ready', { timeoutMs: 1200, pollIntervalMs: 100 })
     assert.equal(wait.success, false)
     assert.equal(wait.failure_code, 'READINESS_TIMEOUT')
+    assert.ok(wait.device_readiness.blockers.includes('DEVICE_ASLEEP'), 'timeout retains the last observed blocker')
     adb('shell', 'input', 'keyevent', '224')
     const awake = await call('get_app_readiness')
     assert.equal(awake.device_readiness.wakefulness, 'awake')
@@ -55,14 +66,13 @@ else {
     assert.equal(recovered.success, true, JSON.stringify(recovered))
     assert.equal(recovered.device_readiness.lock_state, 'unlocked')
     assert.equal(recovered.device_readiness.input_ready, null)
-    console.log('PASS Android readiness: sleeping launch, blocked wait, awake recovery')
+  } catch (error) {
+    journeyError = error
+    throw error
   } finally {
-    if (restore) {
-      adb('shell', 'input', 'keyevent', '224')
-      adb('shell', 'wm', 'dismiss-keyguard')
-      adb('shell', 'input', 'keyevent', '3')
-    }
-    await client.close()
-    if (process.env.MCP_READINESS_EVIDENCE) writeFileSync(process.env.MCP_READINESS_EVIDENCE, JSON.stringify({ deviceId, server: 'dist/server.js', server_sha256: createHash('sha256').update(readFileSync('dist/server.js')).digest('hex'), runtime: process.version, observations, cleanup: 'wake, dismiss disposable keyguard, Home; no security settings changed' }, null, 2) + '\n')
+    const failures = await cleanupReadinessDevice(restore, adb, () => client.close())
+    if (process.env.MCP_READINESS_EVIDENCE) writeFileSync(process.env.MCP_READINESS_EVIDENCE, JSON.stringify({ deviceId, server: 'dist/server.js', server_sha256: createHash('sha256').update(readFileSync('dist/server.js')).digest('hex'), runtime: process.version, observations, cleanup: failures.length ? 'failed; all restoration steps and client close attempted' : 'wake, dismiss disposable keyguard, Home; no security settings changed' }, null, 2) + '\n')
+    if (failures.length) throw new AggregateError(journeyError ? [journeyError, ...failures] : failures, 'Device readiness cleanup failed')
   }
+  console.log('PASS Android readiness: sleeping launch, blocked wait, awake recovery and cleanup')
 }
