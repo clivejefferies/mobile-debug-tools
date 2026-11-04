@@ -150,11 +150,12 @@ available UI/log evidence rather than assuming capture is possible.
 Report the local `artifact.path`, device, journey outcome, `correlation_ids` and
 journey trace coverage. A completed capture is not proof the app outcome passed.
 Partial coverage and unsynchronised host/device clocks limit conclusions; linked
-IDs do not establish causality. Perfetto files and Instruments `.trace` bundles can contain sensitive system
-metadata, paths, symbols, logs and signposts even with iOS app attachment. The
-iOS artifact includes TOC/table validation and sample row count; zero rows do not
-prove inactivity. The profiled app remains pinned if the journey leaves it. Keep them local unless sharing is authorised, and remove temporary
-artifacts when no longer needed.
+IDs do not establish causality. Perfetto files and Instruments `.trace` bundles
+can contain sensitive system metadata, paths, symbols, logs and signposts even
+with iOS app attachment. Keep these artifacts local unless sharing is authorised,
+and remove temporary artifacts when no longer needed. The iOS artifact includes
+TOC/table validation and sample row count; zero rows do not prove inactivity.
+The profiled app remains pinned if the journey leaves it.
 
 Capture tools do not provide automatic CPU, frame or blocked-thread analysis.
 If a suitable analyser is available, inspect the artifact before making a cause

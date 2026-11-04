@@ -95,3 +95,44 @@ its path alias, socket and private diagnostic log were removed. The simulator's
 original Shutdown state and fixture absence were verified with simctl and the
 filesystem. The original companion and installed Xcode were unchanged. No active
 task recording remains. Changes are uncommitted and unpushed.
+
+## PR #102 review repair — 2026-11-04
+
+The three review findings were checked against the current branch. Clarified
+artifact retention wording in the canonical and generated Cursor skills, and
+separated Android/iOS capability and session fields in the tool guide.
+
+Monitoring now tolerates two consecutive non-definitive failures, resets the
+counter on success, and preserves COMMAND_FAILED/ACTION_TIMEOUT classifications.
+Unknown failures use bounded TRACE_MONITOR_FAILED rather than claiming a target
+disconnect. Storage, changed identity and missing-app failures remain immediate.
+Tolerated failures still reconcile expiry and recorder exit; retries retain the
+same device/app/recording and never restart capture.
+
+Deterministic tests cover reset, third-failure cleanup, immediate failures,
+reason privacy, pinned recording identity and deadline/recorder fall-through.
+Fresh maintainer/device results and focused simulator evidence are recorded
+below after validation; previous feature evidence remains scoped to its build.
+
+PR repair validation:
+
+- `npm run verify`: PASS on Node 23.11.0, including 94 unit files and plugin sync.
+- `npm run test:device`: Android+iOS observation/evidence checks passed; the
+  Android system-trace shutdown assertion failed in the full run. Its uniquely
+  owned leftover trace was removed. The unchanged Android trace smoke passed
+  independently afterward, including active shutdown. The initial suite failure
+  remains recorded; its exact cause was not established.
+- Focused iPhone 17 Pro / iOS 26.4 simulator check: PASS using built iOS adapters,
+  real Time Profiler recording, and explicitly injected monitor failures. Two
+  COMMAND_FAILED polls preserved capture and yielded seven exported sample rows;
+  three ACTION_TIMEOUT polls failed with that reason and complete cleanup.
+  See [pr102-monitor-evidence.json](pr102-monitor-evidence.json) for its build hash.
+  This checks monitoring and native capture, not a new UI-input journey or real
+  device disconnection. Deterministic tests establish expiry/reset/identity cases.
+- Fixture and test host artifacts removed; simulator returned to Shutdown.
+  Physical devices and hosted CI are not established by these local checks.
+
+Logs: `/private/tmp/mobile-debug-pr102-verify.log`,
+`/private/tmp/mobile-debug-pr102-device.log`,
+`/private/tmp/mobile-debug-pr102-android-rerun.log` and
+`/private/tmp/mobile-debug-pr102-monitor.log`.

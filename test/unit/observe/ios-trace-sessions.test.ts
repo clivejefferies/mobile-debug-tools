@@ -8,6 +8,7 @@ import type { TraceCommandResult } from '../../../src/observe/ios-trace/process.
 
 const target = { platform: 'ios' as const, id: 'sim', simulator: true, osVersion: '26.4', model: 'fixture' }
 function fixture() {
+  let monitorTick = 0, exitOnMonitor = false, exportMessage = 'EXPORT_FAILED'
   let now = 1000, failStart = false, failStop = false, failExport = false, monitor = '', stops = 0, starts = 0, validations = 0
   const timers = new Map<ReturnType<typeof setTimeout>, () => void>(), recordings: IosRecording[] = [], directories: string[] = []
   const time: TraceClock = { wall: () => now, mono: () => now, sleep: async ms => {now += ms},
@@ -27,12 +28,18 @@ function fixture() {
       return recording
     }
     async stop(r: IosRecording) {stops++; if(failStop) throw new Error('ACTION_TIMEOUT');r.recorder.signal('SIGINT');return r.recorder.done}
-    async monitor() {if(monitor)throw new Error(monitor)}
-    async validate(r: IosRecording) {validations++;if(failExport)throw new Error('EXPORT_FAILED');return {path:r.file,format:'instruments' as const,kind:'directory' as const,size_bytes:6,validation:{readable:true,schema:'time-sample',sample_rows:1}}}
+    async monitor(device: string, app: {pid:number;executable:string}, recording: IosRecording) {
+      assert.equal(device,target.id);assert.equal(app.pid,100);assert.equal(app.executable,'/fixture.app/Fixture')
+      assert.equal(recording,recordings.at(-1),'Retries must retain the same owned recording')
+      now+=monitorTick
+      if(exitOnMonitor)recording.recorder.signal('SIGINT')
+      if(monitor)throw new Error(monitor)
+    }
+    async validate(r: IosRecording) {validations++;if(failExport)throw new Error(exportMessage);return {path:r.file,format:'instruments' as const,kind:'directory' as const,size_bytes:6,validation:{readable:true,schema:'time-sample',sample_rows:1}}}
     shutdown() {for(const r of recordings)r.recorder.signal('SIGINT')}
   }
   const sessions = new IosTraceSessions(new Native(),time)
-  return {sessions,recordings,timers,flags:(v:{start?:boolean;stop?:boolean;export?:boolean;monitor?:string})=>{failStart=v.start??false;failStop=v.stop??false;failExport=v.export??false;monitor=v.monitor??''},
+  return {sessions,recordings,timers,flags:(v:{start?:boolean;stop?:boolean;export?:boolean;monitor?:string;monitorTick?:number;exitOnMonitor?:boolean;exportMessage?:string})=>{failStart=v.start??false;failStop=v.stop??false;failExport=v.export??false;monitor=v.monitor??'';monitorTick=v.monitorTick??0;exitOnMonitor=v.exitOnMonitor??false;exportMessage=v.exportMessage??'EXPORT_FAILED'},
     tick:(ms:number)=>{now+=ms},counts:()=>({stops,starts,validations}),
     cleanup:async()=>{await sessions.shutdown();for(const d of directories)await fs.rm(d,{recursive:true,force:true})}}
 }
@@ -72,6 +79,49 @@ async function run() {
       f.flags({})
       assert.equal((await f.sessions.control(s.trace_id,'stop')).state,'completed')
       assert.equal(f.counts().starts,1,'Retry must not start a new recording')
+    }finally{await f.cleanup()}
+  }
+  const exportClassification=fixture()
+  try {
+    const s=await exportClassification.sessions.start(target,'fixture')
+    exportClassification.flags({export:true,exportMessage:'COMMAND_FAILED'})
+    const failed=await exportClassification.sessions.control(s.trace_id,'stop')
+    assert.equal(failed.reason,'TRACE_ARTIFACT_FAILED','Monitor classification must not alter export errors')
+    assert.match(failed.recovery!,/Retry stop/)
+  }finally{await exportClassification.cleanup()}
+  for(const reason of ['COMMAND_FAILED','ACTION_TIMEOUT','TARGET_DISCONNECTED','private unexpected output']) {
+    const f=fixture()
+    try {
+      const s=await f.sessions.start(target,'fixture')
+      f.flags({monitor:reason})
+      for(let n=0;n<2;n++)assert.equal((await f.sessions.control(s.trace_id,'status')).state,'recording')
+      assert.equal(f.counts().stops,0)
+      f.flags({});assert.equal((await f.sessions.control(s.trace_id,'status')).state,'recording')
+      f.flags({monitor:reason})
+      for(let n=0;n<2;n++)assert.equal((await f.sessions.control(s.trace_id,'status')).state,'recording','Successful poll must reset consecutive failure count')
+      const failed=await f.sessions.control(s.trace_id,'status')
+      assert.equal(failed.state,'failed');assert.equal(failed.reason,reason==='private unexpected output'?'TRACE_MONITOR_FAILED':reason)
+      assert.equal(failed.cleanup.status,'complete');assert.equal(failed.artifact,null)
+      assert.equal(f.counts().starts,1);assert.equal(f.recordings[0].recorder.alive(),false)
+      assert.ok(!JSON.stringify(failed).includes('private unexpected output'))
+    }finally{await f.cleanup()}
+  }
+  for(const reason of ['APP_IDENTITY_CHANGED','APP_NOT_RUNNING']) {
+    const f=fixture()
+    try {
+      const s=await f.sessions.start(target,'fixture');f.flags({monitor:reason})
+      const failed=await f.sessions.control(s.trace_id,'status')
+      assert.equal(failed.state,'failed');assert.equal(failed.reason,reason);assert.equal(failed.cleanup.status,'complete')
+    }finally{await f.cleanup()}
+  }
+  for(const ended of ['deadline','recorder'] as const) {
+    const f=fixture()
+    try {
+      const s=await f.sessions.start(target,'fixture',1000)
+      f.flags({monitor:'COMMAND_FAILED',monitorTick:ended==='deadline'?1001:0,exitOnMonitor:ended==='recorder'})
+      const result=await f.sessions.control(s.trace_id,'status')
+      assert.equal(result.state,'completed','A tolerated failed poll must still reconcile duration/recorder completion')
+      assert.equal(result.completion_reason,'duration_limit');assert.ok(result.artifact)
     }finally{await f.cleanup()}
   }
   const shutdown=fixture()

@@ -23,7 +23,7 @@ export interface IosTraceResult {
 interface Session {
   result: IosTraceResult; directory?: string; app?: IosApp; recording?: IosRecording
   timer?: ReturnType<typeof setTimeout>; deadline: number; terminal?: number; discard: boolean
-  queue: Promise<unknown>; linked: Set<string>; partial: Set<string>; recorderOk?: boolean
+  queue: Promise<unknown>; linked: Set<string>; partial: Set<string>; recorderOk?: boolean; monitorFailures?: number
 }
 const reasonFor = (error: unknown, fallback: string) => {
   const code = error instanceof Error ? error.message : ''
@@ -99,8 +99,20 @@ export class IosTraceSessions {
   }
   private async poll(s: Session) {
     if (s.result.state !== 'recording' || !s.recording || !s.app) return
-    try { await this.native.monitor(s.result.device.id, s.app, s.recording) }
-    catch (error) { this.fail(s, reasonFor(error, 'TARGET_DISCONNECTED')); s.discard = true; await this.finalise(s, 'cancel', true); return }
+    try {
+      await this.native.monitor(s.result.device.id, s.app, s.recording)
+      s.monitorFailures = 0
+    } catch (error) {
+      const reason = error instanceof Error && error.message === 'COMMAND_FAILED'
+        ? 'COMMAND_FAILED' : reasonFor(error, 'TRACE_MONITOR_FAILED')
+      const definitive = ['STORAGE_LIMIT', 'APP_IDENTITY_CHANGED', 'APP_NOT_RUNNING'].includes(reason)
+      s.monitorFailures = (s.monitorFailures ?? 0) + 1
+      if (definitive || s.monitorFailures >= 3) {
+        this.fail(s, reason); s.discard = true
+        await this.finalise(s, 'cancel', true)
+        return
+      }
+    }
     if (this.time.mono() >= s.deadline || !s.recording.recorder.alive()) await this.finalise(s, 'duration')
   }
   async control(id: string, op: 'status' | 'stop' | 'cancel' | 'duration', timeout?: number) {

@@ -1,0 +1,22 @@
+{
+  "source": "built dist iOS sessions/native adapter; injected monitor failures, real Instruments capture",
+  "device": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+  "runtime": "v23.11.0",
+  "transient_recovery": {
+    "status": "PASS",
+    "injected_command_failures": 2,
+    "trace_id": "a979b090-3ebb-4a95-92d0-9060c8105d45",
+    "pid": 90191,
+    "sample_rows": 7,
+    "artifact_bytes": 10898587
+  },
+  "repeated_timeout": {
+    "status": "PASS",
+    "reason": "ACTION_TIMEOUT",
+    "cleanup": "complete"
+  },
+  "status": "PASS",
+  "build_sha256": "e735ac25c9b0065797b748934efa5f3fc977a538fffef50e464b31ca4603c64a",
+  "cleanup": "Owned captures stopped; fixture and host artifacts removed; simulator shutdown restored separately",
+  "simulator_restored_to_shutdown": true
+}

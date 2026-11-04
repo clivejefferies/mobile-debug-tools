@@ -18,7 +18,7 @@ booted simulator UDID, plus `appId` for start; it never records the Mac host.
 
 | Tool | Arguments | Result |
 | --- | --- | --- |
-| `get_system_trace_capabilities` | `platform`, `deviceId?`, `appId?`, `template?` | `supported`, `backend`, resolved `device`, prerequisite booleans, reasons, enabled sources, unavailable categories, limitations. No recording. |
+| `get_system_trace_capabilities` | `platform`, `deviceId?`, `appId?`, `template?` | Common: `supported`, `backend`, resolved `device`, reasons and limitations. Android: prerequisite booleans, `enabled_sources`, `unavailable_categories`. iOS: prerequisites as `available`/`missing`/`unknown`, `discovered_templates`, `templates`, `app`, `xcode_version`, `recovery`. No recording. |
 | `start_system_trace` | `platform`, `deviceId?`, `durationMs?`, `appId?`, `template?` | Owned recording session after native readiness acknowledgement. Duration is an integer 1,000–120,000 ms, default 30,000. |
 | `get_system_trace_status` | `traceId` | Reconcile process/deadline and finalise ended recording. |
 | `stop_system_trace` | `traceId` | Gracefully stop and retrieve local artifact; retry transfer/cleanup after failure. |
@@ -92,10 +92,11 @@ proof of causality; host intervals are not aligned with device trace clocks.
 JSON responses contain `trace_id`, process-scoped `session_id`, `device`,
 `backend:"perfetto"` (Android) or `"xctrace"` (iOS), `state` (starting/recording/stopping/completed/cancelled/failed),
 nullable `reason` and `completion_reason`, host UTC capture bounds, nullable
-`artifact`, `cleanup`, `correlation_ids`, `enabled_sources`, and
-`unavailable_categories`. Capture bounds include command/acknowledgement latency.
+`artifact`, `cleanup`, and `correlation_ids`. Android additionally returns
+`enabled_sources` and `unavailable_categories`. Capture bounds include command/acknowledgement latency.
 
-`artifact` contains absolute `path`, `format:"perfetto"` and `size_bytes`.
+Android `artifact` contains absolute `path`, `format:"perfetto"` and `size_bytes`;
+see the iOS section below for Instruments artifact and session fields.
 `cleanup` contains `status` (pending/complete/failed) and `remaining_resources`.
 Errors preserve known session metadata and set MCP `isError`. Argument/unknown-ID
 errors return `{error:{tool,code,message}}` without a session. Codes include
@@ -161,7 +162,12 @@ include bounded recovery guidance; raw recorder output is not returned.
 Only the session-owned recorder is signalled; cleanup never terminates the app.
 iOS readiness has a 35-second budget, stop/finalisation 30 seconds and artifact
 validation 30 seconds. Recording is bounded by native duration and server
-monitoring. Shutdown attempts cancellation under an overall ten-second budget.
+monitoring. Monitoring retains the pinned app identity and tolerates two consecutive
+non-definitive command failures, resetting after a successful poll. The third
+fails capture with its bounded reason (`COMMAND_FAILED`, `ACTION_TIMEOUT`, or
+`TRACE_MONITOR_FAILED` for an unclassified failure). Storage limits, changed app
+identity and a missing running app fail immediately. Expiry and recorder exit
+are still checked after a tolerated poll failure. Shutdown attempts cancellation under an overall ten-second budget.
 Failed export can be retried using stop/status without starting another recording;
 cancel removes owned partial files. Completed artifacts remain for user deletion.
 
