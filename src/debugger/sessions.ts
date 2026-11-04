@@ -1,6 +1,8 @@
 import { atStage, classify, diagnostic, type DebuggerDiagnostic, type DiagnosticStage } from './diagnostics.js';
 import type { WorkerReply } from './protocol.js';
 import { registerDebuggerPauseProvider } from './guard.js';
+import { IOSDebugNative } from './ios.js';
+import { createIOSWorker, prepareIOSWorker, iosCapabilities, iosLimitations } from './ios-worker.js';
 import { randomUUID } from 'node:crypto';
 import { AndroidDebugNative, type DebugNative, type DebugTarget } from './android.js';
 import { createWorker, prepareWorker, DebuggerError, withDebuggerBudget, debuggerRemaining, type DebugWorker, type WorkerEvent } from './worker.js';
@@ -56,14 +58,16 @@ interface ResultPayload {
 }
 export const debuggerCapabilities = { attach: true, breakpoints: true, stacks: true, locals: true, step: true, resume: true,
     evaluation: false, mutation: false, coroutines: false, native: false };
-const limitations = ['JAVA_KOTLIN_BYTECODE_ONLY', 'DEBUG_METADATA_REQUIRED', 'SHALLOW_LOCALS', 'ALL_THREADS_SUSPEND', 'DEVICE_WIDE_UI_GUARD'];
+export const androidLimitations = ['JAVA_KOTLIN_BYTECODE_ONLY', 'DEBUG_METADATA_REQUIRED', 'SHALLOW_LOCALS', 'ALL_THREADS_SUSPEND', 'DEVICE_WIDE_UI_GUARD'];
 export function debuggerExpiry(created: number, activity: number, pausedAt: number | undefined, now: number) {
     return pausedAt !== undefined && now - pausedAt >= 60000 ? 'pause_limit' : now - activity >= 300000 ? 'idle_limit' : now - created >= 1800000 ? 'session_limit' : null;
 }
 export class DebuggerSessions {
     private sessions = new Map<string, Session>();
     private closing = false;
-    constructor(private native: DebugNative = new AndroidDebugNative(), private workerFactory = createWorker, private prerequisite = prepareWorker) { }
+    constructor(private native: DebugNative = new AndroidDebugNative(), private workerFactory: (event: (event: WorkerEvent) => void) => Promise<DebugWorker> = createWorker, private prerequisite: () => Promise<unknown> = prepareWorker, private options: { platform?: 'android' | 'ios'; capabilities?: Record<string, boolean>; limitations?: string[] } = {}) { }
+    private get platform() { return this.options.platform ?? 'android'; }
+    private get workerResource() { return this.platform === 'ios' ? 'lldb_worker' : 'jdi_worker'; }
     private prune() {
         const terminal = [...this.sessions.values()].filter(s => s.terminalAt !== undefined && s.cleanup.status === 'complete');
         for (const s of terminal)
@@ -80,9 +84,10 @@ export class DebuggerSessions {
         const success = payload.success ?? (!['failed', 'disconnected'].includes(s.state) && s.cleanup.status !== 'failed');
         const code = s.cleanup.status === 'failed' ? 'DEBUGGER_CLEANUP_FAILED' : s.state === 'disconnected' ? 'DEBUGGER_DISCONNECTED' : s.reason?.match(/^[A-Z_]+$/) ? s.reason : 'DEBUGGER_WORKER_FAILED';
         return structuredClone({ success, ...(!success ? { error: { code, message: code, retryable: false, diagnostic: s.cleanup.status === 'failed' ? diagnostic('cleanup', 'operation_failed') : s.diagnostic ?? diagnostic('unknown', 'unknown') } } : {}), debug_session_id: s.id,
-            device: { platform: 'android', id: s.device }, target: s.target, state: s.state, captured_at_ms: Date.now(),
-            capabilities: debuggerCapabilities, limitations, cleanup: s.cleanup, reason: s.reason, stop: s.stop, ...payload });
+            device: { platform: this.platform, id: s.device }, target: s.target, state: s.state, captured_at_ms: Date.now(),
+            capabilities: this.options.capabilities ?? debuggerCapabilities, limitations: this.options.limitations ?? androidLimitations, cleanup: s.cleanup, reason: s.reason, stop: s.stop, ...payload });
     }
+    owns(id: string) { return this.sessions.has(id); }
     summary(id: string) { return this.result(this.get(id)); }
     hasActiveSessions() { return [...this.sessions.values()].some(s => s.cleanup.status !== 'complete'); }
     paused(device: string) { const s = [...this.sessions.values()].find(s => s.device === device && s.state === 'paused'); return s ? this.result(s) : null; }
@@ -112,13 +117,13 @@ export class DebuggerSessions {
             s.events.shift();
     }
     async capabilities(device: string, app: string, pid?: number) {
-        const prerequisites: Record<string, boolean> = { jdk: false, device: false, process: false };
+        const prerequisites: Record<string, boolean> = { [this.platform === 'ios' ? 'lldb' : 'jdk']: false, device: false, process: false };
         let candidates: DebugTarget[] = [];
         const reasons: string[] = [];
         const diagnostics: DebuggerDiagnostic[] = [];
         try {
             await atStage('prerequisite', 'DEBUGGER_UNSUPPORTED', () => this.prerequisite());
-            prerequisites.jdk = true;
+            prerequisites[this.platform === 'ios' ? 'lldb' : 'jdk'] = true;
         }
         catch (e) {
             if (e instanceof DebuggerError && ['DEBUGGER_TIMEOUT', 'DEBUGGER_CANCELLED'].includes(e.code))
@@ -139,9 +144,9 @@ export class DebuggerSessions {
             reasons.push(e instanceof DebuggerError ? e.code : 'DEVICE_UNAVAILABLE');
             diagnostics.push(classify(e, 'target_resolution', 'DEVICE_UNAVAILABLE').diagnostic ?? diagnostic('target_resolution', 'unknown'));
         }
-        return { success: true, debug_session_id: null, device: { platform: 'android', id: device }, target: null, state: null,
+        return { success: true, debug_session_id: null, device: { platform: this.platform, id: device }, target: null, state: null,
             captured_at_ms: Date.now(), supported: Object.values(prerequisites).every(Boolean), prerequisites, candidates,
-            ...(diagnostics.length ? { diagnostics } : {}), capabilities: debuggerCapabilities, reasons, limitations, cleanup: { status: 'complete', remaining_resources: [] } };
+            ...(diagnostics.length ? { diagnostics } : {}), capabilities: this.options.capabilities ?? debuggerCapabilities, reasons, limitations: this.options.limitations ?? androidLimitations, cleanup: { status: 'complete', remaining_resources: [] } };
     }
     async attach(device: string, app: string, pid?: number, timeout = 10000) {
         this.prune();
@@ -167,16 +172,19 @@ export class DebuggerSessions {
                 if (candidates.length > 1)
                     throw new DebuggerError('PROCESS_AMBIGUOUS');
                 s.target = candidates[0];
+                if (this.platform === 'android') {
                 stage = 'forwarding';
                 s.port = await atStage('forwarding', 'DEBUGGER_ATTACH_FAILED', () => this.native.forward(device, s.target!.pid));
                 remaining();
                 s.cleanup.remaining_resources.push(`forward:tcp:${s.port}`);
+                }
                 stage = 'worker_start';
                 s.worker = await atStage('worker_start', 'DEBUGGER_ATTACH_FAILED', () => this.workerFactory(event => this.event(s, event)));
                 remaining();
-                s.cleanup.remaining_resources.push('jdi_worker');
+                s.cleanup.remaining_resources.push(this.workerResource);
+                if (this.platform === 'ios') await atStage('target_resolution', 'DEBUGGER_ATTACH_FAILED', () => this.native.identity(device, s.target!));
                 stage = 'attach';
-                await atStage('attach', 'DEBUGGER_ATTACH_FAILED', () => s.worker!.call('attach', { port: s.port, timeoutMs: remaining() }, remaining()));
+                await atStage('attach', 'DEBUGGER_ATTACH_FAILED', () => s.worker!.call('attach', { port: s.port, ...(this.platform === 'ios' ? { pid: s.target!.pid, executablePath: s.target!.executable_path } : {}), timeoutMs: remaining() }, remaining()));
                 stage = 'target_resolution';
                 await atStage('target_resolution', 'DEBUGGER_ATTACH_FAILED', () => this.native.identity(device, s.target!));
                 remaining();
@@ -227,7 +235,7 @@ export class DebuggerSessions {
                     s.worker = undefined;
                 }
                 catch {
-                    remaining.push('jdi_worker');
+                    remaining.push(this.workerResource);
                 }
             }
             if (s.port !== undefined && s.target) {
@@ -275,6 +283,7 @@ export class DebuggerSessions {
     private assertCommandTarget(s: Session, command: string, args: CommandArgs) {
         if (!s.worker || ['detaching', 'detached', 'disconnected', 'failed'].includes(s.state))
             throw new DebuggerError('DEBUGGER_DISCONNECTED', s.diagnostic ?? diagnostic('command', 'unavailable'));
+        if (command === 'set' && (this.platform === 'ios' ? typeof args.sourceFile !== 'string' || args.className !== undefined : typeof args.className !== 'string' || args.sourceFile !== undefined)) throw new DebuggerError('INVALID_ARGUMENT');
         if (['stack', 'locals', 'step', 'resume'].includes(command)) {
             if (args.stopId !== s.stop?.stop_id)
                 throw new DebuggerError('DEBUGGER_STALE_REFERENCE');
@@ -291,6 +300,7 @@ export class DebuggerSessions {
         if (command === 'state' && (s.cleanup.status === 'complete' || ['detaching', 'detached', 'disconnected', 'failed'].includes(s.state)))
             return this.result(s);
         this.assertCommandTarget(s, command, args);
+        const previous = { state: s.state, stop: s.stop, pausedAt: s.pausedAt };
         if (command === 'step' || command === 'resume') {
             s.state = 'running';
             s.stop = null;
@@ -301,6 +311,7 @@ export class DebuggerSessions {
             return this.result(s, command === 'state' ? { breakpoints: data.breakpoints } : { result: data });
         }
         catch (e) {
+            if (['step', 'resume'].includes(command) && s.state === 'running' && s.stop === null && e instanceof DebuggerError && ['INVALID_ARGUMENT', 'DEBUGGER_STALE_REFERENCE'].includes(e.code)) Object.assign(s, previous);
             return this.handleCommandError(s, command, classify(e, 'command', 'DEBUGGER_WORKER_FAILED'));
         }
     }
@@ -324,4 +335,5 @@ export class DebuggerSessions {
     async shutdown() { this.closing = true; await Promise.allSettled([...this.sessions.values()].filter(s => s.cleanup.status !== 'complete').map(s => this.serial(s, () => this.cleanup(s, true)))); return [...this.sessions.values()].filter(s => s.cleanup.status !== 'complete').map(s => this.result(s)); }
 }
 export const debuggerSessions = new DebuggerSessions();
-registerDebuggerPauseProvider(device => debuggerSessions.paused(device));
+export const iosDebuggerSessions = new DebuggerSessions(new IOSDebugNative(), createIOSWorker, prepareIOSWorker, { platform: 'ios', capabilities: iosCapabilities, limitations: iosLimitations });
+registerDebuggerPauseProvider((device, platform = 'android') => (platform === 'ios' ? iosDebuggerSessions : debuggerSessions).paused(device));

@@ -35,7 +35,7 @@ export async function getAppReadiness(args: Target & { timeoutMs?: number; stabi
         let count = 0
         while (wait || count < 2) {
           remainingBudget()
-          debugPause = device!.platform === 'android' ? pausedReadiness(device!.id) : null
+          debugPause = pausedReadiness(device!.id, device!.platform)
           if (debugPause) { failureCode = wait ? 'DEBUGGER_PAUSED' : undefined; return }
           const captureStarted = Date.now()
           try {

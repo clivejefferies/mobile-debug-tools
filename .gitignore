@@ -32,3 +32,6 @@ Thumbs.db
 
 # Generated client distribution package
 /antigravity-dist/
+
+# Optional LLDB Python worker cache
+__pycache__/

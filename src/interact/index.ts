@@ -157,11 +157,22 @@ export class ToolsInteract {
     return await interact.tap(x, y, resolved.id, timeoutMs)
   }
 
+  private static _getResolvedElement(elementId: string, platform?: 'android' | 'ios', deviceId?: string) {
+    const resolved = ToolsInteract._resolvedUiElements.get(elementId)
+    if (!resolved || (platform && resolved.platform !== platform) || (deviceId && resolved.deviceId !== deviceId)) return null
+    return resolved
+  }
+
+  static getResolvedElementTarget(elementId: string, platform?: 'android' | 'ios', deviceId?: string) {
+    const resolved = ToolsInteract._getResolvedElement(elementId, platform, deviceId)
+    return resolved ? { platform: resolved.platform, deviceId: resolved.deviceId } : null
+  }
+
   static async tapElementHandler({ elementId, verificationMode = 'full', timeoutMs, platform, deviceId, freshTree }: { elementId: string, verificationMode?: 'none' | 'light' | 'full', timeoutMs?: number, platform?: 'android' | 'ios', deviceId?: string, freshTree?: UiTree }): Promise<TapElementResponse> {
     const actionType = 'tap_element'
     const selector = { elementId }
-    const resolved = ToolsInteract._resolvedUiElements.get(elementId)
-    if (!resolved || (platform && resolved.platform !== platform) || (deviceId && resolved.deviceId !== deviceId)) {
+    const resolved = ToolsInteract._getResolvedElement(elementId, platform, deviceId)
+    if (!resolved) {
       return ToolsInteract._actionFailure(actionType, selector, null, 'STALE_REFERENCE', true, null)
     }
 

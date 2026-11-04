@@ -1,3 +1,4 @@
+import { checkDebuggerGuard } from '../debugger/guard.js'
 import { buildIOS } from './ios/build.js'
 import type { IOSBuildOptions } from './ios/build-types.js'
 export type { IOSBuildOptions } from './ios/build-types.js'
@@ -160,6 +161,7 @@ export class iOSManage {
 
 async function installWithIdb(toInstall: string, deviceId: string) {
   await new Promise<void>((resolve, reject) => {
+    checkDebuggerGuard(true)
     const proc = spawn(getIdbCmd(), ['install', toInstall, '--udid', deviceId]);
     let stderr = '';
     proc.stderr.on('data', d => stderr += d.toString());

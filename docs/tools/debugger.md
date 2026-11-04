@@ -1,4 +1,4 @@
-# Android runtime debugger
+# Runtime debugger
 
 [Documentation](../README.md) · [Tool reference](TOOLS.md)
 
@@ -98,7 +98,7 @@ state-changing command. Timeout or cancellation does not prove nondelivery.
 Retry incomplete cleanup with `detach_debugger`; never automatically retry
 attach, step or resume, or kill the app/ADB server. Diagnostics improve failure
 classification and do not establish the cause of a previously intermittent error.
-This contract applies to the Android backend; iOS debugging remains unsupported.
+These details describe Android; see the iOS simulator backend below for its prerequisites and recovery guidance.
 
 ## Suspension, limits and cleanup
 
@@ -108,8 +108,8 @@ racing input submission preserves delivery uncertainty and blocks verification.
 Journeys preserve completed steps. Other devices are unaffected.
 
 `get_app_readiness` returns evidence-backed `debugger_paused` without reading the
-UI; readiness waits fail with `DEBUGGER_PAUSED`. This signal covers managed Android
-sessions only and does not establish foreground app identity. Raw trees, screenshots
+UI; readiness waits fail with `DEBUGGER_PAUSED`. This signal covers managed Android and iOS simulator
+sessions and does not establish foreground app identity. Raw trees, screenshots
 and logs remain available within their own timeouts; snapshot/log acquisition may
 still fail while the app is suspended. Known pauses are annotated on observations.
 
@@ -134,7 +134,7 @@ step, resume or attach.
 ## Limits, privacy and evidence
 
 There is no expression evaluation, object traversal, method invocation, mutation,
-coroutine reconstruction, native debugger, iOS debugger or heap capture. Kotlin
+coroutine reconstruction, native-specific inspection or heap capture. The optional iOS simulator backend is described below. Kotlin
 results follow emitted bytecode/debug metadata; optimized/obfuscated apps may lack
 useful source lines or locals. Locals may contain private data: values are returned
 only on request, without protocol/value logging, persistent dumps or upload.
@@ -178,3 +178,43 @@ is selected. Fixture compilation requires SDK platform/build-tools 36 and `javac
 - [App management](manage.md): build, install, and launch the app before attaching.
 - [App readiness](observe.md#app-readiness): understand known debugger-pause evidence.
 - [Android system traces](system-traces.md): investigate performance without paused-state inspection.
+
+## iOS simulator backend
+
+The same eleven tools accept `platform: "ios"` for target capability probes and
+attach. Supply an explicit booted simulator UDID and bundle `appId`; an optional
+`processId` must belong to that simulator's installed app. Requires macOS and full
+Xcode with its Swift-enabled LLDB and Python bindings. Physical iOS devices remain
+unsupported. Attach never launches an app, chooses a host process by name alone,
+replaces another debugger, or changes security settings.
+
+For `set_debugger_breakpoint`, supply `sourceFile` (absolute local source path)
+and 1-based `line` for iOS; continue using binary `className` for Android. Exactly
+one selector is required. iOS reports `resolved`, `pending` or `rejected` with
+actual locations; LLDB line relocation is disabled. Pending breakpoints may bind
+when their image loads. Other tool arguments, stop-scoped references, stack/locals
+limits, event cursors, response modes and expiry durations follow the flow above.
+
+iOS returns backend-specific capabilities and limitations; `target.uid` may be
+null and `target.executable_path` identifies the verified simulator executable.
+`async_execution_inspection` and `async_stepping` are independent capability flags.
+False means the capability is not established for the backend's supported matrix;
+inspect the limitations. A source breakpoint after await and a shallow local do
+not enumerate suspended tasks or establish logical task identity. Step requests
+acknowledge delivery; inspect the subsequent actual stop. Object locals expose
+only bounded type/opaque identity; Swift standard numeric/bool wrappers are read
+from static storage; Swift strings and other aggregates retain type summaries. No expressions, descriptions, dynamic getters or arbitrary
+LLDB commands execute through this API.
+
+Known iOS pauses guard lifecycle actions, input, waits and assertions on that
+platform/device and supply `debugger_paused` readiness. Raw observations remain
+available within their own deadlines. Detach removes owned breakpoints and worker
+resources and releases owned suspension; it never kills the app or simulator.
+A worker exit without confirmed detach/process exit cannot prove cleanup; retry
+`detach_debugger` and inspect `cleanup.remaining_resources`. Failure diagnostics
+provide static Xcode/LLDB-specific recovery guidance without raw worker text.
+
+Use the [isolated simulator fixture](../../test/fixtures/ios-debugger-app/README.md)
+for real MCP runtime and async checks. The [implementation plan](../specs/032-ios-runtime-debugger/plan.md)
+records exact verification and unavailable coverage. An installed/published package,
+physical device, or other Xcode version requires separate evidence.

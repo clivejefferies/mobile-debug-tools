@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { DebuggerError, debuggerRemaining, debuggerSignal, nativeError } from './worker.js'
 const exec = promisify(execFile)
-export interface DebugTarget { app_id: string; pid: number; process_name: string; start_identity: string; uid: number }
+export interface DebugTarget { app_id: string; pid: number; process_name: string; start_identity: string; uid: number | null; executable_path?: string }
 export interface DebugNative {
   candidates(device: string, app: string): Promise<DebugTarget[]>
   identity(device: string, target: DebugTarget): Promise<DebugTarget>

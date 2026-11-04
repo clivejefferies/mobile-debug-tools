@@ -5,7 +5,7 @@ interface PauseEvidence {
   captured_at_ms: number
   target: unknown
 }
-let pauseProvider: (device: string) => PauseEvidence | null = () => null
+let pauseProvider: (device: string, platform?: string) => PauseEvidence | null = () => null
 export function registerDebuggerPauseProvider(provider: typeof pauseProvider) { pauseProvider = provider }
 const context = new AsyncLocalStorage<{ platform: string; device: string; dispatched: boolean }>()
 export function withDebuggerGuard<T>(platform: string, device: string, operation: () => Promise<T>) {
@@ -14,13 +14,13 @@ export function withDebuggerGuard<T>(platform: string, device: string, operation
 // Synchronous checks and native submission share a JS turn with pause updates.
 export function checkDebuggerGuard(dispatch = false) {
   const current = context.getStore()
-  if (!current || current.platform !== 'android') return
-  if (pauseProvider(current.device)) throw new DebuggerError('DEBUGGER_PAUSED')
+  if (!current) return
+  if (pauseProvider(current.device, current.platform)) throw new DebuggerError('DEBUGGER_PAUSED')
   if (dispatch) current.dispatched = true
 }
 export function guardDispatched() { return context.getStore()?.dispatched ?? false }
-export function pausedReadiness(device: string) {
-  const paused = pauseProvider(device)
+export function pausedReadiness(device: string, platform = 'android') {
+  const paused = pauseProvider(device, platform)
   if (!paused) return null
   return { state: 'debugger_paused' as const, scope: 'device_ui' as const, basis: 'observed' as const,
     captured_at_ms: paused.captured_at_ms, sample_count: 0, stable_for_ms: 0, snapshot_session_id: null, snapshot_revision: null,

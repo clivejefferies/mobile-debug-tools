@@ -1,7 +1,7 @@
 {
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "mobile-debug-tools",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
   "author": {
     "name": "mobile-debug-tools contributors"
