@@ -161,5 +161,12 @@ No tool schema, timeout or inspection behaviour changes.
   no assertion or timeout was modified. Original/retry logs:
   `/tmp/pr103-cache-verify.log`, `/tmp/pr103-cache-conditional-retest.log`.
 
+The regression child loads its TypeScript toolchain before platform emulation,
+so the host retains its native compiler selection on Linux. This test-only ordering
+adjustment also passed all 97 files in `npm run verify` (log:
+`/tmp/pr103-cache-portable-verify.log`). The preparation fix was published in
+`f00e9fd`, and its review thread was resolved; both hosted unit-test runs passed
+that commit. Later PR-head checks must be assessed separately.
+
 The broader device-suite failures above remain separate; this fix does not claim
 that their causes were established or corrected. Simulator shutdown was restored.

@@ -77,7 +77,7 @@ unrun variants and original failed observations.
 - [x] Cache shared iOS preparation and reset rejected preparation for retry.
 - [x] Add fake-toolchain coverage for concurrent reuse, retry and worker creation.
 - [x] Check real Xcode cached preparation and rerun the focused iOS MCP journey.
-- [x] Complete quiet repository verification (97 unit files); repair ready for PR publication.
+- [x] Complete quiet repository verification (97 unit files); publish the repair to PR #103.
 
 See the [report follow-up](report.md#pr-103-preparation-cache-follow-up--2026-11-04)
 for exact evidence and retained broader-suite limitations.

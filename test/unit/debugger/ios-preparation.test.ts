@@ -29,9 +29,10 @@ if(process.argv.includes('-c')) {
 `, { mode: 0o700 })
   const code = `
 import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+// Load the TypeScript toolchain before emulating macOS so Linux selects its own esbuild.
+const {prepareIOSWorker,createIOSWorker}=await import('./src/debugger/ios-worker.ts');
 // Isolate platform emulation and native binaries from the unit runner process.
 Object.defineProperty(process,'platform',{value:'darwin'});
-const {prepareIOSWorker,createIOSWorker}=await import('./src/debugger/ios-worker.ts');
 const first=prepareIOSWorker();assert.strictEqual(first,prepareIOSWorker());
 const failed=await Promise.allSettled([first,prepareIOSWorker()]);
 assert.ok(failed.every(result=>result.status==='rejected'));
