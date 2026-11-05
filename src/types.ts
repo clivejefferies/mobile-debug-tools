@@ -7,6 +7,7 @@ export interface DeviceInfo {
   model: string;
   simulator: boolean;
   appInstalled?: boolean;
+  appInstallation?: import('./utils/app-installation.js').AppInstallation;
   booted?: boolean;
 }
 

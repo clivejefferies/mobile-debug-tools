@@ -1,3 +1,4 @@
+import { validAppId } from '../utils/app-installation.js'
 import type { IOSBuildOptions } from './ios.js'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -303,6 +304,7 @@ export class ToolsManage {
   }
 
   static async listDevicesHandler({ platform, appId }: { platform?: 'android' | 'ios', appId?: string }) {
+    if (appId !== undefined && !validAppId(appId)) throw new Error('Invalid appId')
     const devices = await listDevices(platform, appId)
     return { devices }
   }
