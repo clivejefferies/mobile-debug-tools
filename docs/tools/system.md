@@ -10,6 +10,12 @@ required platform is available, continue with [device selection](manage.md#list_
 ## get_system_status
 A fast, non-throwing healthcheck that inspects key dependencies and connections required for mobile debugging.
 
+Android installation checks use `MCP_TARGET_PACKAGE` then `MCP_TARGET_APP_ID`.
+`appInstallations` contains device-specific installed/absent/unknown observations
+with app ID, device ID, scope and timestamp. Legacy `appInstalled` is omitted
+unless exactly one device has a conclusive result. Missing context and failed
+queries never establish absence; these fields do not report iOS installation.
+
 Input:
 
 ```

@@ -2,7 +2,8 @@ import { DeviceInfo } from "../../types.js"
 import { promises as fsPromises } from 'fs'
 import path from 'path'
 export { findInPath, resolveAdbCmd, getAdbCmd, ensureAdbAvailable, getAdbArgs, getAdbTimeout, type SpawnOptionsWithTimeout, execAdb, spawnAdb } from './commands.js'
-import { execAdb } from './commands.js'
+import { execAdb, getAdbCmd } from './commands.js'
+import { installationFields, probeInstallation } from '../app-installation.js'
 export { type GradleEnvOverrides, mergeEnv, prepareGradle } from './gradle.js'
 export { parseBounds, getCenter, parseBooleanAttr, parseNumberAttr, normalizeClassName, inferAndroidRole, buildAndroidSelectorConfidence, buildAndroidSelector, buildAndroidSemantic, isSliderLikeAndroid, extractAndroidState, traverseNode } from './ui-tree.js'
 export { parseLogLine } from './logs.js'
@@ -82,15 +83,12 @@ export async function listAndroidDevices(appId?: string): Promise<DeviceInfo[]> 
           execAdb(['shell', 'getprop', 'ro.kernel.qemu'], serial).catch(() => '0')
         ])
         const simulator = simOutput === '1'
-        let appInstalled = false
-        if (appId) {
-          try {
-            const pm = await execAdb(['shell', 'pm', 'path', appId], serial)
-            appInstalled = !!(pm && pm.includes('package:'))
-          } catch (e: unknown) { console.debug(`[listAndroidDevices] pm check failed for ${serial}: ${String(e)}`); appInstalled = false }
-        }
-        return { platform: 'android', id: serial, osVersion, model, simulator, appInstalled } as DeviceInfo & { appInstalled?: boolean }
-      } catch (e: unknown) { console.debug(`[listAndroidDevices] failed gathering metadata for ${serial}: ${String(e)}`); return { platform: 'android', id: serial, osVersion: '', model: '', simulator: false, appInstalled: false } as DeviceInfo & { appInstalled?: boolean } }
+        const check = await probeInstallation(getAdbCmd(), serial, appId, 'android-current-user', deviceLines.find(line => line.split(/\s+/)[0] === serial)?.split(/\s+/)[1] === 'device')
+        return { platform: 'android', id: serial, osVersion, model, simulator, ...installationFields(check) } as DeviceInfo
+      } catch {
+        const check = await probeInstallation(getAdbCmd(), serial, appId, 'android-current-user', false)
+        return { platform: 'android', id: serial, osVersion: '', model: '', simulator: false, ...installationFields(check) } as DeviceInfo
+      }
     }))
 
     return infos

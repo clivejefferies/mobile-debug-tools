@@ -10,6 +10,10 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Report device-scoped app installation as installed, absent or unknown. Publish
+  `list_devices.appId`; omit legacy installation booleans for inconclusive or
+  multi-device system checks instead of reporting false absence.
+
 - Clean up discarded iOS trace files after a recorder-stop failure when process
   exit is confirmed, while retaining the failure and protecting live recordings.
 

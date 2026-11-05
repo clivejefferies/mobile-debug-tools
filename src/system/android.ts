@@ -1,3 +1,4 @@
+import { probeInstallation, validAppId, type AppInstallation } from '../utils/app-installation.js'
 import { execSync } from 'child_process'
 import { ensureAdbAvailable } from '../utils/android/utils.js'
 
@@ -10,6 +11,8 @@ export async function checkAndroid() {
   let logsAvailable = false
   let envValid = false
   let appInstalled: boolean | undefined = undefined
+  let appInstallations: AppInstallation[] = []
+  let targets: { id: string; available: boolean }[] = []
 
   try {
     const adbCheck = ensureAdbAvailable()
@@ -21,6 +24,7 @@ export async function checkAndroid() {
     try {
       const out = execSync(`${adbCmd} devices -l`, { encoding: 'utf8', timeout: 1500, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
       const state = parseDevices(out, issues)
+      targets = out.split('\n').map(line => line.trim().split(/\s+/)).filter(parts => parts[0] && !['List', '*'].includes(parts[0])).map(parts => ({ id: parts[0], available: parts[1] === 'device' }))
       devices = state.devices; deviceStates = state.deviceStates
 
     } catch (e: unknown) { console.debug('[get_system_status] adb devices failed: ' + String(e)); issues.push('Failed to list Android devices') }
@@ -38,12 +42,12 @@ export async function checkAndroid() {
     if (!envValid) issues.push('ANDROID_SDK_ROOT/ANDROID_HOME missing and adb not found in PATH')
 
     const pkg = process.env.MCP_TARGET_PACKAGE || process.env.MCP_TARGET_APP_ID
-    if (pkg && adbAvailable && devices > 0) {
-      appInstalled = probeAppInstalled(adbCmd, pkg, issues)
-    }
+    appInstallations = await Promise.all(targets.map(target => probeInstallation(adbCmd, target.id, pkg, 'android-current-user', adbAvailable && target.available)))
+    reportInstallations(appInstallations, pkg, issues)
+    appInstalled = installationSummary(appInstallations)
   } catch (e: unknown) { console.debug('[get_system_status] adb availability check failed: ' + String(e)); issues.push('ADB check failed') }
 
-  return { adbAvailable, adbVersion, devices, deviceStates, logsAvailable, envValid, appInstalled, issues }
+  return { adbAvailable, adbVersion, devices, deviceStates, logsAvailable, envValid, appInstalled, appInstallations, issues }
 }
 
 function parseDevices(out: string, issues: string[]) {
@@ -64,11 +68,14 @@ function parseDevices(out: string, issues: string[]) {
   return { devices, deviceStates }
 }
 
-function probeAppInstalled(adbCmd: string, pkg: string, issues: string[]) {
-  try {
-    const pm = execSync(`${adbCmd} shell pm path ${pkg}`, { encoding: 'utf8', timeout: 1500, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
-    const appInstalled = (pm || '').includes('package:')
-    if (!appInstalled) issues.push(`App ${pkg} not installed on devices`)
-    return appInstalled
-  } catch (e: unknown) { console.debug('[get_system_status] pm check failed: ' + String(e)); return false }
+
+function installationSummary(checks: AppInstallation[]) {
+  return checks.length === 1 && checks[0].status !== 'unknown' ? checks[0].status === 'installed' : undefined
+}
+function reportInstallations(checks: AppInstallation[], pkg: string | undefined, issues: string[]) {
+  if (pkg !== undefined && !validAppId(pkg)) issues.push('Invalid target app identifier')
+  for (const check of checks) {
+    if (check.status === 'absent') issues.push(`App ${check.appId} not installed on device ${check.deviceId}`)
+    if (check.status === 'unknown' && check.reason !== 'APP_ID_NOT_PROVIDED') issues.push(`Installation check unavailable on device ${check.deviceId}: ${check.reason}`)
+  }
 }

@@ -23,16 +23,18 @@ Enumerate connected Android devices and iOS simulators.
 Input (optional):
 
 ```json
-{ "platform": "android" }
+{ "platform": "android", "appId": "com.example.app" }
 ```
 
 Response:
 
 ```json
-{ "devices": [ { "id": "emulator-5554", "platform": "android", "osVersion": "11", "model": "sdk_gphone64_arm64", "simulator": true, "appInstalled": false } ] }
+{ "devices": [ { "id": "emulator-5554", "platform": "android", "osVersion": "11", "model": "sdk_gphone64_arm64", "simulator": true, "appInstalled": false, "appInstallation": { "status": "absent", "appId": "com.example.app", "deviceId": "emulator-5554", "scope": "android-current-user", "checkedAt": "2026-11-05T20:00:00.000Z" } } ] }
 ```
 
 Notes:
+- Supply `appId` for an installation check. `appInstallation.status` is `installed`, `absent`, or `unknown`; unknown includes a reason and omits legacy `appInstalled`. Missing app context never means absent.
+- Checks identify device/app, scope, and completion time (`checkedAt: null` when no check ran). Android checks cover the current user; iOS covers booted simulators. Unavailable devices and failed checks remain unknown. Installation does not establish running or ready state.
 - When multiple devices are attached, pass `deviceId` to other tools to target a specific device.
 
 ---

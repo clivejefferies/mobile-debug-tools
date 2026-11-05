@@ -1,3 +1,4 @@
+import { installationFields, probeInstallation } from '../app-installation.js'
 import { checkDebuggerGuard } from '../../debugger/guard.js'
 import { remainingBudget } from '../operation-budget.js'
 import { execFile, spawn, execSync, spawnSync } from "child_process"
@@ -282,16 +283,9 @@ export async function listIOSDevices(appId?: string): Promise<DeviceInfo[]> {
                 booted: bootedSet.has(device.udid)
               }
 
-              if (appId) {
-                // check if installed
-                const p = execCommand(['simctl', 'get_app_container', device.udid, appId, 'data'], device.udid)
-                  .then(() => { info.appInstalled = true })
-                  .catch(() => { info.appInstalled = false })
-                  .then(() => { out.push(info) })
-                checks.push(p)
-              } else {
-                out.push(info)
-              }
+              out.push(info)
+              checks.push(probeInstallation(getXcrunCmd(), device.udid, appId, 'ios-simulator', info.booted === true)
+                .then(check => { Object.assign(info, installationFields(check)) }))
             }
           }
 

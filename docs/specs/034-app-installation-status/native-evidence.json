@@ -1,0 +1,654 @@
+{
+  "build": "73a856fd4dae21a47249d4e0f5ed004912f09f79 + local issue98 changes",
+  "timestamp": "2026-11-05T20:45:43.987Z",
+  "calls": [
+    {
+      "tool": "list_devices",
+      "args": {
+        "platform": "android"
+      },
+      "result": {
+        "devices": [
+          {
+            "platform": "android",
+            "id": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+            "osVersion": "17",
+            "model": "Pixel 9 Pro",
+            "simulator": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": null,
+              "deviceId": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+              "scope": "android-current-user",
+              "checkedAt": null,
+              "reason": "APP_ID_NOT_PROVIDED"
+            }
+          },
+          {
+            "platform": "android",
+            "id": "emulator-5554",
+            "osVersion": "16",
+            "model": "sdk_gphone64_arm64",
+            "simulator": true,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": null,
+              "deviceId": "emulator-5554",
+              "scope": "android-current-user",
+              "checkedAt": null,
+              "reason": "APP_ID_NOT_PROVIDED"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "list_devices",
+      "args": {
+        "platform": "android",
+        "appId": "com.ideamechanics.modul8.dev"
+      },
+      "result": {
+        "devices": [
+          {
+            "platform": "android",
+            "id": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+            "osVersion": "17",
+            "model": "Pixel 9 Pro",
+            "simulator": false,
+            "appInstallation": {
+              "status": "installed",
+              "appId": "com.ideamechanics.modul8.dev",
+              "deviceId": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+              "scope": "android-current-user",
+              "checkedAt": "2026-11-05T20:45:44.909Z"
+            },
+            "appInstalled": true
+          },
+          {
+            "platform": "android",
+            "id": "emulator-5554",
+            "osVersion": "16",
+            "model": "sdk_gphone64_arm64",
+            "simulator": true,
+            "appInstallation": {
+              "status": "installed",
+              "appId": "com.ideamechanics.modul8.dev",
+              "deviceId": "emulator-5554",
+              "scope": "android-current-user",
+              "checkedAt": "2026-11-05T20:45:44.810Z"
+            },
+            "appInstalled": true
+          }
+        ]
+      }
+    },
+    {
+      "tool": "list_devices",
+      "args": {
+        "platform": "android",
+        "appId": "invalid.nonexistent.issue98"
+      },
+      "result": {
+        "devices": [
+          {
+            "platform": "android",
+            "id": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+            "osVersion": "17",
+            "model": "Pixel 9 Pro",
+            "simulator": false,
+            "appInstallation": {
+              "status": "absent",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+              "scope": "android-current-user",
+              "checkedAt": "2026-11-05T20:45:45.811Z"
+            },
+            "appInstalled": false
+          },
+          {
+            "platform": "android",
+            "id": "emulator-5554",
+            "osVersion": "16",
+            "model": "sdk_gphone64_arm64",
+            "simulator": true,
+            "appInstallation": {
+              "status": "absent",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "emulator-5554",
+              "scope": "android-current-user",
+              "checkedAt": "2026-11-05T20:45:45.829Z"
+            },
+            "appInstalled": false
+          }
+        ]
+      }
+    },
+    {
+      "tool": "list_devices",
+      "args": {
+        "platform": "ios",
+        "appId": "com.apple.mobilesafari"
+      },
+      "result": {
+        "devices": [
+          {
+            "platform": "ios",
+            "id": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+            "osVersion": "iOS 26.4",
+            "model": "iPhone 17 Pro",
+            "simulator": true,
+            "booted": true,
+            "appInstallation": {
+              "status": "installed",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+              "scope": "ios-simulator",
+              "checkedAt": "2026-11-05T20:45:47.111Z"
+            },
+            "appInstalled": true
+          },
+          {
+            "platform": "ios",
+            "id": "F72108FF-C8D6-4C1E-980E-1AE5E5CCD27B",
+            "osVersion": "iOS 26.4",
+            "model": "iPhone Air",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "F72108FF-C8D6-4C1E-980E-1AE5E5CCD27B",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "F00DC533-007F-4AB1-BFBD-C7E06884BE57",
+            "osVersion": "iOS 27.2.iPhone19.4",
+            "model": "iPhone Duo",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "F00DC533-007F-4AB1-BFBD-C7E06884BE57",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "0D4B24EB-9323-4EF0-BF27-BA11CE336EC6",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 18 Pro",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "0D4B24EB-9323-4EF0-BF27-BA11CE336EC6",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "F299B6B8-D62A-4FC7-99B9-8A7334279C09",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 18 Pro Max",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "F299B6B8-D62A-4FC7-99B9-8A7334279C09",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "A37DBE8B-AE8B-43A8-8BBB-73D1F3BF37D2",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 17e",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "A37DBE8B-AE8B-43A8-8BBB-73D1F3BF37D2",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "3C1CA052-BD42-4A44-BE1C-1D6BCF7B9108",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone Air",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "3C1CA052-BD42-4A44-BE1C-1D6BCF7B9108",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "5C1C388C-8E7F-458F-B96F-38FA15721481",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 17",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "5C1C388C-8E7F-458F-B96F-38FA15721481",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "E7FAE6DC-7023-4EC6-B12D-4F9F92ABBF34",
+            "osVersion": "iOS 27.2",
+            "model": "iPad mini (A20 Pro)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "E7FAE6DC-7023-4EC6-B12D-4F9F92ABBF34",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "6F002453-7EFB-445C-85E6-23057EEBA693",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Pro 13-inch (M5)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "6F002453-7EFB-445C-85E6-23057EEBA693",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "B9E62B7C-5674-4F76-8C37-5A3FDBE62957",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Pro 11-inch (M5)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "B9E62B7C-5674-4F76-8C37-5A3FDBE62957",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "5D6B5F36-F005-4AD9-A96E-19C629689392",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Air 13-inch (M4)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "5D6B5F36-F005-4AD9-A96E-19C629689392",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "415269D0-3612-4592-A374-F2C6A60007C6",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Air 11-inch (M4)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "415269D0-3612-4592-A374-F2C6A60007C6",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "097E95D6-E121-48E1-B6CB-47E8D58892D7",
+            "osVersion": "iOS 27.2",
+            "model": "iPad (A16)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "com.apple.mobilesafari",
+              "deviceId": "097E95D6-E121-48E1-B6CB-47E8D58892D7",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "list_devices",
+      "args": {
+        "platform": "ios",
+        "appId": "invalid.nonexistent.issue98"
+      },
+      "result": {
+        "devices": [
+          {
+            "platform": "ios",
+            "id": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+            "osVersion": "iOS 26.4",
+            "model": "iPhone 17 Pro",
+            "simulator": true,
+            "booted": true,
+            "appInstallation": {
+              "status": "absent",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+              "scope": "ios-simulator",
+              "checkedAt": "2026-11-05T20:45:48.241Z"
+            },
+            "appInstalled": false
+          },
+          {
+            "platform": "ios",
+            "id": "F72108FF-C8D6-4C1E-980E-1AE5E5CCD27B",
+            "osVersion": "iOS 26.4",
+            "model": "iPhone Air",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "F72108FF-C8D6-4C1E-980E-1AE5E5CCD27B",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "F00DC533-007F-4AB1-BFBD-C7E06884BE57",
+            "osVersion": "iOS 27.2.iPhone19.4",
+            "model": "iPhone Duo",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "F00DC533-007F-4AB1-BFBD-C7E06884BE57",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "0D4B24EB-9323-4EF0-BF27-BA11CE336EC6",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 18 Pro",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "0D4B24EB-9323-4EF0-BF27-BA11CE336EC6",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "F299B6B8-D62A-4FC7-99B9-8A7334279C09",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 18 Pro Max",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "F299B6B8-D62A-4FC7-99B9-8A7334279C09",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "A37DBE8B-AE8B-43A8-8BBB-73D1F3BF37D2",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 17e",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "A37DBE8B-AE8B-43A8-8BBB-73D1F3BF37D2",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "3C1CA052-BD42-4A44-BE1C-1D6BCF7B9108",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone Air",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "3C1CA052-BD42-4A44-BE1C-1D6BCF7B9108",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "5C1C388C-8E7F-458F-B96F-38FA15721481",
+            "osVersion": "iOS 27.2",
+            "model": "iPhone 17",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "5C1C388C-8E7F-458F-B96F-38FA15721481",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "E7FAE6DC-7023-4EC6-B12D-4F9F92ABBF34",
+            "osVersion": "iOS 27.2",
+            "model": "iPad mini (A20 Pro)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "E7FAE6DC-7023-4EC6-B12D-4F9F92ABBF34",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "6F002453-7EFB-445C-85E6-23057EEBA693",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Pro 13-inch (M5)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "6F002453-7EFB-445C-85E6-23057EEBA693",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "B9E62B7C-5674-4F76-8C37-5A3FDBE62957",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Pro 11-inch (M5)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "B9E62B7C-5674-4F76-8C37-5A3FDBE62957",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "5D6B5F36-F005-4AD9-A96E-19C629689392",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Air 13-inch (M4)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "5D6B5F36-F005-4AD9-A96E-19C629689392",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "415269D0-3612-4592-A374-F2C6A60007C6",
+            "osVersion": "iOS 27.2",
+            "model": "iPad Air 11-inch (M4)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "415269D0-3612-4592-A374-F2C6A60007C6",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          },
+          {
+            "platform": "ios",
+            "id": "097E95D6-E121-48E1-B6CB-47E8D58892D7",
+            "osVersion": "iOS 27.2",
+            "model": "iPad (A16)",
+            "simulator": true,
+            "booted": false,
+            "appInstallation": {
+              "status": "unknown",
+              "appId": "invalid.nonexistent.issue98",
+              "deviceId": "097E95D6-E121-48E1-B6CB-47E8D58892D7",
+              "scope": "ios-simulator",
+              "checkedAt": null,
+              "reason": "DEVICE_UNAVAILABLE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tool": "get_system_status",
+      "result": {
+        "appInstallations": [
+          {
+            "status": "installed",
+            "appId": "com.ideamechanics.modul8.dev",
+            "deviceId": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+            "scope": "android-current-user",
+            "checkedAt": "2026-11-05T20:45:48.680Z"
+          },
+          {
+            "status": "installed",
+            "appId": "com.ideamechanics.modul8.dev",
+            "deviceId": "emulator-5554",
+            "scope": "android-current-user",
+            "checkedAt": "2026-11-05T20:45:48.627Z"
+          }
+        ]
+      }
+    }
+  ],
+  "baseline": {
+    "source": "git show HEAD:src/utils/android/utils.ts; temporary module removed after execution",
+    "devices": [
+      {
+        "platform": "android",
+        "id": "adb-51181FDAP0031Y-gxy7FO._adb-tls-connect._tcp",
+        "osVersion": "17",
+        "model": "Pixel 9 Pro",
+        "simulator": false,
+        "appInstalled": false
+      },
+      {
+        "platform": "android",
+        "id": "emulator-5554",
+        "osVersion": "16",
+        "model": "sdk_gphone64_arm64",
+        "simulator": true,
+        "appInstalled": false
+      }
+    ],
+    "installedRunningObservation": {
+      "deviceId": "emulator-5554",
+      "appId": "com.ideamechanics.modul8.dev",
+      "pid": 4064,
+      "note": "Read with adb shell pidof before the device suite; confirms a process, not foreground visibility."
+    }
+  },
+  "cleanup": "Booted simulator restored to Shutdown after device suite. Device suite leaves Settings foreground; no app data or device security settings changed.",
+  "limits": "Original reported agent request is unavailable; reproduced the missing-app-context failure path. Native CHECK_FAILED/timeout paths covered with fake tooling; physical iOS installation unsupported.",
+  "buildArtifacts": {
+    "dist/server.js": "0b6c1b9f070bf3fe00fe149ac0cf3128740304b1671ca7a8e4579e3f74966104",
+    "dist/utils/app-installation.js": "b45fbf770da706e4f2052c61caee29770e3e85fcff2eacf0607ab8ef5fb62b13",
+    "dist/utils/resolve-device.js": "90d1fe581cb165d9412572b1918954010b380b82c931670e37c6862960a6d841"
+  },
+  "assertions": "PASS: expected per-device statuses, identities, legacy boolean omission and multiple-device system aggregation checked against final MCP results."
+}

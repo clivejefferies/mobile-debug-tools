@@ -51,6 +51,17 @@ async function run() {
       }
     )
 
+    const base = { platform: 'android', model: 'Fixture', simulator: true }
+    _setDeviceListersForTests({ listAndroidDevices: async () => [
+      { ...base, id: 'unknown', osVersion: '17', appInstalled: true, appInstallation: {
+        status: 'unknown', appId: 'com.example.app', deviceId: 'unknown', scope: 'android-current-user', checkedAt: null, reason: 'CHECK_FAILED'
+      } },
+      { ...base, id: 'installed', osVersion: '16', appInstallation: {
+        status: 'installed', appId: 'com.example.app', deviceId: 'installed', scope: 'android-current-user', checkedAt: new Date(0).toISOString()
+      } }
+    ] })
+    assert.equal((await resolveTargetDevice({ platform: 'android', appId: 'com.example.app' })).id, 'installed')
+    assert.equal((await resolveTargetDevice({ platform: 'android', appId: 'com.other.app' })).id, 'unknown')
     console.log('resolve-device tests passed')
   } finally {
     _resetDeviceListersForTests()

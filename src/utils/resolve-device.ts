@@ -94,7 +94,7 @@ function selectDevice(devices: DeviceInfo[], platform: string, appId?: string, p
   if (prefer === "emulator") candidates = candidates.filter(d => d.simulator)
 
   if (appId) {
-    const installed = candidates.filter(d => d.appInstalled)
+    const installed = candidates.filter(d => d.appInstallation ? d.appInstallation.status === 'installed' && d.appInstallation.appId === appId && d.appInstallation.deviceId === d.id : d.appInstalled === true)
     if (installed.length > 0) candidates = installed
   }
 
@@ -119,7 +119,7 @@ function selectDevice(devices: DeviceInfo[], platform: string, appId?: string, p
       return candidates[0]
     }
 
-    const list = candidates.map(d => ({ id: d.id, platform: d.platform, osVersion: d.osVersion, model: d.model, simulator: d.simulator, appInstalled: d.appInstalled }))
+    const list = candidates.map(d => ({ id: d.id, platform: d.platform, osVersion: d.osVersion, model: d.model, simulator: d.simulator, appInstalled: d.appInstalled, appInstallation: d.appInstallation }))
     const err = Object.assign(new Error(`Multiple matching devices found: ${JSON.stringify(list, null, 2)}`), { devices: list })
     throw err
   }

@@ -185,11 +185,12 @@ Failure Handling:
   },
 {
     name: 'list_devices',
-    description: 'List connected devices and their metadata (android + ios).',
+    description: 'List Android devices and iOS simulators. Supply appId for device-specific installation status; unknown checks do not imply absence.',
     inputSchema: {
       type: 'object',
       properties: {
-        platform: { type: 'string', enum: ['android', 'ios'] }
+        platform: { type: 'string', enum: ['android', 'ios'] },
+        appId: { type: 'string', pattern: '^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$', description: 'Optional package or bundle identifier to check on each device.' }
       }
     }
   }
