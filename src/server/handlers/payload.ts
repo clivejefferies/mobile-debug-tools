@@ -4,6 +4,7 @@ import type { ToolCallResult } from '../common.js'
 // Internal decoded MCP payloads vary by capability. Keep the fields inspected by
 // orchestration explicit while preserving untouched capability-specific fields.
 export interface ToolPayload {
+  device_readiness?: import('../../contracts/device-readiness.js').DeviceReadiness
   success?: boolean
   action_id?: string
   action_type?: string

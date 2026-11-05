@@ -1,3 +1,4 @@
+import { observeDeviceReadiness, unknownDeviceReadiness } from '../../observe/device-readiness.js'
 import type { ToolPayload } from './payload.js'
 import { payloadOf } from './payload.js'
 import { correlatedHandler } from './correlation.js'
@@ -8,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { runWithBudget } from '../../utils/operation-budget.js'
 import { validateExpectedState } from '../schemas/condition-schema.js'
 import { conditionFailureCode, createConditionalAction, withConditionalAction } from '../../interact/conditional-action.js'
-import { resolveTargetDevice, withResolvedDevice } from '../../utils/resolve-device.js'
+import { resolveTargetDevice, withResolvedDevice, currentResolvedDevice } from '../../utils/resolve-device.js'
 
 import { ToolsObserve } from '../../observe/index.js'
 import { recordObservationEvent, withObservationContext } from '../../observe/performance-metrics.js'
@@ -24,6 +25,7 @@ import type { PlatformArg, VerificationMode } from './handler-types.js'
 export function compactAction(result: ToolPayload, verificationMode: VerificationMode, started = true, stateDelta?: unknown, totalMs = 0) {
   return {
     action_id: result.action_id,
+    ...(result.device_readiness ? { device_readiness: result.device_readiness } : {}),
     action_type: result.action_type,
     success: !!result.success,
     lifecycle_state: result.success ? (verificationMode === 'full' ? result.lifecycle_state : 'pending_verification') : 'failed',
@@ -51,14 +53,25 @@ function createAction(type: string, args: ToolCallArgs, timing: Record<string, n
   }
 }
 type Action = ReturnType<typeof createAction>
+async function executeWithDeviceState(args: ToolCallArgs, execute: ToolHandler) {
+  const result = payloadOf(await execute(args))
+  result.device_readiness = await observeDeviceReadiness(result.device ?? currentResolvedDevice())
+  return result
+}
+function actionError(type: string, error: unknown) {
+  const response = wrapToolError(type, error)
+  const item = response.content.find(item => item.type === 'text')
+  if (item?.text) item.text = JSON.stringify({ ...JSON.parse(item.text), device_readiness: unknownDeviceReadiness('DEVICE_TARGET_UNAVAILABLE') })
+  return response
+}
 async function dispatchAction(s: Action, execute: ToolHandler) {
   const { type, args, controls, condition, budgetMs } = s
   const dispatchWithBudget = (timeoutMs: number) => runWithBudget(timeoutMs, async (budget) => {
     try {
-      if (!condition) return payloadOf(await execute(args))
+      if (!condition) return await executeWithDeviceState(args, execute)
       return await withConditionalAction(condition, async () => {
         const device = await resolveTargetDevice({ platform: condition.platform, deviceId: condition.deviceId })
-        return withResolvedDevice(device, async () => payloadOf(await execute(args)))
+        return withResolvedDevice(device, async () => executeWithDeviceState(args, execute))
       })
     }
     finally { s.dispatchStarted = budget.dispatchStarted }
@@ -69,8 +82,8 @@ async function dispatchAction(s: Action, execute: ToolHandler) {
       ? await dispatchWithBudget(Infinity) : await dispatchWithBudget(budgetMs)
     if (s.result.success) s.dispatchStarted = true
   } catch (error) {
-    if (!condition && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined && !/TIMEOUT|timed out/i.test(String(error))) return wrapToolError(type, error)
-    s.result = { success: false, failure_code: /TIMEOUT|timed out/i.test(String(error)) ? 'ACTION_TIMEOUT' : 'UNKNOWN', error: String(error) }
+    if (!condition && controls.verificationMode === 'full' && controls.responseMode === 'debug' && controls.actionTimeoutMs === undefined && !/TIMEOUT|timed out/i.test(String(error))) return actionError(type, error)
+    s.result = { device_readiness: unknownDeviceReadiness('DEVICE_OBSERVATION_UNAVAILABLE'), success: false, failure_code: /TIMEOUT|timed out/i.test(String(error)) ? 'ACTION_TIMEOUT' : 'UNKNOWN', error: String(error) }
   }
 }
 function rejectCondition(s: Action) {
@@ -78,6 +91,7 @@ function rejectCondition(s: Action) {
   s.blocked = !!condition && ['mismatch', 'unavailable'].includes(condition.result.status)
   if (s.blocked && condition) {
     s.dispatchStarted = false
+    const deviceReadiness = s.result.device_readiness
     s.result = buildActionExecutionResult({
       actionType: type, sourceModule: 'server', device: condition.result.observed?.device,
       selector: s.result?.target?.selector ?? null, resolved: s.result?.target?.resolved,
@@ -85,6 +99,7 @@ function rejectCondition(s: Action) {
       failure: { failureCode: conditionFailureCode(condition), retryable: false },
       traceSteps: [{ stage: 'verify', timestamp: Date.now(), result: 'failure', attempt_index: 0, metadata: { phase: 'precondition', dispatch_started: false } }]
     })
+    s.result.device_readiness = deviceReadiness
   }
 }
 function normalizeAction(s: Action) {

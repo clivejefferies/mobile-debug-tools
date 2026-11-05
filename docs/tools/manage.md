@@ -137,3 +137,9 @@ Notes:
 `appId`, with optional `deviceId`. Resetting app data removes application state;
 use it only when a clean app state is intended. Execution controls apply to
 `start_app` and `restart_app`; see [verification modes](interact.md#interaction-execution-controls-rfc-018).
+
+Launch/restart action responses include `device_readiness` in compact and debug
+modes, even when verification is disabled. `success` retains dispatch semantics;
+a sleeping/locked observation does not erase successful dispatch or prove that
+the target app is visible. Device-probe failure is reported as unknown without
+changing the dispatch result. See [device readiness evidence](observe.md#device-readiness-evidence).

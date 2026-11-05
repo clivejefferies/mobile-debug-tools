@@ -1,0 +1,73 @@
+{
+  "tool": "get_app_readiness",
+  "server": {
+    "name": "mobile-debug-mcp",
+    "version": "0.36.0"
+  },
+  "runtime": "v23.11.0",
+  "result": {
+    "success": true,
+    "device": {
+      "platform": "ios",
+      "id": "F9243BAF-62A8-4990-8A99-17F527F56FDA",
+      "osVersion": "iOS 26.4",
+      "model": "iPhone 17 Pro",
+      "simulator": true,
+      "booted": true
+    },
+    "readiness": {
+      "state": "settled",
+      "scope": "device_ui",
+      "basis": "observed",
+      "captured_at_ms": 1793823964160,
+      "snapshot_session_id": "cd4bc1e2-b26c-40f6-a50e-27472dc00a29",
+      "snapshot_revision": 1,
+      "sample_count": 2,
+      "stable_for_ms": 2846.7576670000003,
+      "evidence": [
+        {
+          "code": "INSUFFICIENT_SAMPLES",
+          "source": "ui_tree",
+          "captured_at_ms": 1793823961313,
+          "snapshot_revision": 1
+        },
+        {
+          "code": "SNAPSHOT_STABLE",
+          "source": "ui_tree",
+          "captured_at_ms": 1793823964160,
+          "snapshot_revision": 1
+        }
+      ],
+      "limitations": [
+        "NORMALIZED_UI_ONLY",
+        "FOREGROUND_APP_UNVERIFIED",
+        "UNRESPONSIVE_SIGNAL_UNSUPPORTED",
+        "MANAGED_DEBUGGER_ONLY"
+      ],
+      "capabilities": {
+        "loading": true,
+        "transitioning": true,
+        "settled": true,
+        "unresponsive": false,
+        "debugger_paused": true
+      }
+    },
+    "device_readiness": {
+      "wakefulness": "unknown",
+      "lock_state": "unsupported",
+      "input_ready": null,
+      "blockers": [],
+      "evidence": [
+        {
+          "code": "DEVICE_LOCK_SIGNAL_UNSUPPORTED",
+          "source": "coredevice",
+          "captured_at_ms": 1793823962013
+        }
+      ],
+      "limitations": [
+        "DEVICE_WAKEFULNESS_UNVERIFIED"
+      ]
+    },
+    "elapsed_ms": 5987.550583
+  }
+}

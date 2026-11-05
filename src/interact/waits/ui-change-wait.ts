@@ -5,7 +5,7 @@ import type { ScopeTree } from '../targeting/target-scope.js'
 import type { UiChangeScopeResult, UiChangeSignatureSet } from '../model.js'
 import { remainingBudget } from '../../utils/operation-budget.js'
 import { checkDebuggerGuard } from '../../debugger/guard.js'
-import { observeReadinessWait, isDeviceUnavailable } from '../../observe/readiness.js'
+import { observeReadinessWait, observeReadinessDeviceWait, isDeviceUnavailable } from '../../observe/readiness.js'
 import { readinessDelay } from '../../observe/readiness-service.js'
 import { _buildUiChangeSignatures, _summarizeUiChangeDelta, _matchesUiChange, _uiChangeSignaturesEqual } from './ui-change-helpers.js'
 import { createChangeWait, changeResult, type ChangeInput, type ChangeWait } from './ui-change-state.js'
@@ -24,11 +24,16 @@ function changed(s: ChangeWait, signatures: UiChangeSignatureSet) {
     s.candidate = signatures; s.change = change; s.since = s.clock.now()
   }
   const stable = s.since === null ? 0 : s.clock.now() - s.since
-  return (s.stability === 0 || stable >= s.stability) && (!s.tracker || s.tracker.summary.state === 'settled')
+  return (s.stability === 0 || stable >= s.stability) && (!s.tracker || s.tracker.ready)
 }
 async function sample(s: ChangeWait, deps: ChangeDependencies) {
   if (s.tracker) remainingBudget()
   const started = s.clock.now(), a = s.input
+  await observeReadinessDeviceWait()
+  if (s.tracker?.deviceReadiness.input_ready === false) {
+    s.candidate = null; s.change = null; s.since = null
+    return null
+  }
   const tree = await deps.observe({ platform: a.platform, deviceId: a.deviceId })
   observeReadinessWait(tree, started)
   const scoped = deps.scope(tree, a.scope, a.target)

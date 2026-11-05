@@ -62,6 +62,7 @@ async function run() {
     })
     const light = JSON.parse(lightResponse.content[0].text)
     assert.strictEqual(light.success, true)
+    assert.ok(light.steps[0].result.device_readiness, 'journey action retains device evidence in compact mode')
     assert.deepStrictEqual(Object.keys(light.timing), ['total_ms'])
     assert.deepStrictEqual(light.steps[0].result.verification, { mode: 'light', status: 'observed' })
     assert.strictEqual(light.steps[0].result.verification_diagnostic, undefined)

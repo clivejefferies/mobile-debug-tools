@@ -290,8 +290,9 @@ latest successful capture time and snapshot session/revision, sample
 count, `stable_for_ms`, up to eight signal-code evidence records, limitations,
 and capability flags. Evidence excludes UI text and full trees. Managed Android
 [debugger pauses](debugger.md) are reported from session evidence without acquiring
-a UI tree; readiness waits fail with `DEBUGGER_PAUSED`. External-debugger and iOS
-pause detection remain unsupported. Unresponsive detection is unsupported; neither
+a UI tree; readiness waits fail with `DEBUGGER_PAUSED`. Supported managed iOS
+simulator debugger sessions also report pauses. External-debugger pause
+detection remains unsupported. Unresponsive detection is unsupported; neither
 slow hierarchy retrieval nor a deadline expiry proves a pause or unresponsiveness.
 
 Tree responses (including compact and nested trees) add a single-sample readiness
@@ -312,3 +313,40 @@ reads remain bounded by their operation deadlines.
 
 See [readiness-aware waits](interact.md#readiness-aware-waits) to combine this
 signal with a specific UI predicate.
+
+### Device readiness evidence
+
+`get_app_readiness`, `wait_for_app_ready`, readiness-enabled UI waits and shared
+interaction action results include a separate `device_readiness` object:
+
+- `wakefulness`: awake, asleep, transitioning, unknown or unsupported.
+- `lock_state`: locked, unlocked, unknown or unsupported.
+- `blockers`: DEVICE_ASLEEP, DEVICE_LOCKED, DEVICE_TRANSITIONING or DEBUGGER_PAUSED.
+- `input_ready`: false for an observed blocker; otherwise null (not established).
+- `evidence`: bounded signal codes, sources and host epoch `captured_at_ms` values.
+- `limitations`: explicit unavailable/unverified signal codes.
+
+Android reads explicitly targeted power/keyguard flags; missing or contradictory
+flags yield unknown. Known device blockers prevent readiness-wait success even
+when a lock-screen tree is stable. Waits allow natural recovery within the same
+budget; expiry retains READINESS_TIMEOUT and the last device observation.
+Within one wait, an inconclusive device probe retains any last-known blocker
+for that axis, including its original evidence timestamp and the new probe-failure
+limitation. `DEVICE_BLOCKER_EVIDENCE_RETAINED` distinguishes that historical
+evidence; only a fresh conclusive state clears the corresponding blocker.
+Unknown/unsupported signals without an earlier blocker retain existing
+UI-stability semantics and cannot prove input readiness. Managed debugger pause
+keeps its existing guard priority.
+
+On iOS, the CoreDevice lock query reports unsupported only for an explicit
+matching capability rejection; other failures yield unknown. Successful lock
+response semantics remain unverified. The tested iOS 26.4 simulator rejected
+lock-state queries, and wakefulness remains unknown: display/backlight output
+was not a reliable sleep signal. Physical iOS support was not established.
+
+No probe wakes, unlocks or changes security settings. Probe timeouts are at most
+1,000 ms each, clipped to the existing operation budget, with no retries or
+cross-call cache. Device evidence describes capture time, not an atomic promise
+about later input. Known blockers are checked before readiness UI acquisition.
+Tree-only observations retain their existing single-sample UI summary and do
+not perform these additional device probes.

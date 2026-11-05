@@ -2,7 +2,7 @@ import { systemClock } from '../../runtime/clock.js'
 import type { UiTree } from '../observation.js'
 import { remainingBudget } from '../../utils/operation-budget.js'
 import { checkDebuggerGuard } from '../../debugger/guard.js'
-import { observeReadinessWait, isDeviceUnavailable } from '../../observe/readiness.js'
+import { observeReadinessWait, observeReadinessDeviceWait, isDeviceUnavailable } from '../../observe/readiness.js'
 import { readinessDelay } from '../../observe/readiness-service.js'
 import { matchingElements, evaluateCondition } from './ui-wait-condition.js'
 import { createUIWait, validateUIWait, waitObserved, waitFailure,
@@ -15,7 +15,7 @@ function acceptObservation(s: UIWaitState, tree: UiTree, now: number): UIWaitRes
   const age = typeof tree?.captured_at_ms === 'number' ? now - tree.captured_at_ms : null
   if (!(s.met && (age === null || age <= 500))) { s.stable = 0; return null }
   s.stable++
-  if (s.stable < (s.args.singleObservation ? 1 : 2) || (s.tracker && s.tracker.summary.state !== 'settled')) return null
+  if (s.stable < (s.args.singleObservation ? 1 : 2) || (s.tracker && !s.tracker.ready)) return null
   return { status: 'success', ...(s.args.singleObservation ? { _tree: tree } : {}), matched: s.count,
     element: s.element, metrics: { latency_ms: now - s.start, poll_count: s.polls, attempts: s.attempts }, requested: s.requested, observed: waitObserved(s, true) }
 }
@@ -42,6 +42,8 @@ async function poll(s: UIWaitState, deps: UIWaitDependencies): Promise<UIWaitRes
   remainingBudget(); s.polls++
   try {
     const started = s.clock.now(), a = s.args
+    await observeReadinessDeviceWait()
+    if (s.tracker?.deviceReadiness.input_ready === false) return null
     const tree = await deps.observe({ platform: a.platform, deviceId: a.deviceId })
     observeReadinessWait(tree, started)
     if (a.resolveTapTarget && tree?.error && /ACTION_TIMEOUT|timed out/i.test(String(tree.error))) throw new Error('ACTION_TIMEOUT')

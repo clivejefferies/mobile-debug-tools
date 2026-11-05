@@ -1,3 +1,4 @@
+import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import type { UiSelector as ExpectElementSelectorArg } from '../../contracts/selector.js'
 import { markEvidenceVerification } from '../../observe/evidence.js'
 import { withReadyWait } from '../../observe/readiness-service.js'
@@ -86,6 +87,7 @@ export async function handleAdjustControl(args: ToolCallArgs) {
     platform,
     deviceId
   })
+  res.device_readiness = await observeDeviceReadiness(res.device)
   markEvidenceVerification()
   return wrapResponse(res)
 }

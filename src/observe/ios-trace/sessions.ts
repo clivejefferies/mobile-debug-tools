@@ -143,10 +143,12 @@ export class IosTraceSessions {
     } catch (error) {
       this.fail(s, reasonFor(error, s.recording?.recorder.alive() ? 'TRACE_STOP_FAILED' : 'TRACE_ARTIFACT_FAILED'))
       s.result.cleanup.status = 'failed'
-      if (s.result.reason === 'STORAGE_LIMIT' && !s.recording?.recorder.alive()) await this.discardOversized(s)
+      // Stop timeouts can throw after SIGKILL has already closed the recorder.
+      // Discarding is safe only after exit; keep the failure but release owned files.
+      if ((s.discard || s.result.reason === 'STORAGE_LIMIT') && !s.recording?.recorder.alive()) await this.discardStoppedFiles(s)
     }
   }
-  private async discardOversized(s: Session) {
+  private async discardStoppedFiles(s: Session) {
     try {
       if (s.directory) await fs.rm(s.directory, { recursive: true, force: true })
       s.result.cleanup = { status: 'complete', remaining_resources: [] }; s.terminal = this.time.mono()

@@ -1,0 +1,24 @@
+{
+  "device": {
+    "platform": "ios",
+    "id": "F9243BAF-62A8-4990-8A99-17F527F56FDA"
+  },
+  "runtime": "v23.11.0",
+  "server": "dist/observe/device-readiness.js",
+  "result": {
+    "wakefulness": "unknown",
+    "lock_state": "unsupported",
+    "input_ready": null,
+    "blockers": [],
+    "evidence": [
+      {
+        "code": "DEVICE_LOCK_SIGNAL_UNSUPPORTED",
+        "source": "coredevice",
+        "captured_at_ms": 1793823876688
+      }
+    ],
+    "limitations": [
+      "DEVICE_WAKEFULNESS_UNVERIFIED"
+    ]
+  }
+}

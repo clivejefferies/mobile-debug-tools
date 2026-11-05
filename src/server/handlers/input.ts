@@ -34,6 +34,7 @@ export async function executeTap(args: ToolCallArgs) {
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
     actionType: 'tap',
+    device: res.device,
     sourceModule: 'server',
     selector: { x, y },
     success: !!res.success,
@@ -84,6 +85,7 @@ export async function executeSwipe(args: ToolCallArgs) {
   const uiFingerprintAfter = verificationMode === 'full' ? await measure('post_observation_ms', () => captureActionFingerprint(platform, deviceId)) : null
   const result = buildActionExecutionResult({
     actionType: 'swipe',
+    device: res.device,
     sourceModule: 'server',
     selector: { x1, y1, x2, y2, duration },
     success: !!res.success,

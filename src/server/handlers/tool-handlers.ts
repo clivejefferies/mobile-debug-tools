@@ -1,3 +1,4 @@
+import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import { ToolsInteract } from '../../interact/index.js'
 import type { DeviceInfo } from '../../types.js'
 import { handleDebugger } from './debugger-handlers.js'
@@ -94,7 +95,7 @@ async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: 
   const sessions = device.platform === 'ios' ? iosDebuggerSessions : debuggerSessions
   return withResolvedDevice(device, () => withDebuggerGuard(device.platform, device.id, async () => {
     const before = sessions.paused(device.id)
-    if (before) return wrapResponse({ success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before })
+    if (before) return wrapResponse({ device_readiness: await observeDeviceReadiness(device), success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before })
     let response: ToolCallResult
     try { response = await handler(args) } catch (error) {
       if (!sessions.paused(device.id)) throw error
@@ -107,7 +108,7 @@ async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: 
         const payload = JSON.parse(item.text)
         Object.assign(payload, { success: false, failure_code: 'DEBUGGER_PAUSED', retryable: false,
           dispatch_started: guardDispatched(), delivery_status: payload.success ? 'delivered' : guardDispatched() ? 'unknown' : 'not_delivered',
-          verification: { status: 'blocked', reason: 'DEBUGGER_PAUSED' }, debugger: pause })
+          verification: { status: 'blocked', reason: 'DEBUGGER_PAUSED' }, device_readiness: await observeDeviceReadiness(device), debugger: pause })
         item.text = JSON.stringify(payload)
       }
     }
