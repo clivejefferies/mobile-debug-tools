@@ -52,7 +52,8 @@ try {
   for (const hints of [{}, { deviceId: 'ios-a' }, { platform: 'ios' }]) {
     const blocked = await call(ios, hints)
     assert.equal(blocked.failure_code, 'DEBUGGER_PAUSED')
-    assert.equal(blocked.debugger.debug_session_id, 'ios-session')
+    const details = payload(await handleToolCall('get_interaction_diagnostics', { sessionId: blocked.diagnostics.session_id, resultId: blocked.diagnostics.result_id }))
+    assert.equal(details.result.debugger.debug_session_id, 'ios-session')
     assert.equal(blocked.delivery_status, 'not_delivered'); assert.equal(blocked.dispatch_started, false)
   }
   assert.equal(reads, 0, 'A known pause must block before hierarchy reads')

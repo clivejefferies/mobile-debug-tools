@@ -50,14 +50,16 @@ async function run() {
     }
     const result = parse(await handleToolCall('run_journey', journey))
     assert.equal(result.success, true, JSON.stringify(result)); assert.equal(dispatched, 1)
-    assert.equal(result.evidence.trace_context.trace_id, id)
-    assert.equal(result.evidence.trace_context.supported, true)
+    assert.equal(result.evidence.trace_id, id)
+    const retained = parse(await handleToolCall('get_interaction_diagnostics', { sessionId: result.diagnostics.session_id, resultId: result.diagnostics.result_id }))
+    assert.equal(retained.result.evidence.trace_context.supported, true)
     assert.equal(result.evidence.correlation_id, correlation)
-    assert.equal(result.steps[0].result.evidence.trace_context.trace_id, id)
+    assert.equal(result.steps[0].result.evidence.trace_id, id)
     assert.equal(result.steps[0].result.evidence.correlation_id, correlation)
     assert.equal(result.system_trace.coverage, 'covered')
     const plain = parse(await handleToolCall('run_journey', { ...journey, systemTraceId: undefined }))
-    assert.deepEqual(plain.evidence.trace_context, { supported: false, trace_id: null, markers: [] })
+    const retainedPlain = parse(await handleToolCall('get_interaction_diagnostics', { sessionId: plain.diagnostics.session_id, resultId: plain.diagnostics.result_id }))
+    assert.deepEqual(retainedPlain.result.evidence.trace_context, { supported: false, trace_id: null, markers: [] })
     const [linked, independent] = await Promise.all([
       withEvidence({ journey: true }, async () => { bindSystemTrace(id); bindEvidenceDevice({ platform: 'android', id: 'trace-device' }); return withEvidence({ action: true }, async () => {}) }),
       withEvidence({ journey: true }, async () => {})

@@ -145,19 +145,12 @@ function actionResponse(s: Action) {
   const evidence = {
     ...compact,
     ...(condition ? {
-      condition: controls.responseMode === 'compact' && condition.result.status === 'matched'
-        ? {
-          ...condition.result, observed: condition.result.observed ? {
-            snapshot_session_id: condition.result.observed.snapshot_session_id,
-            snapshot_revision: condition.result.observed.snapshot_revision,
-            captured_at_ms: condition.result.observed.captured_at_ms
-          } : null
-        } : condition.result
+      condition: condition.result
     } : {}),
     ...(controls.verificationMode === 'light' ? { state_delta_available: !!s.delta } : {}),
     ...(s.result.success && controls.verificationMode === 'light' && !s.observationAvailable ? { verification_diagnostic: { code: 'VERIFICATION_UNAVAILABLE', retryable: true } } : {})
   }
-  return wrapResponse(controls.responseMode === 'compact' ? evidence : {
+  return wrapResponse({
     ...s.result, ...evidence, timing: { ...timing, total_ms: performance.now() - started },
     effective_controls: { ...controls, actionTimeoutMs: s.unbounded ? null : budgetMs, timeout_bound: !(s.unbounded) }
   }, controls.responseMode === 'debug')

@@ -43,7 +43,8 @@ async function run() {
     error = 'Failed to get UI tree: ACTION_TIMEOUT'
     const timeout = await call()
     assert.equal(timeout.failure_code, 'ACTION_TIMEOUT', 'Observation timeout must not claim that the label is missing')
-    assert.equal(timeout.evidence.dispatch_started_at_ms, null)
+    const retained = JSON.parse((await handleToolCall('get_interaction_diagnostics', { sessionId: timeout.diagnostics.session_id, resultId: timeout.diagnostics.result_id })).content[0].text!)
+    assert.equal(retained.result.evidence.dispatch_started_at_ms, null)
     assert.equal(taps.length, tapCount)
     error = undefined
 

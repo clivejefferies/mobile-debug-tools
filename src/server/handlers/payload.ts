@@ -26,7 +26,7 @@ export interface ToolPayload {
   status?: string
   condition?: ActionConditionResult
   verification?: { mode?: string; status: string }
-  evidence?: { action_id?: string }
+  evidence?: { action_id?: string | null }
   verification_diagnostic?: { code: string; retryable: boolean }
   observed?: { matched_count?: number | null }
   timing?: TimingBreakdown

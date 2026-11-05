@@ -1,3 +1,4 @@
+import { interactionDiagnosticsTool } from './schemas/interaction-diagnostics.js'
 import { verificationModeJson, responseModeJson } from '../contracts/execution-controls.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { manageTools } from './definitions/manage.js'
@@ -53,6 +54,7 @@ const baseOrder = [
 export const toolDefinitions: Tool[] = [
 ...debuggerTools,
 ...systemTraceTools,
+interactionDiagnosticsTool,
 ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
     name,
     description: `${name === 'get_app_readiness' ? 'Observe readiness with at most two fresh UI-tree samples.' : 'Wait within a single bounded budget for settled UI evidence.'} Reports loading, transitioning, settled or unknown with evidence and limitations. Managed Android and supported iOS simulator debugger pauses are reported from debugger evidence; unresponsive detection remains unsupported. Settled normalized foreground UI is not proof of app identity, responsiveness or backend completion.`,
@@ -73,7 +75,7 @@ for (const tool of toolDefinitions) {
     tool.description += '\nDevice-readiness blockers prevent readiness success; unknown/unsupported device signals remain explicit.\nSet requireReady=true to require both the existing predicate and settled UI readiness, using the same fresh samples and one timeout budget. The readiness summary explains uncertainty. Default predicate semantics are unchanged.'
   }
   if (tool.name === 'get_ui_tree') tool.description += '\nSuccessful observations include snapshot_session_id and snapshot_revision for same-device conditional input. Compact errors preserve the error and cannot authorize an expectation.'
-  if (tool.name === 'run_journey') tool.description += '\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence even in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.'
+  if (tool.name === 'run_journey') tool.description += '\nTap steps may include expectedState from a successful same-device get_ui_tree. A failed condition blocks that input, retains fresh condition evidence through a diagnostics reference in compact mode, and stops subsequent steps. Conditions are not journey defaults or supported on other step types.'
   if (conditionalTools.has(tool.name)) {
     tool.inputSchema.properties.expectedState = expectedStateJson
     tool.inputSchema.properties.platform ??= { type: 'string', enum: ['android'] }
@@ -84,11 +86,12 @@ for (const tool of toolDefinitions) {
         deviceId: { type: 'string', minLength: 1, pattern: '\\S', not: { enum: ['booted', 'default'] } }
       } }
     }]
-    tool.description += '\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures include the fresh UI tree. This is not atomic with OS input delivery.'
+    tool.description += '\n\nConditional input: optionally supply expectedState { snapshotSessionId, snapshotRevision, timeoutMs? } from a successful get_ui_tree on the same explicit platform/deviceId. A fresh normalized UI-tree check runs immediately before input, even with verification disabled. PRECONDITION_FAILED or PRECONDITION_UNAVAILABLE means no input was dispatched; inspect condition evidence and re-observe before deciding what to do next. Compact failures summarize the fresh condition evidence; use get_interaction_diagnostics with the returned diagnostics reference for the retained UI tree. This is not atomic with OS input delivery.'
   } else {
     tool.inputSchema.allOf = [...(Array.isArray(tool.inputSchema.allOf) ? tool.inputSchema.allOf : []), { not: { required: ['expectedState'] } }]
   }
   if (['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back'].includes(tool.name)) {
+    tool.description += '\nCompact results summarize observations, condition trees, state deltas and readiness probe evidence within a byte budget. Use get_interaction_diagnostics with the returned diagnostics session_id/result_id to retrieve the original result without replaying input. Debug output is unchanged.'
     Object.assign(tool.inputSchema.properties, {
       verificationMode: { ...verificationModeJson, default: 'full' },
       responseMode: { ...responseModeJson, default: 'debug' },

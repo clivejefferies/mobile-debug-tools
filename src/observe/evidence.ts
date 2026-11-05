@@ -214,15 +214,25 @@ export function refreshJourneyEvidence(steps: Array<{ result?: { evidence?: unkn
   const current = context.getStore()
   if (!current) return
   for (const step of steps) {
-    const previous = step.result?.evidence as { action_id?: string } | undefined
+    const previous = step.result?.evidence as { action_id?: string; observations?: Array<{ evidence_id: string }> } | undefined
     const child = current.children.find(c => c.action?.id === previous?.action_id)
     if (child && step.result) step.result.evidence = assemble(child)
+    else if (previous?.observations && step.result) {
+      const ids = new Set(previous.observations.map(o => o.evidence_id))
+      step.result.evidence = assemble({ ...current, observations: current.observations.filter(o => ids.has(o.value.evidence_id)) })
+    }
   }
 }
 
 export function completeJourneyVerification(actionId: string) {
   const child = context.getStore()?.children.find(c => c.action?.id === actionId)
   if (child?.action) {
+    const parent = context.getStore()!
+    const completed = child.action.dispatchEnd?.mono
+    if (completed !== undefined) {
+      const after = parent.observations.filter(o => o.start.mono >= completed && sameDevice(o.value.device, child.action!.device))
+      child.observations.push(...after)
+    }
     child.verification = stamp()
     child.action.verification = child.verification
   }
@@ -311,4 +321,12 @@ function recordCaptureTime(acquisition: Acquisition, result: EvidencePayload | n
     acquisition.value.source_captured_at_ms = source
     acquisition.reused = source < start.wall
   }
+}
+
+/** Retain per-step evidence without changing the parent journey's acquisition flow. */
+export async function withJourneyStepEvidence<T>(operation: () => Promise<T>) {
+  const current = context.getStore()
+  const start = current?.observations.length ?? 0
+  const result = await operation()
+  return { ...result, ...(current ? { evidence: assemble({ ...current, observations: current.observations.slice(start) }) } : {}) }
 }

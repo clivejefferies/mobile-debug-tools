@@ -70,6 +70,9 @@ else process.exit(1)
   ToolsNetwork.notifyActionStart = () => { networkStarts++ }
   _setDeviceListersForTests({ listAndroidDevices: async () => [device()], listIOSDevices: async () => [device()] })
   const payload = (response: any) => JSON.parse(response.content[0].text)
+  const retained = async (result: any) => result.diagnostics
+    ? payload(await handleToolCall('get_interaction_diagnostics', { sessionId: result.diagnostics.session_id, resultId: result.diagnostics.result_id })).result
+    : result
   const nativeInputs = () => readFileSync(eventsPath, 'utf8').split('\n').filter(line => /shell input|ui tap|ui swipe/.test(line))
   const baseline = () => {
     uiState = 'Ready'; propertyChange = {}; observationMode = 'normal'; readDelay = 0
@@ -129,7 +132,8 @@ else process.exit(1)
         assert.equal(result.retryable, false)
         assert.equal(result.delivery_status, 'not_delivered')
         assert.equal(result.verification.status, 'not_requested')
-        assert.deepEqual(result.condition.observed.elements[0], tree().elements[0])
+        assert.deepEqual((await retained(result)).condition.observed.elements[0], tree().elements[0])
+        if (responseMode === 'compact') assert.equal(result.observed_state.status, 'unknown')
         assert.equal(reads, 1, 'no post-dispatch tree read after guard failure')
         assert.equal(nativeInputs().length, inputs)
         assert.equal(networkStarts, starts)
@@ -239,7 +243,7 @@ else process.exit(1)
       assert.equal(journey.stopped_at_step_id, 'guarded')
       assert.equal(journey.steps[0].status, 'passed')
       assert.equal(journey.steps[1].result.failure_code, 'PRECONDITION_FAILED')
-      assert.equal(journey.steps[1].result.condition.observed.elements[0].text, 'Changed')
+      assert.equal((await retained(journey.steps[1].result)).condition.observed.elements[0].text, 'Changed')
       assert.equal(journey.steps[1].result.verification.status, 'not_requested')
       assert.equal(journey.steps[2].status, 'not_run')
       assert.equal(nativeInputs().length, before)
@@ -268,7 +272,7 @@ else process.exit(1)
       const before = nativeInputs().length
       const mismatch = await call('tap', { expectedState })
       assert.equal(mismatch.failure_code, 'PRECONDITION_FAILED', JSON.stringify(mismatch))
-      assert.equal(mismatch.condition.observed.elements[0].text, 'Changed through native hierarchy')
+      assert.equal((await retained(mismatch)).condition.observed.elements[0].text, 'Changed through native hierarchy')
       assert.equal(nativeInputs().length, before)
       const compact: any = await ToolsObserve.getUITreeHandler({ platform, deviceId: 'fixture', responseMode: 'compact' })
       assert.equal(compact.snapshot_session_id, expectedState.snapshotSessionId)
