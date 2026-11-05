@@ -136,3 +136,31 @@ Logs: `/private/tmp/mobile-debug-pr102-verify.log`,
 `/private/tmp/mobile-debug-pr102-device.log`,
 `/private/tmp/mobile-debug-pr102-android-rerun.log` and
 `/private/tmp/mobile-debug-pr102-monitor.log`.
+
+
+## Shutdown cleanup repair — 2026-11-05
+
+A simulator run exposed a discarded trace directory left after recorder stop
+failed. Finalization skipped artifact cleanup on any stop exception, including
+when the owned recorder had already exited (such as after forced termination).
+The fix removes discarded files only after confirmed recorder exit and preserves
+the failed state/reason; a possibly live recorder still retains its directory for
+retry. Storage-limit cleanup retains its existing behaviour.
+
+Regression coverage proves both the live-writer safety case and shutdown after
+stop failure with confirmed exit. The latter failed before the fix and passed
+afterward. The complete simulator trace regression and `npm run verify` passed. The
+original shutdown deadline and assertions were unchanged. The repaired run
+established tap-to-Done via a fresh UI-tree assertion, 59 exported sample rows,
+cancel/expiry/stale-ID handling, server shutdown directory removal and complete
+owned trace/fixture cleanup. It used the documented test-owned compatibility
+companion; the default idb/Xcode HID limitation remains separate. The baseline `MCP_READINESS_DEVICE=emulator-5554 npm run test:device` suite also
+passed, with optional fixture skips reported separately. The full affected iOS
+trace smoke was run explicitly above rather than inferred from the baseline
+suite. The test-owned companion/alias was removed and simulator shutdown restored.
+
+Logs: `/tmp/ios-shutdown-fixed-device.log`,
+`/tmp/ios-shutdown-fixed-evidence.json`, `/tmp/ios-shutdown-verify.log`,
+`/tmp/ios-shutdown-device-suite.log`.
+Existing readiness verification edits in spec 033 and debugger device tests are
+preserved separately; no physical-device operations are needed for this repair.

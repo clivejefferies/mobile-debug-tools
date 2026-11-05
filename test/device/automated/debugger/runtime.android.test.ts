@@ -104,6 +104,11 @@ if (!process.env.MCP_DEBUGGER_DEVICE) {
     assert.equal(object.value.type, 'java.lang.Object'); assert.equal(typeof object.value.object_id, 'string')
     const readiness = await call('get_app_readiness', { platform: 'android', deviceId })
     assert.equal(readiness.readiness.state, 'debugger_paused')
+    assert.deepEqual(readiness.device_readiness.blockers, ['DEBUGGER_PAUSED'])
+    assert.equal(readiness.device_readiness.input_ready, false)
+    const readyWait = await call('wait_for_app_ready', { platform: 'android', deviceId })
+    assert.equal(readyWait.failure_code, 'DEBUGGER_PAUSED')
+    assert.deepEqual(readyWait.device_readiness.blockers, ['DEBUGGER_PAUSED'])
     for (const name of ['tap', 'wait_for_ui', 'terminate_app', 'run_journey']) {
       const blocked = await call(name, { platform: 'android', deviceId, x: 5, y: 5, appId: debuggerAppId })
       assert.equal(blocked.failure_code, 'DEBUGGER_PAUSED', name)

@@ -124,6 +124,29 @@ async function run() {
       assert.equal(result.completion_reason,'duration_limit');assert.ok(result.artifact)
     }finally{await f.cleanup()}
   }
+  const cancelledStopFailure=fixture()
+  try {
+    const started=await cancelledStopFailure.sessions.start(target,'fixture')
+    const directory=path.dirname(cancelledStopFailure.recordings[0].file)
+    cancelledStopFailure.flags({stop:true})
+    const failed=await cancelledStopFailure.sessions.control(started.trace_id,'cancel')
+    assert.equal(failed.cleanup.status,'failed')
+    await fs.stat(directory) // Never remove a directory while the recorder may still write.
+    cancelledStopFailure.flags({})
+    assert.equal((await cancelledStopFailure.sessions.control(started.trace_id,'cancel')).cleanup.status,'complete')
+  } finally {await cancelledStopFailure.cleanup()}
+  const exitedStopFailure=fixture()
+  try {
+    const started=await exitedStopFailure.sessions.start(target,'fixture')
+    const directory=path.dirname(exitedStopFailure.recordings[0].file)
+    exitedStopFailure.flags({stop:true})
+    assert.deepEqual(await exitedStopFailure.sessions.shutdown(),[], 'a stop failure after confirmed recorder exit must not strand discarded files')
+    const result=await exitedStopFailure.sessions.control(started.trace_id,'status')
+    assert.equal(result.state,'failed', 'cleanup must not hide the recorder failure')
+    assert.equal(result.reason,'ACTION_TIMEOUT')
+    assert.equal(result.cleanup.status,'complete')
+    await assert.rejects(()=>fs.stat(directory),{code:'ENOENT'})
+  } finally {await exitedStopFailure.cleanup()}
   const shutdown=fixture()
   try{const s=await shutdown.sessions.start(target,'fixture');assert.deepEqual(await shutdown.sessions.shutdown(),[]);assert.equal((await shutdown.sessions.control(s.trace_id,'status')).state,'cancelled');await assert.rejects(()=>shutdown.sessions.start(target,'fixture'),/TRACE_BUSY/)}finally{await shutdown.cleanup()}
   console.log('PASS iOS trace lifecycle, linkage, failure cleanup, retries and expiry')

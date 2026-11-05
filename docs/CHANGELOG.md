@@ -10,6 +10,9 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Clean up discarded iOS trace files after a recorder-stop failure when process
+  exit is confirmed, while retaining the failure and protecting live recordings.
+
 - Add timestamped device-readiness evidence to launch/interaction results and
   readiness waits, preserving dispatch outcomes and compact/journey evidence.
   Android power/keyguard blockers prevent readiness success; iOS reports
