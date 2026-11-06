@@ -10,6 +10,11 @@ Android, iOS, and Kotlin Multiplatform projects are supported. Flutter and React
 Native have not been tested. Platform and device limitations are described in the
 [tool reference](docs/tools/TOOLS.md).
 
+Use `responseMode: "compact"` for bounded interaction and journey summaries.
+Retrieve retained details without replaying input with
+[`get_interaction_diagnostics`](docs/tools/compact-interactions.md); debug output
+remains available.
+
 ## What you can use it for
 
 Mobile Debug Tools gives a coding agent access to a running app, so development

@@ -2,7 +2,7 @@ import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import type { z } from 'zod'
 import { debuggerSessions } from '../../debugger/sessions.js'
 import { systemTraces } from '../../observe/system-trace.js'
-import { currentEvidenceCorrelationId, bindSystemTrace, refreshJourneyEvidence, completeJourneyVerification } from '../../observe/evidence.js'
+import { currentEvidenceCorrelationId, bindSystemTrace, withJourneyStepEvidence, refreshJourneyEvidence, completeJourneyVerification, JourneyStepError } from '../../observe/evidence.js'
 import { runWithBudget } from '../../utils/operation-budget.js'
 import { journeySchema } from '../schemas/journey-schema.js'
 import { resolveTargetDevice, withResolvedDevice } from '../../utils/resolve-device.js'
@@ -34,19 +34,22 @@ async function assertStep(step: AssertionStep, platform: Journey['platform'], de
   if (assertion.kind === 'state_equals') return ToolsInteract.expectStateHandler({ selector: assertion.selector, element_id: assertion.elementId, property: assertion.property, expected: assertion.expected, platform, deviceId, stabilization_window_ms: timeoutMs, poll_interval_ms: pollIntervalMs, exact_budget: true })
   return { success: false, failure_code: 'INVALID_ASSERTION' }
 }
+async function observeStep(s: Context, operation: () => Promise<ToolPayload>) {
+  return s.input.responseMode === 'compact' ? withJourneyStepEvidence(operation) : operation()
+}
 async function executeStep(s: Context, step: Step, covered: boolean): Promise<ToolPayload> {
   const { platform, responseMode, defaults } = s.input, deviceId = s.deviceId
   try {
     if (step.type === 'tap') return payloadOf(await handleTapElement({ ...defaults, ...step, platform, deviceId, responseMode, _journey: true, _stepId: step.id, verificationMode: covered ? 'none' : step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
-    if (step.type === 'wait') {
+    if (step.type === 'wait') return await observeStep(s, async () => {
       const result = (await withObservationContext({ stepId: step.id, purpose: 'target' }, () => ToolsInteract.waitForUIHandler({ selector: step.selector, condition: step.condition ?? 'exists', timeout_ms: step.timeoutMs ?? 5000, poll_interval_ms: step.pollIntervalMs ?? 100, platform, deviceId })))!
       return { success: result.status === 'success', ...result }
-    }
-    if (step.type === 'assert') return await withObservationContext({ stepId: step.id, purpose: 'assertion' }, () => runWithBudget(step.timeoutMs ?? 5000, () => assertStep(step, platform, deviceId)))
+    })
+    if (step.type === 'assert') return await observeStep(s, () => withObservationContext({ stepId: step.id, purpose: 'assertion' }, () => runWithBudget(step.timeoutMs ?? 5000, () => assertStep(step, platform, deviceId))))
     if (step.type === 'start_app') return payloadOf(await handleStartApp({ ...defaults, platform, deviceId, appId: step.appId, responseMode, _journey: true, _stepId: step.id, verificationMode: step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
     return { success: false, failure_code: 'UNSUPPORTED_JOURNEY_STEP' }
   } catch (error) {
-    return { success: false, failure_code: step.type === 'assert' ? 'ASSERTION_TIMEOUT' : 'STEP_FAILED', error: error instanceof Error ? error.message : String(error) }
+    return { success: false, failure_code: step.type === 'assert' ? 'ASSERTION_TIMEOUT' : 'STEP_FAILED', error: error instanceof Error ? error.message : String(error), ...(error instanceof JourneyStepError ? { evidence: error.evidence } : {}) }
   }
 }
 function lightVerification(s: Context, step: Step, result: ToolPayload, covered: boolean, success: boolean) {
@@ -69,20 +72,12 @@ function lightVerification(s: Context, step: Step, result: ToolPayload, covered:
   }
   s.pendingLightStep = null
 }
-function compactAssertion(result: ToolPayload, success: boolean) {
-  const errorCode = typeof result.error === 'object' ? result.error?.code : undefined
-  return { success, ...(result.failure_code ? { failure_code: result.failure_code } : {}),
-    ...(errorCode ? { failure_code: errorCode } : {}),
-    ...(result.observed?.matched_count !== undefined ? { matched_count: result.observed.matched_count } : {}),
-    ...(result.observed_fingerprint !== undefined ? { matched: success } : {}),
-    ...(result.actual_state ? { observed: result.actual_state } : {}) }
-}
 function coveredByAssertion(s: Context, step: Step, next?: Step) {
   const verification = ('verificationMode' in step ? step.verificationMode : undefined) ?? s.input.defaults?.verificationMode ?? 'full'
   return step.type === 'tap' && s.input.responseMode === 'compact' && verification === 'light' && next?.type === 'assert' && next.assertion.kind === 'element_visible'
 }
 async function runSteps(s: Context) {
-  const { platform, responseMode, steps } = s.input
+  const { platform, steps } = s.input
   for (let index = 0; index < steps.length; index++) {
     const step = steps[index]
     if (platform === 'android' && debuggerSessions.paused(s.deviceId)) {
@@ -95,12 +90,11 @@ async function runSteps(s: Context) {
       s.results.push({ id: step.id, type: step.type, status: 'not_run', success: false, reason: 'PREVIOUS_STEP_FAILED', result: null, timing: { total_ms: 0 } })
       continue
     }
-    let result = await executeStep(s, step, covered)
+    const result = await executeStep(s, step, covered)
     if (platform === 'android' && debuggerSessions.paused(s.deviceId)) { result.success = false; result.failure_code = 'DEBUGGER_PAUSED'; result.retryable = false }
     if (step.type === 'assert' && !result?.success && /TIMEOUT/.test(result?.failure_code ?? '')) result.failure_code = 'ASSERTION_TIMEOUT'
     const success = !!result?.success
     lightVerification(s, step, result, covered, success)
-    if (responseMode === 'compact' && ['wait', 'assert'].includes(step.type)) result = compactAssertion(result, success)
     s.results.push({ id: step.id, type: step.type, status: success ? 'passed' : 'failed', success, result, timing: { total_ms: performance.now() - started } })
     if (!success) s.stoppedAt = step.id
   }

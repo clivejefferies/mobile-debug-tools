@@ -1,3 +1,5 @@
+import { finalizeCompactInteraction } from './compact-interaction.js'
+import { handleInteractionDiagnostics } from './interaction-diagnostics.js'
 import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import { ToolsInteract } from '../../interact/index.js'
 import type { DeviceInfo } from '../../types.js'
@@ -42,6 +44,7 @@ export const toolHandlers: Record<string, ToolHandler> = {
     if (!parsed.success) throw new Error('INVALID_ARGUMENT: invalid readiness arguments')
     return wrapResponse(await getAppReadiness(parsed.data, true))
   },
+  get_interaction_diagnostics: handleInteractionDiagnostics,
   start_app: handleStartApp,
   terminate_app: handleTerminateApp,
   restart_app: handleRestartApp,
@@ -95,7 +98,7 @@ async function dispatchGuarded(device: DeviceInfo, args: ToolCallArgs, handler: 
   const sessions = device.platform === 'ios' ? iosDebuggerSessions : debuggerSessions
   return withResolvedDevice(device, () => withDebuggerGuard(device.platform, device.id, async () => {
     const before = sessions.paused(device.id)
-    if (before) return wrapResponse({ device_readiness: await observeDeviceReadiness(device), success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before })
+    if (before) return addTiming(wrapResponse({ device_readiness: await observeDeviceReadiness(device), success: false, failure_code: 'DEBUGGER_PAUSED', delivery_status: 'not_delivered', dispatch_started: false, debugger: before }))
     let response: ToolCallResult
     try { response = await handler(args) } catch (error) {
       if (!sessions.paused(device.id)) throw error
@@ -140,7 +143,7 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}, sign
   const started = performance.now()
   const measured: Record<string, number> = {}
   const addTiming = (response: ToolCallResult) => {
-    if (!['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'wait_for_ui', 'get_ui_tree', 'capture_screenshot', 'capture_debug_snapshot'].includes(name)) return response
+    if (!['start_app', 'restart_app', 'tap', 'tap_element', 'swipe', 'scroll_to_element', 'type_text', 'press_back', 'wait_for_ui', 'get_ui_tree', 'capture_screenshot', 'capture_debug_snapshot'].includes(name)) return finalizeCompactInteraction(name, args, response)
     const item = response.content.find(item => item.type === 'text')
     if (item?.text) {
       try {
@@ -149,7 +152,7 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}, sign
         item.text = JSON.stringify(value)
       } catch { /* Non-JSON text responses retain their original content. */ }
     }
-    return response
+    return finalizeCompactInteraction(name, args, response)
   }
   return withTiming(measured, async () => {
     try {
@@ -163,7 +166,7 @@ export async function handleToolCall(name: string, args: ToolCallArgs = {}, sign
       attachPausedObservation(name, args, response)
       return addTiming(response)
     } catch (error) {
-      if (error instanceof TraceError) return { ...wrapResponse({ error: { tool: name, code: error.code, message: error.message } }), isError: true }
+      if (error instanceof TraceError) return addTiming({ ...wrapResponse({ error: { tool: name, code: error.code, message: error.message } }), isError: true })
       console.error(`Error executing tool ${name}:`, error)
       return addTiming(wrapToolError(name, error))
     }

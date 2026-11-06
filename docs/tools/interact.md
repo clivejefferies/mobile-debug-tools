@@ -78,11 +78,11 @@ Reasons are `BASELINE_UNAVAILABLE`, `SESSION_MISMATCH`, `DEVICE_MISMATCH`,
 there is no valid fresh observation. Error trees cannot authorise input merely
 because they contain an old revision.
 
-Debug responses retain the full condition tree. Compact responses retain full
-fresh evidence on mismatch/unavailable results; this is an exception to their
-usual omission of device identifiers and tree contents. Successful compact
-conditions contain only observed session/revision and capture time. UI trees may
-contain private text; avoid copying them into logs unnecessarily.
+Debug responses retain the full condition tree. Compact responses retain condition
+status/reason and observed session/revision/capture time when they fit the budget.
+Use the returned diagnostics reference with `get_interaction_diagnostics` to read
+the retained original condition tree without replaying input. UI trees may contain
+private text; compact mode is not redaction. See [compact results](compact-interactions.md).
 
 The baseline must still be in this process's same-device history: up to eight
 revisions, retained for ten minutes since a successful observation of that
@@ -714,7 +714,10 @@ and `responseMode` (`compact`, `debug`). Omitted controls retain `full`/`debug`.
 `none` reports dispatch without post-action accessibility reads. `light` requests
 one fresh tree; an unavailable observation does not turn successful delivery into
 a failed action. Use an explicit assertion to establish the intended outcome.
-Compact responses retain delivery, retry, lifecycle, and timing fields.
+Compact responses retain delivery, retry, lifecycle and verification fields, with
+bounded observation summaries and a read-only diagnostics reference. Optional
+timing/summaries may be omitted with `truncated:true` to fit the output budget.
+See [compact results](compact-interactions.md) for bounds and migration.
 
 `actionTimeoutMs` and `verificationTimeoutMs` are integer budgets, clamped to
 100–30,000 and 100–60,000 ms respectively. An action timeout after dispatch starts
@@ -789,8 +792,8 @@ for supported states and limits.
 
 ## Correlated evidence
 
-Actions and journeys expose identifiers and phase timestamps for linking later
-observations. See [evidence correlation](correlated-evidence.md) for scope and limitations.
+Actions and journeys expose identifiers for linking later observations. Debug
+results and retained diagnostics include phase timestamps. See [evidence correlation](correlated-evidence.md) for scope and limitations.
 
 Interaction action responses preserve `device_readiness` in compact/debug modes
 and journey action steps, including when verification is disabled. This evidence

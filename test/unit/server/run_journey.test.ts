@@ -42,7 +42,7 @@ async function run() {
     assert.strictEqual(result.steps[1].status, 'failed')
     assert.deepStrictEqual(result.steps[2], {
       id: 'not-run', type: 'wait', status: 'not_run', success: false,
-      reason: 'PREVIOUS_STEP_FAILED', result: null, timing: { total_ms: 0 }
+      reason: 'PREVIOUS_STEP_FAILED', result: null
     })
 
     let postActionReads = 0

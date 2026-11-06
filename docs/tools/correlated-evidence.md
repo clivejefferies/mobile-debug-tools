@@ -6,6 +6,12 @@ Use evidence correlation to connect an action with later screenshots, UI trees,
 and logs, and to understand when those observations were captured. Association
 does not prove that the action caused an observed change.
 
+Compact interaction/journey output keeps the correlation IDs and device while
+summarizing observation metadata. Use the returned `diagnostics` reference with
+[`get_interaction_diagnostics`](compact-interactions.md) for original timestamps,
+observation arrays and trace context without replaying input. Debug output retains
+the full evidence envelope described below. `adjust_control` output is unchanged.
+
 ## Associate an observation with an action
 
 Covered actions (`start_app`, `restart_app`, `tap`, `tap_element`, `swipe`,

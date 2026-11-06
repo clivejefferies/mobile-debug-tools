@@ -59,7 +59,15 @@ else process.exit(1)
     if (platform === 'android') replace('collectGetCurrentScreen', async (id: string) => ({ device: device(platform, id), activity: 'FixtureActivity', package: 'fixture.app' }))
   }
   const payload = (r: any) => JSON.parse(r.content[0].text)
-  const call = async (name: string, args: Record<string, unknown>) => payload(await handleToolCall(name, args))
+  const call = async (name: string, args: Record<string, unknown>) => {
+    const value = payload(await handleToolCall(name, args))
+    if (name !== 'run_journey' && value.diagnostics?.available) {
+      const retained = payload(await handleToolCall('get_interaction_diagnostics', { sessionId: value.diagnostics.session_id, resultId: value.diagnostics.result_id }))
+      assert.equal(retained.success, true)
+      return { ...value, evidence: retained.result.evidence }
+    }
+    return value
+  }
   const refFor = (value: any) => ({ sessionId: value.evidence.session_id, actionId: value.evidence.action_id })
   try {
     for (const platform of ['android', 'ios'] as const) {
@@ -122,9 +130,11 @@ else process.exit(1)
       verificationMode: 'none', responseMode: 'compact', actionTimeoutMs: 500 })
     delete process.env.EVIDENCE_INPUT_SLOW
     assert.equal(timeout.failure_code, 'ACTION_TIMEOUT')
-    assert.ok(timeout.evidence.dispatch_started_at_ms)
-    assert.ok(timeout.evidence.dispatch_completed_at_ms)
-    assert.equal(timeout.evidence.verification_completed_at_ms, null)
+    const retainedTimeout = await call('get_interaction_diagnostics', { sessionId: timeout.diagnostics.session_id, resultId: timeout.diagnostics.result_id })
+    assert.equal(retainedTimeout.success, true)
+    assert.ok(retainedTimeout.result.evidence.dispatch_started_at_ms)
+    assert.ok(retainedTimeout.result.evidence.dispatch_completed_at_ms)
+    assert.equal(retainedTimeout.result.evidence.verification_completed_at_ms, null)
     const before = captureCount
     const malformed = await call('capture_screenshot', { platform: 'android', actionRef: { actionId: '' } })
     assert.match(malformed.error.message, /INVALID_ARGUMENT/)
@@ -149,9 +159,11 @@ else process.exit(1)
       ] })
     assert.equal(light.success, true)
     const lightStep = light.steps[0].result
-    assert.ok(lightStep.evidence.verification_completed_at_ms)
+    assert.equal(lightStep.observed_state.status, 'observed', JSON.stringify(lightStep))
+    const retainedLight = await call('get_interaction_diagnostics', { sessionId: lightStep.diagnostics.session_id, resultId: lightStep.diagnostics.result_id })
+    assert.ok(retainedLight.result.evidence.verification_completed_at_ms)
     const afterLight = await call('capture_screenshot', { platform: 'android', deviceId: 'fixture-android', actionRef: refFor(lightStep) })
-    assert.equal(afterLight.evidence.verification_completed_at_ms, lightStep.evidence.verification_completed_at_ms)
+    assert.equal(afterLight.evidence.verification_completed_at_ms, retainedLight.result.evidence.verification_completed_at_ms)
 
     const started = await call('start_log_stream', { platform: 'android', deviceId: 'other', sessionId: 'evidence-owned', packageName: 'fixture.app' })
     assert.equal(started.success, true)

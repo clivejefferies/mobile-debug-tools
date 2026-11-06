@@ -10,6 +10,8 @@ All notable changes to the **Mobile Debug MCP** project will be documented in th
 
 ## Unreleased
 
+- Compact interaction/journey results now summarize observations, readiness, conditions and state deltas within explicit byte budgets. Detailed original results are available through session-local `get_interaction_diagnostics` references without replaying input. Debug output and response-mode defaults are unchanged.
+
 - Report device-scoped app installation as installed, absent or unknown. Publish
   `list_devices.appId`; omit legacy installation booleans for inconclusive or
   multi-device system checks instead of reporting false absence.

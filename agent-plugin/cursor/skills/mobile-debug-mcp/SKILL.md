@@ -57,7 +57,14 @@ required. A 2-second timeout cannot reliably accommodate a 3-second tree read.
 Adjust to measured device latency and supported tool limits. Report an
 observation timeout separately from evidence that a control is absent.
 
-Use compact responses for routine actions. If action dispatch is reliable but
+Use compact responses for routine actions. Compact interaction/journey results retain
+outcomes, verification, readiness blockers and observed_state (or explicit unknown).
+For original errors, condition trees, state-delta elements and evidence timestamps,
+call get_interaction_diagnostics with diagnostics.session_id/result_id as
+sessionId/resultId. This reads retained data without replaying input. Results expire
+after ten minutes or earlier eviction (100 results, 16 MiB total, 1 MiB per result).
+Check diagnostics.available; unavailable details never justify automatic replay.
+Debug mode can request additional captures at execution time. If action dispatch is reliable but
 verification is slow or unavailable, dispatch with verification disabled and
 verify at meaningful checkpoints with one focused accessibility assertion or
 screenshot. Do not assume `light` verification is faster: use it only when it
@@ -103,7 +110,8 @@ actions are tap, element tap, swipe, Android typing/back, and journey tap steps.
 The server takes a fresh normalized hierarchy immediately before input.
 `PRECONDITION_FAILED` or `PRECONDITION_UNAVAILABLE` means input was blocked:
 inspect `condition` evidence and decide again; do not blindly retry or replace
-the expectation. Compact failures may contain the full UI tree and private text.
+the expectation. Compact failures summarize condition evidence; their diagnostics lookup may contain
+the full UI tree and private text. Compact output is not privacy redaction.
 Expectations expire with retained history or server restart. The extra hierarchy
 read can take seconds; it is not atomic with input delivery and does not prove
 the action's outcome.

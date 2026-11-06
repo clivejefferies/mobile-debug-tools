@@ -24,9 +24,11 @@ async function run() {
       const action = parse(await call('start_app', { ...target, appId, verificationMode: 'none', responseMode: 'compact' }))
       assert.equal(action.success, true, JSON.stringify(action))
       assert.equal(action.action_id, action.evidence.action_id)
-      assert.ok(action.evidence.dispatch_started_at_ms)
-      assert.ok(action.evidence.dispatch_completed_at_ms >= action.evidence.dispatch_started_at_ms)
-      assert.equal(action.evidence.verification_completed_at_ms, null)
+      const retained = parse(await call('get_interaction_diagnostics', { sessionId: action.diagnostics.session_id, resultId: action.diagnostics.result_id }))
+      assert.equal(retained.success, true)
+      assert.ok(retained.result.evidence.dispatch_started_at_ms)
+      assert.ok(retained.result.evidence.dispatch_completed_at_ms >= retained.result.evidence.dispatch_started_at_ms)
+      assert.equal(retained.result.evidence.verification_completed_at_ms, null)
       const actionRef = { sessionId: action.evidence.session_id, actionId: action.evidence.action_id }
       const screenResponse: any = await call('capture_screenshot', { ...target, actionRef })
       const screen = parse(screenResponse)
@@ -37,7 +39,7 @@ async function run() {
       const screenshot = screen.evidence.observations.find((v: any) => v.kind === 'screenshot')
       assert.equal(screenshot.status, 'captured')
       assert.equal(screenshot.freshness, 'fresh')
-      assert.ok(screenshot.capture_started_at_ms >= action.evidence.dispatch_completed_at_ms)
+      assert.ok(screenshot.capture_started_at_ms >= retained.result.evidence.dispatch_completed_at_ms)
       const logsResponse: any = await call('get_logs', { ...target, appId, limit: 5, actionRef })
       const logs = parse(logsResponse)
       assert.equal(logs.evidence.action_id, action.action_id)
@@ -59,7 +61,7 @@ async function run() {
       assert.equal(unassociated.evidence.action_id, null)
       console.log(JSON.stringify({ status: 'PASS', server: client.getServerVersion(), platform, device: device.id,
         osVersion: device.osVersion, startingApp: appId, actionId: action.action_id,
-        phases: { dispatchStarted: action.evidence.dispatch_started_at_ms, dispatchCompleted: action.evidence.dispatch_completed_at_ms,
+        phases: { dispatchStarted: retained.result.evidence.dispatch_started_at_ms, dispatchCompleted: retained.result.evidence.dispatch_completed_at_ms,
           screenshotStarted: screenshot.capture_started_at_ms, screenshotCompleted: screenshot.capture_completed_at_ms },
         screenshot: screenshot.status, logs: log.status, uiTree: tree.status,
         disabledComponents: 'omitted', foreignReference: 'unavailable',

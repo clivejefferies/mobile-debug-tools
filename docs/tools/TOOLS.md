@@ -10,6 +10,7 @@ Use the guides below when you need a tool contract or a specific workflow.
 - [Observation](observe.md) — screenshots, logs, UI trees, fingerprints, debug snapshots, and app readiness.
 - [Interaction](interact.md) — UI resolution, actions, waits, and deterministic verification.
 - [Environment diagnostics](system.md) — toolchain discovery and health checks.
+- [Compact interaction results](compact-interactions.md) — output budgets and read-only diagnostics lookup.
 - [Evidence correlation](correlated-evidence.md) — action references, capture timing, and freshness.
 - [System traces](system-traces.md) — Android Perfetto and iOS simulator Time Profiler capture with local artifacts.
 - [Android and iOS simulator runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.

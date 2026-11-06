@@ -13,9 +13,9 @@ export function wrapResponse<T>(data: T, includeSerializationTiming = true) {
 }
 
 export type ToolCallArgs = Record<string, unknown>
-export type ToolCallResult = Awaited<ReturnType<typeof wrapResponse>> | {
+export type ToolCallResult = (Awaited<ReturnType<typeof wrapResponse>> | {
   content: Array<{ type: 'text' | 'image'; text?: string; data?: string; mimeType?: string }>
-}
+}) & { isError?: boolean }
 export type ToolHandler = (args: ToolCallArgs) => Promise<ToolCallResult>
 
 export function getStringArg(args: ToolCallArgs, key: string): string | undefined {
