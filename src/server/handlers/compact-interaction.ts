@@ -70,7 +70,12 @@ function compactJourney(source: Payload): Payload {
     observed_state: observedState(source.evidence), timing: pick(source.timing, ['total_ms']),
     steps: steps.map(step => ({ ...pick(step, ['id', 'type', 'status', 'success', 'reason']),
       result: step.result ? compactResult(object(step.result), String(step.type), 1080) : null })) }
-  if (source.error) result.error = { ...pick(source.error, ['code']), message: boundedValue(object(source.error).message) }
+  if (source.error) {
+    const message = object(source.error).message
+    const bounded = boundedValue(message)
+    result.error = { ...pick(source.error, ['code']), message: bounded }
+    if (bounded !== message) result.truncated = true
+  }
   if (source.system_trace) result.system_trace = pick(source.system_trace, ['trace_id', 'state', 'coverage', 'clock_alignment'])
   enforceBudget(result, 1280 + 1280 * steps.length + steps.reduce((sum, s) => sum + idBytes(s.id) + deviceBytes(object(s.result).evidence), 0) + idBytes(source.stopped_at_step_id) + deviceBytes(source.evidence))
   return result

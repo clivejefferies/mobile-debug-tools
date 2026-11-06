@@ -86,3 +86,26 @@ Both platform journeys and original/child lookups passed on the final rebuilt
 server. Android Settings remains foreground with no data/settings changes.
 The iPhone 17 Pro simulator was shut down and booted-device inventory checked,
 restoring its initial state.
+
+## PR #106 review repairs — 2026-11-06
+
+Both attached review findings were confirmed against PR head 0fe5720. Failed compact
+wait/assert operations now carry their step-scoped acquisition evidence through a
+typed error wrapper into the failure result and retained diagnostics. The original
+failure remains the cause; no mutation of thrown values is required. Wait operations
+are awaited so rejected promises reach the step failure handler. Successful operations
+and returned timeout payloads retain their existing behaviour. Shortened journey error
+messages now set truncated=true even when the whole result fits its byte budget.
+
+`compact-review-regressions.test.ts` covers a captured tree followed by a deterministic
+remainingBudget() rejection, child/journey diagnostics fidelity, no replay, returned
+timeouts, debug compatibility, and ASCII/UTF-8 truncation boundaries. These thrown
+failure paths are fixture evidence, not induced native timeouts.
+
+`npm run verify`: PASS (109 unit-test files, lint/architecture, build, plugin consistency).
+`npm run test:device`: PASS (16 files; the same seven optional fixture files reported
+UNRUN for missing explicit environment selections). Rebuilt-server compact journeys,
+lookup, screenshots, logs and UI-tree checks passed on Android 16 emulator-5554 and
+iOS 26.4 simulator F9243BAF-62A8-4990-8A99-17F527F56FDA; Android trace lifecycle,
+cancellation and shutdown passed. No settings/app data changes or layout claims were
+made. The iOS simulator was restored to its initial shut-down state after the run.

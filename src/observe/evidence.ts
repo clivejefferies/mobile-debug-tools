@@ -323,10 +323,21 @@ function recordCaptureTime(acquisition: Acquisition, result: EvidencePayload | n
   }
 }
 
+export class JourneyStepError extends Error {
+  constructor(readonly evidence: ReturnType<typeof assemble>, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause })
+  }
+}
+
 /** Retain per-step evidence without changing the parent journey's acquisition flow. */
 export async function withJourneyStepEvidence<T>(operation: () => Promise<T>) {
   const current = context.getStore()
   const start = current?.observations.length ?? 0
-  const result = await operation()
-  return { ...result, ...(current ? { evidence: assemble({ ...current, observations: current.observations.slice(start) }) } : {}) }
+  try {
+    const result = await operation()
+    return { ...result, ...(current ? { evidence: assemble({ ...current, observations: current.observations.slice(start) }) } : {}) }
+  } catch (error) {
+    if (current) throw new JourneyStepError(assemble({ ...current, observations: current.observations.slice(start) }), error)
+    throw error
+  }
 }

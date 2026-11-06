@@ -2,7 +2,7 @@ import { observeDeviceReadiness } from '../../observe/device-readiness.js'
 import type { z } from 'zod'
 import { debuggerSessions } from '../../debugger/sessions.js'
 import { systemTraces } from '../../observe/system-trace.js'
-import { currentEvidenceCorrelationId, bindSystemTrace, withJourneyStepEvidence, refreshJourneyEvidence, completeJourneyVerification } from '../../observe/evidence.js'
+import { currentEvidenceCorrelationId, bindSystemTrace, withJourneyStepEvidence, refreshJourneyEvidence, completeJourneyVerification, JourneyStepError } from '../../observe/evidence.js'
 import { runWithBudget } from '../../utils/operation-budget.js'
 import { journeySchema } from '../schemas/journey-schema.js'
 import { resolveTargetDevice, withResolvedDevice } from '../../utils/resolve-device.js'
@@ -41,7 +41,7 @@ async function executeStep(s: Context, step: Step, covered: boolean): Promise<To
   const { platform, responseMode, defaults } = s.input, deviceId = s.deviceId
   try {
     if (step.type === 'tap') return payloadOf(await handleTapElement({ ...defaults, ...step, platform, deviceId, responseMode, _journey: true, _stepId: step.id, verificationMode: covered ? 'none' : step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
-    if (step.type === 'wait') return observeStep(s, async () => {
+    if (step.type === 'wait') return await observeStep(s, async () => {
       const result = (await withObservationContext({ stepId: step.id, purpose: 'target' }, () => ToolsInteract.waitForUIHandler({ selector: step.selector, condition: step.condition ?? 'exists', timeout_ms: step.timeoutMs ?? 5000, poll_interval_ms: step.pollIntervalMs ?? 100, platform, deviceId })))!
       return { success: result.status === 'success', ...result }
     })
@@ -49,7 +49,7 @@ async function executeStep(s: Context, step: Step, covered: boolean): Promise<To
     if (step.type === 'start_app') return payloadOf(await handleStartApp({ ...defaults, platform, deviceId, appId: step.appId, responseMode, _journey: true, _stepId: step.id, verificationMode: step.verificationMode ?? defaults?.verificationMode ?? 'full' }))
     return { success: false, failure_code: 'UNSUPPORTED_JOURNEY_STEP' }
   } catch (error) {
-    return { success: false, failure_code: step.type === 'assert' ? 'ASSERTION_TIMEOUT' : 'STEP_FAILED', error: error instanceof Error ? error.message : String(error) }
+    return { success: false, failure_code: step.type === 'assert' ? 'ASSERTION_TIMEOUT' : 'STEP_FAILED', error: error instanceof Error ? error.message : String(error), ...(error instanceof JourneyStepError ? { evidence: error.evidence } : {}) }
   }
 }
 function lightVerification(s: Context, step: Step, result: ToolPayload, covered: boolean, success: boolean) {
