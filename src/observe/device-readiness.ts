@@ -6,6 +6,7 @@ import { execCmd } from '../utils/exec.js'
 import { getAdbCmd } from '../utils/android/commands.js'
 import { getXcrunCmd } from '../utils/ios/utils.js'
 import { remainingBudget } from '../utils/operation-budget.js'
+import { benchmarkStage } from '../utils/benchmark-metrics.js'
 
 export function unknownDeviceReadiness(code?: string): DeviceReadiness {
   return { wakefulness: 'unknown', lock_state: 'unknown', input_ready: null, blockers: [], evidence: [], limitations: code ? [code] : [] }
@@ -51,6 +52,9 @@ const probes = new AsyncLocalStorage<Probe>()
 export function withDeviceReadinessProbe<T>(probe: Probe, operation: () => Promise<T>) { return probes.run(probe, operation) }
 const nativeProbe: Probe = (command, args, timeout) => execCmd(command, args, { timeout })
 export async function observeDeviceReadiness(device?: Pick<DeviceInfo, 'platform' | 'id'> | null, probe: Probe = probes.getStore() ?? nativeProbe): Promise<DeviceReadiness> {
+  return benchmarkStage('device_readiness_ms', () => observe(device, probe))
+}
+async function observe(device: Pick<DeviceInfo, 'platform' | 'id'> | null | undefined, probe: Probe): Promise<DeviceReadiness> {
   const state = unknownDeviceReadiness()
   if (!device?.id || !['android', 'ios'].includes(device.platform) || ['booted', 'default'].includes(device.id)) return unknownDeviceReadiness('DEVICE_TARGET_UNAVAILABLE')
   const paused = pausedReadiness(device.id, device.platform)

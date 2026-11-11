@@ -146,6 +146,8 @@ Input:
 
 Behavior:
 - Captures screenshot (base64), current activity (Android), screen fingerprint, full UI tree, and recent logs.
+- On Android, the fingerprint uses the fresh tree returned in the same snapshot.
+  A failed tree acquisition makes both components unavailable.
 - Prefers active log stream entries (read_log_stream) and falls back to get_logs when no active stream is available.
 - Returns partial data when components fail and includes per-part error fields (e.g. `screenshot_error`, `ui_tree_error`).
 - Caps logs to `logLines` entries and prefers recent entries.

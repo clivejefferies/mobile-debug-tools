@@ -1,6 +1,6 @@
 {
   "name": "mobile-debug-tools",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Mobile app debugging tools and usage guidance for Android and iOS agents.",
   "author": {
     "name": "mobile-debug-tools contributors"
@@ -14,7 +14,7 @@
       "command": "npx",
       "args": [
         "--yes",
-        "mobile-debug-mcp@0.36.0",
+        "mobile-debug-mcp@0.37.0",
         "server"
       ],
       "cwd": "${CURSOR_PLUGIN_ROOT}"

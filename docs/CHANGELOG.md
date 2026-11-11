@@ -8,7 +8,16 @@ and [tool reference](tools/TOOLS.md) for the current checkout.
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## Unreleased
+## [0.37.0]
+
+- Updated the agent plugin to `0.0.7`, pinned to MCP `0.37.0`.
+
+- Android debug snapshots use one fresh UI tree for the returned hierarchy and
+  screen fingerprint, removing a duplicate acquisition.
+
+- Add an end-to-end latency benchmark with repeated mode comparisons, visible
+  failed attempts, source/build identity, and opt-in timing-only request and
+  subprocess diagnostics. Public tool contracts and verification are unchanged.
 
 - Compact interaction/journey results now summarize observations, readiness, conditions and state deltas within explicit byte budgets. Detailed original results are available through session-local `get_interaction_diagnostics` references without replaying input. Debug output and response-mode defaults are unchanged.
 

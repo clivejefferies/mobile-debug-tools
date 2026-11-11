@@ -1,6 +1,7 @@
 
 
 import { ToolsObserve } from '../../observe/index.js'
+import { benchmarkStage } from '../../utils/benchmark-metrics.js'
 import { withObservationContext } from '../../observe/performance-metrics.js'
 import {
   getBooleanArg,
@@ -37,7 +38,7 @@ export async function handleCaptureScreenshot(args: ToolCallArgs) {
   const platform = requireStringArg(args, 'platform') as PlatformArg
   const deviceId = getStringArg(args, 'deviceId')
   const started = performance.now()
-  const res = await ToolsObserve.captureScreenshotHandler({ platform, deviceId })
+  const res = await benchmarkStage('screenshot_capture_ms', () => ToolsObserve.captureScreenshotHandler({ platform, deviceId }))
   const screenshotMs = performance.now() - started
   const mime = res.screenshot_mime || 'image/png'
   const content: Array<{ type: 'text' | 'image'; text?: string; data?: string; mimeType?: string }> = [

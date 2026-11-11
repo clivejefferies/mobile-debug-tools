@@ -1,4 +1,5 @@
 import { observeDeviceReadiness } from '../../observe/device-readiness.js'
+import { benchmarkStage } from '../../utils/benchmark-metrics.js'
 import type { z } from 'zod'
 import { debuggerSessions } from '../../debugger/sessions.js'
 import { systemTraces } from '../../observe/system-trace.js'
@@ -90,7 +91,9 @@ async function runSteps(s: Context) {
       s.results.push({ id: step.id, type: step.type, status: 'not_run', success: false, reason: 'PREVIOUS_STEP_FAILED', result: null, timing: { total_ms: 0 } })
       continue
     }
-    const result = await executeStep(s, step, covered)
+    const result = await (step.type === 'assert' || step.type === 'wait'
+      ? benchmarkStage(step.type === 'assert' ? 'assertion_ms' : 'wait_ms', () => executeStep(s, step, covered))
+      : executeStep(s, step, covered))
     if (platform === 'android' && debuggerSessions.paused(s.deviceId)) { result.success = false; result.failure_code = 'DEBUGGER_PAUSED'; result.retryable = false }
     if (step.type === 'assert' && !result?.success && /TIMEOUT/.test(result?.failure_code ?? '')) result.failure_code = 'ASSERTION_TIMEOUT'
     const success = !!result?.success
