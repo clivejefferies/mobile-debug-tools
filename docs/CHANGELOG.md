@@ -8,7 +8,9 @@ and [tool reference](tools/TOOLS.md) for the current checkout.
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
-## Unreleased
+## [0.37.0]
+
+- Updated the agent plugin to `0.0.7`, pinned to MCP `0.37.0`.
 
 - Android debug snapshots use one fresh UI tree for the returned hierarchy and
   screen fingerprint, removing a duplicate acquisition.
