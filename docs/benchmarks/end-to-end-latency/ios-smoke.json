@@ -1,0 +1,84 @@
+{
+  "status": "stopped",
+  "outcome": "fail",
+  "started_at": "2026-11-06T22:10:40.973Z",
+  "performance_evidence": false,
+  "smoke": true,
+  "warmups": 0,
+  "measured_attempts_per_case": 1,
+  "source_and_build_unchanged": true,
+  "identity": {
+    "source": "23f6dba770c958b983ed18c93033c5c5ccd6b48c1437f43128f3cffab49cbc54",
+    "build": "3e70e4207b228d002450f4d99f2ad2511d9df0b33c936aec4eeaf271603c34c6",
+    "shared_harness": "50eb0a3d4130ef669edcc7206e553daebd618158429f2ce44440f05ec411eb08",
+    "ios_harness": "9d11071ef7ddf444c25b5c50745ead5d522b552c4fe186b844521604554a334f"
+  },
+  "metadata": {
+    "platform": "ios",
+    "model": "Ticket 100 Latency Verification",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-27-2",
+    "os": "27.2",
+    "runtime_build": "24B8117",
+    "screen": "Settings root; English required; caller-provided isolated simulator",
+    "node": "v23.11.0",
+    "host": {
+      "platform": "darwin",
+      "release": "27.2.0",
+      "arch": "arm64"
+    },
+    "package_version": "0.36.0",
+    "commit": "d3ec701d05b4034acc7eaedc92b7e8903d33ca3b",
+    "working_tree": "M docs/CHANGELOG.md\n M docs/benchmarks/README.md\n M src/interact/waits/ui-wait.ts\n M src/observe/device-readiness.ts\n M src/observe/screenshot-encoding.ts\n M src/server-core.ts\n M src/server/handlers/journey.ts\n M src/server/handlers/observe.ts\n M src/utils/exec.ts\n M src/utils/timing.ts\n M test/fixtures/latency-journey-app/build.ts\n?? docs/benchmarks/end-to-end-latency/README.md\n?? docs/benchmarks/end-to-end-latency/baseline-attempt-1.json\n?? docs/benchmarks/end-to-end-latency/baseline-attempt-1.md\n?? docs/benchmarks/end-to-end-latency/baseline.json\n?? docs/benchmarks/end-to-end-latency/baseline.md\n?? docs/benchmarks/end-to-end-latency/smoke.json\n?? docs/benchmarks/end-to-end-latency/smoke.md\n?? docs/specs/036-end-to-end-interaction-latency/intent.md\n?? docs/specs/036-end-to-end-interaction-latency/plan.md\n?? docs/specs/036-end-to-end-interaction-latency/spec.md\n?? docs/specs/036-end-to-end-interaction-latency/verification.md\n?? src/utils/benchmark-metrics.ts\n?? test/device/automated/latency-ios/benchmark.ts\n?? test/device/automated/latency/end-to-end-environment.ts\n?? test/device/automated/latency/end-to-end-report.ts\n?? test/device/automated/latency/end-to-end-session.ts\n?? test/device/automated/latency/end-to-end.ts\n?? test/device/automated/latency/owned-transport.ts\n?? test/unit/server/end-to-end-report.test.ts\n?? test/unit/server/owned-benchmark-transport.test.ts\n?? test/unit/utils/benchmark-metrics.test.ts",
+    "tool_versions": {
+      "xcode": "Xcode 27.2\nBuild version 27B52",
+      "idb": "1.1.7"
+    },
+    "timeouts": {
+      "setup_ms": 30000,
+      "call_ms": 300000,
+      "readiness_ms": 30000
+    },
+    "journey": "blocked: shared #89 static/network fixture unavailable",
+    "physical_ios": "excluded"
+  },
+  "phases": [
+    {
+      "phase": "launch_settings",
+      "elapsed_ms": 11292.166041,
+      "success": true
+    },
+    {
+      "phase": "server_startup_metrics_true",
+      "elapsed_ms": 3046.3670420000017,
+      "success": true
+    },
+    {
+      "phase": "stable_screen_assertion_metrics_true",
+      "elapsed_ms": 32576.230541999998,
+      "success": false
+    }
+  ],
+  "fatal": "PREREQUISITE_FAILED",
+  "cleanup": {
+    "servers": true,
+    "settings": true
+  },
+  "unrun_attempts": 6,
+  "invocation": "IOS_LATENCY_DEVICE_ID=[simulator] npx tsx test/device/automated/latency-ios/benchmark.ts --smoke",
+  "summaries": {},
+  "observation_overhead": {
+    "screenshot": {
+      "paired_on_minus_off_ms": null,
+      "interpretation": "Includes device/order variability; not an isolated causal overhead estimate"
+    },
+    "tree": {
+      "paired_on_minus_off_ms": null,
+      "interpretation": "Includes device/order variability; not an isolated causal overhead estimate"
+    },
+    "snapshot": {
+      "paired_on_minus_off_ms": null,
+      "interpretation": "Includes device/order variability; not an isolated causal overhead estimate"
+    }
+  },
+  "attempts": []
+}

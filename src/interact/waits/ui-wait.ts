@@ -1,4 +1,5 @@
 import { systemClock } from '../../runtime/clock.js'
+import { benchmarkStage } from '../../utils/benchmark-metrics.js'
 import type { UiTree } from '../observation.js'
 import { remainingBudget } from '../../utils/operation-budget.js'
 import { checkDebuggerGuard } from '../../debugger/guard.js'
@@ -9,7 +10,7 @@ import { createUIWait, validateUIWait, waitObserved, waitFailure,
   type UIWaitInput, type UIWaitDependencies, type UIWaitState, type UIWaitResult } from './ui-wait-state.js'
 
 async function delay(s: UIWaitState, ms: number) {
-  await (s.tracker && s.clock === systemClock ? readinessDelay(ms) : s.clock.sleep(ms))
+  await benchmarkStage('poll_sleep_ms', () => s.tracker && s.clock === systemClock ? readinessDelay(ms) : s.clock.sleep(ms))
 }
 function acceptObservation(s: UIWaitState, tree: UiTree, now: number): UIWaitResult | null {
   const age = typeof tree?.captured_at_ms === 'number' ? now - tree.captured_at_ms : null

@@ -14,5 +14,6 @@ iOS latency.
 | --- | --- | --- | --- |
 | Interaction latency | [Run the benchmark](interaction-latency/README.md) | [Android measurements](interaction-latency/final.md), [iOS interaction validation](interaction-latency/ios-validation.md) | [018](../specs/018-interaction-latency-and-batched-journeys/spec.md) |
 | UI-tree observation | [Run the paired benchmark](ui-tree-performance/README.md) | [Comparison and limitations](ui-tree-performance/comparison.md) | [019](../specs/019-ui-tree-observation-performance/spec.md) |
+| End-to-end interaction latency | [Run the benchmarks](end-to-end-latency/README.md) | [Provisional Android results and iOS blocker](end-to-end-latency/investigation.md) | [036](../specs/036-end-to-end-interaction-latency/spec.md) |
 
 Fixture instructions: [latency journey app](../../test/fixtures/latency-journey-app/README.md).

@@ -5,6 +5,7 @@ import { measure } from '../utils/timing.js'
 import { deriveSnapshotMetadata } from './snapshot-metadata.js'
 import { deriveSnapshotSemantic } from './snapshot-semantic.js'
 import { snapshotLog, streamLog, type SnapshotLogEntry } from './snapshot-logs.js'
+import { collectGetScreenFingerprint } from './android/fingerprint.js'
 export interface SnapshotInput { reason?: string; includeLogs?: boolean; includeScreenshot?: boolean; logLines?: number; platform?: 'android' | 'ios'; appId?: string; deviceId?: string; sessionId?: string }
 type Dependencies = Pick<typeof ToolsObserve, 'captureScreenshotHandler' | 'getCurrentScreenHandler' | 'getScreenFingerprintHandler' | 'getUITreeHandler' | 'readLogStreamHandler' | 'getLogsHandler'>
 async function settle<T extends Record<string, Promise<unknown>>>(tasks: T) {
@@ -17,11 +18,15 @@ function apply<T>(result: PromiseSettledResult<T>, success: (value: T) => void, 
 }
 async function collect(raw: CaptureDebugSnapshotRawResponse, input: SnapshotInput, deps: Dependencies) {
   const { platform, deviceId, includeScreenshot = true, includeLogs = true, sessionId, logLines = 200 } = input
+  const androidTree = platform === 'android' ? deps.getUITreeHandler({ platform, deviceId }) : undefined
   const results = await settle({
     screenshot: includeScreenshot ? measure('screenshot_ms', () => deps.captureScreenshotHandler({ platform, deviceId })) : Promise.resolve(null),
     currentScreen: !platform || platform === 'android' ? deps.getCurrentScreenHandler({ deviceId }) : Promise.resolve(null),
-    fingerprint: deps.getScreenFingerprintHandler({ platform, deviceId }),
-    uiTree: deps.getUITreeHandler({ platform, deviceId }),
+    fingerprint: androidTree ? collectGetScreenFingerprint({
+      getUITree: () => androidTree,
+      getCurrentScreen: id => deps.getCurrentScreenHandler({ deviceId: id })
+    }, deviceId) : deps.getScreenFingerprintHandler({ platform, deviceId }),
+    uiTree: androidTree ?? deps.getUITreeHandler({ platform, deviceId }),
     readLogStream: includeLogs ? deps.readLogStreamHandler({ platform, deviceId, sessionId: sessionId || 'default', limit: logLines }) : Promise.resolve({ entries: [] })
   })
   let entries: unknown[] = []

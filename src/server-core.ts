@@ -11,6 +11,7 @@ import {
 import { wrapResponse } from './server/common.js'
 import { toolDefinitions } from './server/tool-definitions.js'
 import { handleToolCall } from './server/handlers/tool-handlers.js'
+import { withBenchmarkRequest, benchmarkStage } from './utils/benchmark-metrics.js'
 
 export { wrapResponse, toolDefinitions, handleToolCall }
 
@@ -48,7 +49,9 @@ export function createServer() {
 
   server.setRequestHandler(CallToolRequestSchema, async (request: SchemaOutput<typeof CallToolRequestSchema>, extra) => {
     const { name, arguments: args } = request.params
-    return handleToolCall(name, args as Record<string, unknown>, extra.signal)
+    const operation = () => handleToolCall(name, args as Record<string, unknown>, extra.signal)
+    return withBenchmarkRequest(name, () => name.startsWith('expect_') || name.startsWith('wait_for_')
+      ? benchmarkStage(name.startsWith('expect_') ? 'assertion_ms' : 'wait_ms', operation) : operation())
   })
 
   return server

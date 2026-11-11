@@ -1,10 +1,15 @@
 import { checkDebuggerGuard } from '../debugger/guard.js'
 import { remainingBudget } from './operation-budget.js'
 import { spawn } from 'child_process'
+import { benchmarkSubprocess } from './benchmark-metrics.js'
 
 export type ExecOptions = { timeout?: number; env?: NodeJS.ProcessEnv; cwd?: string; shell?: boolean }
 
 export async function execCmd(cmd: string, args: string[], opts: ExecOptions = {}): Promise<{ exitCode: number | null, stdout: string, stderr: string }> {
+  return benchmarkSubprocess(() => execute(cmd, args, opts))
+}
+
+async function execute(cmd: string, args: string[], opts: ExecOptions): Promise<{ exitCode: number | null, stdout: string, stderr: string }> {
   const { env, cwd, shell } = opts
   const timeout = remainingBudget(opts.timeout ?? 0)
   return new Promise((resolve, reject) => {

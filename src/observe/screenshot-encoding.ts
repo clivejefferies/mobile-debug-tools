@@ -1,4 +1,5 @@
 import type { Metadata } from 'sharp'
+import { benchmarkStage } from '../utils/benchmark-metrics.js'
 interface EncodedScreenshot { screenshot: string; screenshot_mime: string; screenshot_fallback?: string | null; screenshot_fallback_mime?: string }
 async function convert(buffer: Buffer, platform: 'android' | 'ios') {
   const { default: sharp } = await import('sharp')
@@ -16,6 +17,9 @@ async function convert(buffer: Buffer, platform: 'android' | 'ios') {
   return { hasAlpha, webp, jpeg }
 }
 export async function encodeScreenshot(buffer: Buffer, platform: 'android' | 'ios'): Promise<EncodedScreenshot> {
+  return benchmarkStage('screenshot_encoding_ms', () => encode(buffer, platform))
+}
+async function encode(buffer: Buffer, platform: 'android' | 'ios'): Promise<EncodedScreenshot> {
   const png = buffer.toString('base64')
   try {
     const { hasAlpha, webp, jpeg } = await convert(buffer, platform)

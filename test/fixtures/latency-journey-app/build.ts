@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -11,7 +11,7 @@ export function buildFixture() {
   const androidJar = path.join(sdk, 'platforms', 'android-36', 'android.jar')
   const java = process.env.JAVA_HOME
   const tool = (name: string) => java ? path.join(java, 'bin', name) : name
-  const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: out, stdio: 'pipe' })
+  const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { cwd: out, stdio: 'pipe', timeout: 60000, killSignal: 'SIGKILL' })
   mkdirSync(path.join(out, 'classes'), { recursive: true })
   run(tool('javac'), ['--release', '8', '-classpath', androidJar, '-d', 'classes', path.join(root, 'src/MainActivity.java')])
   run(tool('jar'), ['cf', 'classes.jar', '-C', 'classes', '.'])
@@ -20,7 +20,7 @@ export function buildFixture() {
   run('zip', ['-q', 'unsigned.apk', 'classes.dex'])
   run(path.join(buildTools, 'zipalign'), ['-f', '4', 'unsigned.apk', 'aligned.apk'])
   // Ephemeral signing material is generated outside version control.
-  try { run(tool('keytool'), ['-genkeypair', '-keystore', 'fixture.jks', '-storepass', 'android', '-keypass', 'android', '-alias', 'fixture', '-dname', 'CN=Latency Fixture', '-keyalg', 'RSA', '-validity', '3650']) } catch { /* Existing local fixture key. */ }
+  if (!existsSync(path.join(out, 'fixture.jks'))) run(tool('keytool'), ['-genkeypair', '-keystore', 'fixture.jks', '-storepass', 'android', '-keypass', 'android', '-alias', 'fixture', '-dname', 'CN=Latency Fixture', '-keyalg', 'RSA', '-validity', '3650'])
   run(path.join(buildTools, 'apksigner'), ['sign', '--ks', 'fixture.jks', '--ks-pass', 'pass:android', '--out', 'fixture.apk', 'aligned.apk'])
   return path.join(out, 'fixture.apk')
 }
