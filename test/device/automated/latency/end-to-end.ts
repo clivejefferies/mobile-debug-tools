@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { buildFixture } from '../../../fixtures/latency-journey-app/build.js'
 import { BenchmarkSession, UnsafeMeasurement } from './end-to-end-session.js'
-import { command, environment, treeHash } from './end-to-end-environment.js'
+import { cleanupFixture, command, environment, fixturePresent, treeHash } from './end-to-end-environment.js'
 import { summarizeAttempts, observationOverhead, type Attempt } from './end-to-end-report.js'
 
 const deviceId = process.env.LATENCY_DEVICE_ID
@@ -25,7 +25,7 @@ let metadata: ReturnType<typeof environment> | undefined
 let interrupted = false
 let fatal: string | undefined
 let fixtureExisted = false
-let installed = false
+let installAttempted = false
 let sourceStable: boolean | undefined
 const startedAt = new Date().toISOString()
 const root = 'docs/benchmarks/end-to-end-latency'
@@ -48,7 +48,7 @@ function save() {
     metadata, phases, fatal, cleanup, summaries, observation_overhead: observationOverhead(attempts), attempts }
   writeFileSync(`${root}/${reportName}.json`, JSON.stringify(report, null, 2) + '\n')
   const rows = Object.entries(summaries).map(([name, value]) => `| ${name} | ${value.total_ms?.count ?? 0}/${value.attempts} | ${value.total_ms?.p50.toFixed(1) ?? 'n/a'} | ${value.total_ms?.p95.toFixed(1) ?? 'n/a'} | ${value.failures} | ${value.warmup_failures} |`)
-  writeFileSync(`${root}/${reportName}.md`, `# End-to-end latency ${smoke ? 'smoke (not performance evidence)' : 'baseline'}\n\nStatus: ${report.status}. Build: ${metadata?.build_sha256 ?? 'unavailable'}.\n\n| Case | Successful/measured | p50 ms | p95 ms | Failures | Warm-up failures |\n| --- | ---: | ---: | ---: | ---: | ---: |\n${rows.join('\n')}\n\nSee ${reportName}.json for exact source/build hashes, environment, phase durations, attempt order, inclusive components and failure records. Ten attempts provide a preliminary tail estimate. Failed attempts are excluded from percentiles, retained in raw data, and fail the run.\n\nIntervals can overlap; component sums are not an additive latency budget. Client-minus-handler includes scheduling, transport and uninstrumented work. Handler residual excludes the union of recorded spans. Tree acquisition/parse/retry events are separate nested diagnostics. Application work inside requests remains included. Startup, fixture builds/resets and external validation are excluded from steady-state round trips. SDK wire serialization is not isolated.\n`)
+  writeFileSync(`${root}/${reportName}.md`, `# End-to-end latency ${smoke ? 'smoke (not performance evidence)' : 'baseline'}\n\nStatus: ${report.status}. Build: ${metadata?.build_sha256 ?? 'unavailable'}.\n\n| Case | Successful/measured | p50 ms | p95 ms | Failures | Warm-up failures |\n| --- | ---: | ---: | ---: | ---: | ---: |\n${rows.join('\n')}\n\nSee ${reportName}.json for exact source/build hashes, environment, phase durations, attempt order, inclusive components and failure records. Percentiles use the successful measured count shown for each case. With 1–19 successful samples, nearest-rank p95 is the sample maximum. Zero successful samples yield no percentiles. Failed attempts are excluded from percentiles, retained in raw data, and fail the run.\n\nIntervals can overlap; component sums are not an additive latency budget. Client-minus-handler includes scheduling, transport and uninstrumented work. Handler residual excludes the union of recorded spans. Tree acquisition/parse/retry events are separate nested diagnostics. Application work inside requests remains included. Startup, fixture builds/resets and external validation are excluded from steady-state round trips. SDK wire serialization is not isolated.\n`)
 }
 async function reset(session: BenchmarkSession, observation: boolean) {
   adb('shell', 'am', 'force-stop', appId)
@@ -106,10 +106,11 @@ async function main() {
   process.on('SIGINT', signal); process.on('SIGTERM', signal)
   try {
     if (adb('get-state') !== 'device' || adb('shell', 'getprop', 'ro.kernel.qemu') !== '1') throw new Error('EMULATOR_REQUIRED')
-    fixtureExisted = !!adb('shell', 'pm', 'path', appId)
+    fixtureExisted = fixturePresent(adb, appId)
     const apk = await phase('fixture_build', buildFixture)
     metadata = environment(deviceId!, apk)
-    await phase('fixture_install', () => adb('install', '-r', apk)); installed = true
+    installAttempted = true
+    await phase('fixture_install', () => adb('install', '-r', apk))
     for (const enabled of [true, false]) {
       const session = new BenchmarkSession(deviceId!, enabled)
       sessions.set(enabled, session)
@@ -132,7 +133,7 @@ async function main() {
       catch { cleanup.server = false }
     }
     try {
-      if (installed) { adb('shell', 'am', 'force-stop', appId); if (!fixtureExisted) { adb('uninstall', appId); cleanup.removed_install = true } }
+      if (installAttempted && cleanupFixture(adb, appId, !fixtureExisted)) cleanup.removed_install = true
       cleanup.fixture = true
     } catch { cleanup.fixture = false }
     if (!cleanup.server || !cleanup.fixture || interrupted || attempts.some(value => !value.success)) process.exitCode = 1

@@ -16,6 +16,6 @@ Status: finished. Build: 8f3a9bc8f498181686362c829e7395f301e85681d8ea1667692e2b3
 | snapshot-on | 1/1 | 4575.6 | 4575.6 | 0 | 0 |
 | snapshot-off | 1/1 | 4667.2 | 4667.2 | 0 | 0 |
 
-See smoke.json for exact source/build hashes, environment, phase durations, attempt order, inclusive components and failure records. Ten attempts provide a preliminary tail estimate. Failed attempts are excluded from percentiles, retained in raw data, and fail the run.
+See smoke.json for exact source/build hashes, environment, phase durations, attempt order, inclusive components and failure records. Percentiles use the successful measured count shown for each case. With 1–19 successful samples, nearest-rank p95 is the sample maximum. Zero successful samples yield no percentiles. Failed attempts are excluded from percentiles, retained in raw data, and fail the run.
 
 Intervals can overlap; component sums are not an additive latency budget. Client-minus-handler includes scheduling, transport and uninstrumented work. Handler residual excludes the union of recorded spans. Tree acquisition/parse/retry events are separate nested diagnostics. Application work inside requests remains included. Startup, fixture builds/resets and external validation are excluded from steady-state round trips. SDK wire serialization is not isolated.

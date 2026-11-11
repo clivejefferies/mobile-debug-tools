@@ -72,7 +72,7 @@ the temporary simulator ID. The full native suite remains incomplete.
 The shared #89 static/network fixture remains absent. Equivalent fixture
 journeys remain blocked and physical iOS is excluded.
 
-## Performance evidence
+## Original broad performance investigation
 
 Android measurement is partial. Nine successful samples per case precede the
 emulator's exit 139. Two measured and three warm-up failures are preserved, with
@@ -82,4 +82,6 @@ prevented fixture force-stop confirmation. See the
 Fixture compilation uses offline SDK tools, not Gradle. Validation-suite runtime
 is outside the benchmark; it is not included in request percentiles. Device-side
 application work remains included in request timings and is not separately
-profiled. No runtime optimization has been implemented or claimed.
+profiled. The later Android tree-reuse candidate is covered by the
+[snapshot verification](android-snapshot-plan.md) and
+[paired comparison](../../benchmarks/end-to-end-latency/android-snapshot-pair.md).

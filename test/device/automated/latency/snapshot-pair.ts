@@ -5,7 +5,7 @@ import { computeScreenFingerprint } from '../../../../src/utils/ui/index.js'
 import type { CaptureDebugSnapshotRawResponse, GetCurrentScreenResponse } from '../../../../src/types.js'
 import { buildFixture } from '../../../fixtures/latency-journey-app/build.js'
 import { BenchmarkSession, UnsafeMeasurement } from './end-to-end-session.js'
-import { command, environment, treeHash } from './end-to-end-environment.js'
+import { cleanupFixture, command, environment, fixturePresent, treeHash } from './end-to-end-environment.js'
 import { summarizeAttempts, type Attempt } from './end-to-end-report.js'
 
 const device = process.env.LATENCY_DEVICE_ID ?? ''
@@ -15,6 +15,7 @@ assert.match(device, /^emulator-\d+$/)
 assert.ok(isAbsolute(baseline) && /^[a-f0-9]{64}$/.test(baselineSource), 'Provide the frozen baseline server path and source hash')
 const adb = (...args: string[]) => command('adb', ['-s', device, ...args])
 const app = 'dev.mobiledebugmcp.latencyfixture'
+const fixtureActivity = `${app}.MainActivity`
 const options = { includeScreenshot: false, includeLogs: false }
 const attempts: Attempt[] = []
 const sessions = {
@@ -22,12 +23,18 @@ const sessions = {
   candidate: new BenchmarkSession(device, true)
 }
 type Build = keyof typeof sessions
-let installed = false, launched = false, interrupted = false
+let installAttempted = false, launched = false, interrupted = false
 let fatal: string | undefined, metadata: ReturnType<typeof environment> | undefined
 let fixtureSha: string | undefined
 let nativeFreshness = false
 const baselineHash = treeHash(dirname(baseline))
 const cleanup = { servers: false, fixture: false }
+
+async function checkFixtureActivity(session: BenchmarkSession) {
+  const screen = await session.call('get_current_screen', {}, [])
+  assert.equal(screen.package, app)
+  assert.equal(screen.activity, fixtureActivity)
+}
 
 function verifyFingerprint(raw: CaptureDebugSnapshotRawResponse) {
   const tree = raw.ui_tree
@@ -35,7 +42,7 @@ function verifyFingerprint(raw: CaptureDebugSnapshotRawResponse) {
   assert.equal(raw.snapshot_revision, tree.snapshot_revision)
   assert.equal(raw.captured_at_ms, tree.captured_at_ms)
   assert.match(raw.fingerprint ?? '', /^[a-f0-9]{64}$/)
-  const current: GetCurrentScreenResponse = { device: tree.device, activity: raw.activity ?? '', package: app, shortActivity: '' }
+  const current: GetCurrentScreenResponse = { device: tree.device, activity: fixtureActivity, package: app, shortActivity: '' }
   assert.equal(raw.fingerprint, computeScreenFingerprint(tree, current, 'android').fingerprint)
 }
 
@@ -44,9 +51,11 @@ async function sample(build: Build, iteration: number) {
   const attempt: Attempt = { case: build, iteration, warmup: iteration < 3, success: false, setup_ms: 0, requests: [] }
   attempts.push(attempt)
   try {
+    await checkFixtureActivity(sessions[build])
     const data = await sessions[build].call('capture_debug_snapshot', options, attempt.requests)
     const raw = data.raw as CaptureDebugSnapshotRawResponse
     assert.ok(raw.ui_tree?.elements.some(element => element.contentDescription === 'home-screen' || element.text === 'home-screen'))
+    await checkFixtureActivity(sessions[build])
     if (build === 'candidate') {
       verifyFingerprint(raw)
       assert.equal(attempt.requests[0].tree.filter(event => event.type === 'acquisition_completed').length, 1)
@@ -65,7 +74,9 @@ async function checkFreshness() {
     { id: 'open', type: 'tap', selector: { accessibility_id: 'saved-session' } },
     { id: 'check', type: 'assert', assertion: { kind: 'element_visible', selector: { accessibility_id: 'idle-detail' } }, timeoutMs: 15000 }
   ], defaults: { verificationMode: 'light' }, responseMode: 'compact' }, [])
+  await checkFixtureActivity(candidate)
   const after = (await candidate.call('capture_debug_snapshot', options, [])).raw as CaptureDebugSnapshotRawResponse
+  await checkFixtureActivity(candidate)
   verifyFingerprint(after)
   assert.ok(after.ui_tree?.elements.some(element => element.contentDescription === 'idle-detail'))
   assert.ok(after.snapshot_revision > before.snapshot_revision)
@@ -80,9 +91,9 @@ async function main() {
     assert.equal(adb('get-state'), 'device')
     assert.equal(adb('shell', 'getprop', 'ro.kernel.qemu'), '1')
     const apk = buildFixture()
-    if (!adb('shell', 'pm', 'list', 'packages', app).split('\n').includes(`package:${app}`)) {
+    if (!fixturePresent(adb, app)) {
+      installAttempted = true
       adb('install', apk)
-      installed = true
     }
     const packagePath = adb('shell', 'pm', 'path', app).match(/^package:(.+)$/)?.[1]
     assert.ok(packagePath)
@@ -110,8 +121,7 @@ async function main() {
       catch { cleanup.servers = false }
     }
     try {
-      if (launched) adb('shell', 'am', 'force-stop', app)
-      if (installed) adb('uninstall', app)
+      if (launched || installAttempted) cleanupFixture(adb, app, installAttempted)
       cleanup.fixture = true
     } catch { cleanup.fixture = false }
     process.off('SIGINT', stop); process.off('SIGTERM', stop)
@@ -125,7 +135,7 @@ async function main() {
     attempts.length === 26 && attempts.every(attempt => attempt.success) && prior?.total_ms?.count === 10 && next?.total_ms?.count === 10 &&
     next.physical_reads < prior.physical_reads && next.total_ms.p50 <= prior.total_ms.p50 && next.total_ms.p95 < prior.total_ms.p95
   const report = { passed, fatal, interrupted, unrun_attempts: 26 - attempts.length, sourceStable, cleanup, nativeFreshness,
-    metadata, fixture_installed_sha256: fixtureSha, baseline: { source_sha256: baselineSource, build_sha256: baselineHash }, summaries, attempts }
+    metadata, expected_fixture_activity: fixtureActivity, fixture_installed_sha256: fixtureSha, baseline: { source_sha256: baselineSource, build_sha256: baselineHash }, summaries, attempts }
   writeFileSync('docs/benchmarks/end-to-end-latency/android-snapshot-pair.json', JSON.stringify(report, null, 2) + '\n')
   process.exitCode = passed ? 0 : 1
 }

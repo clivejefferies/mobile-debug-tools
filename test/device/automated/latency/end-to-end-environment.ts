@@ -7,6 +7,19 @@ import os from 'node:os'
 export function command(command: string, args: string[], timeout = 30000) {
   return execFileSync(command, args, { encoding: 'utf8', timeout, killSignal: 'SIGKILL', stdio: 'pipe' }).trim()
 }
+export function fixturePresent(adb: (...args: string[]) => string, app: string) {
+  return adb('shell', 'pm', 'list', 'packages', app).split('\n').includes(`package:${app}`)
+}
+
+export function cleanupFixture(adb: (...args: string[]) => string, app: string, remove: boolean) {
+  if (!fixturePresent(adb, app)) return false
+  adb('shell', 'am', 'force-stop', app)
+  if (!remove) return false
+  adb('uninstall', app)
+  if (fixturePresent(adb, app)) throw new Error('FIXTURE_REMOVAL_FAILED')
+  return true
+}
+
 export const sha256 = (file: string) => createHash('sha256').update(readFileSync(file)).digest('hex')
 export function treeHash(root: string): string {
   const hash = createHash('sha256')
