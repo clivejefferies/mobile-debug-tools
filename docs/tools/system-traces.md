@@ -138,6 +138,22 @@ for capture does not establish HID input support. The initial verified target is
 Xcode 27.2. Physical-device capture is unsupported and unrun. Tool installation,
 OS profiling permissions and pairing/security changes are user actions.
 
+For Xcode 27, use a companion with DTUHID support, such as
+[idb companion 1.7.8](https://github.com/meta/idb/releases/tag/v1.7.8).
+The older 1.1.8 companion can return success for a tap that the app never
+receives, even with a SimulatorKit path alias. To run with a specific companion,
+start it against the chosen simulator using an unused socket path in a private
+directory:
+
+```sh
+/path/to/idb_companion --udid "$IOS_SYSTEM_TRACE_DEVICE" \
+  --grpc-domain-sock "$TRACE_COMPANION_SOCKET"
+```
+
+Set `IDB_COMPANION` to that socket path in the MCP server environment. To run
+the trace smoke directly, set `IOS_SYSTEM_TRACE_DEVICE` and `IDB_COMPANION` when
+invoking `node --import tsx test/device/automated/observe/ios-system-trace.smoke.ts`.
+
 ```json
 {"platform":"ios","deviceId":"<simulator-UDID>","appId":"<bundle-id>","template":"Time Profiler","durationMs":60000}
 ```
