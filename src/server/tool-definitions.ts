@@ -9,6 +9,7 @@ import { assertTools } from './definitions/assert.js'
 import { targetTools } from './definitions/target.js'
 import { inputTools } from './definitions/input.js'
 import { debuggerTools } from './schemas/debugger-schema.js'
+import { httpTraceTools } from './schemas/http-trace-schema.js'
 import { systemTraceTools } from './schemas/system-trace-schema.js'
 import { journeyStepsJson } from './schemas/journey-schema.js'
 import { conditionalTools, expectedStateJson } from './schemas/condition-schema.js'
@@ -54,6 +55,7 @@ const baseOrder = [
 export const toolDefinitions: Tool[] = [
 ...debuggerTools,
 ...systemTraceTools,
+...httpTraceTools,
 interactionDiagnosticsTool,
 ...['get_app_readiness', 'wait_for_app_ready'].map(name => ({
     name,

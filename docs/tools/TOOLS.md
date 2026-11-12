@@ -12,6 +12,7 @@ Use the guides below when you need a tool contract or a specific workflow.
 - [Environment diagnostics](system.md) — toolchain discovery and health checks.
 - [Compact interaction results](compact-interactions.md) — output budgets and read-only diagnostics lookup.
 - [Evidence correlation](correlated-evidence.md) — action references, capture timing, and freshness.
+- [Android emulator HTTPS tracing](http-trace.md) — private proxy and redacted request metadata for opted-in debug clients.
 - [System traces](system-traces.md) — Android Perfetto and iOS simulator Time Profiler capture with local artifacts.
 - [Android and iOS simulator runtime debugger](debugger.md) — process attachment, breakpoints, and bounded runtime inspection.
 

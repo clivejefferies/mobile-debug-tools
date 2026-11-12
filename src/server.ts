@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { debuggerSessions, iosDebuggerSessions } from './debugger/sessions.js'
+import { HttpTraceSessions } from './observe/http-trace/sessions.js'
 import { systemTraces } from './observe/system-trace.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { createServer } from './server-core.js'
 import { getSystemStatus } from './system/index.js'
 
-const server = createServer()
+const httpTraces = new HttpTraceSessions()
+const server = createServer(httpTraces)
 
 if (process.env.MOBILE_DEBUG_MCP_STARTUP_HEALTHCHECK === '1') {
   getSystemStatus().then((res) => {
@@ -22,7 +24,11 @@ async function shutdown() {
   const deadline = setTimeout(() => { console.error('System trace shutdown cleanup timed out; owned device captures remain duration-bounded.'); process.exit(1) }, 10000)
   let exitCode = 0
   try {
-    const [remaining, debuggers, iosDebuggers] = await Promise.all([systemTraces.shutdown(), debuggerSessions.shutdown(), iosDebuggerSessions.shutdown()])
+    const [remaining, debuggers, iosDebuggers, httpResults] = await Promise.all([systemTraces.shutdown(), debuggerSessions.shutdown(), iosDebuggerSessions.shutdown(), httpTraces.shutdown()])
+    if (httpResults.some(result => !result.cleanedUp)) {
+      exitCode = 1
+      console.error('HTTP trace shutdown cleanup incomplete')
+    }
     if ((debuggers.length + iosDebuggers.length)) { exitCode = 1; console.error('Debugger shutdown cleanup incomplete', [...debuggers, ...iosDebuggers].map(s => s.cleanup)) }
     if (remaining.length) {
       exitCode = 1

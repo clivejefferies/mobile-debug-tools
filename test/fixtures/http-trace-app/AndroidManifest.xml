@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.mobiledebugmcp.tracefixture">
+  <uses-sdk android:minSdkVersion="33" android:targetSdkVersion="36"/>
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <application android:debuggable="true" android:allowBackup="false" android:label="HTTP trace fixture">
+    <activity android:name=".TraceActivity" android:exported="true"/>
+  </application>
+</manifest>

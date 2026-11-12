@@ -38,6 +38,8 @@ can include feedback from the device as well as the source code. For example:
   [runtime debugger](docs/tools/debugger.md) to a debuggable app to inspect
   breakpoints, call stacks and locals on Android or an iOS simulator.
 
+The server can also run [experimental Android emulator HTTPS tracing](docs/tools/http-trace.md) with a compatible private proxy backend.
+
 ## How it works
 
 Your agent client launches a local MCP server and communicates with it over

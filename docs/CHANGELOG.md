@@ -8,6 +8,11 @@ and [tool reference](tools/TOOLS.md) for the current checkout.
 
 All notable changes to the **Mobile Debug MCP** project will be documented in this file.
 
+## Unreleased
+
+- Add opt-in Android emulator HTTPS trace start, read and stop tools with a
+  bundled Android relay and a configurable private backend.
+
 ## [0.37.0]
 
 - Updated the agent plugin to `0.0.7`, pinned to MCP `0.37.0`.
