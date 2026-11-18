@@ -65,10 +65,11 @@ sessionId/resultId. This reads retained data without replaying input. Results ex
 after ten minutes or earlier eviction (100 results, 16 MiB total, 1 MiB per result).
 Check diagnostics.available; unavailable details never justify automatic replay.
 Debug mode can request additional captures at execution time. If action dispatch is reliable but
-verification is slow or unavailable, dispatch with verification disabled and
-verify at meaningful checkpoints with one focused accessibility assertion or
-screenshot. Do not assume `light` verification is faster: use it only when it
-has returned useful results reliably on the current MCP version and device.
+verification is slow or unavailable, pass `"verificationMode": "none"` to
+`tap` or `tap_element`. Omitting `verificationMode` defaults it to `full`.
+Check the outcome separately with one focused accessibility assertion or
+screenshot. Use `light` verification only when it has returned useful results
+reliably on the current MCP version and device.
 
 Prefer a stable element selector when it is already known and valid. For a
 clearly identifiable visual target, use coordinates from a fresh screenshot
