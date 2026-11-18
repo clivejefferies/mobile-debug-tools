@@ -1,9 +1,16 @@
-import { XMLParser } from "fast-xml-parser"
+import { XMLParser, XMLValidator } from "fast-xml-parser"
 import { GetUITreeResponse, UIElement } from "../../types.js"
 import { getAdbCmd, execAdb, getAndroidDeviceMetadata, getDeviceInfo, delay, getScreenResolution, traverseNode } from "../../utils/android/utils.js"
 import { deriveSnapshotMetadata } from "../snapshot-metadata.js"
 import { remainingBudget } from '../../utils/operation-budget.js'
 import { createObservationMeasurement } from '../performance-metrics.js'
+import { getAdbTimeout } from '../../utils/android/commands.js'
+
+// ADB shell stdout may be a socket. The pipe gives uiautomator a writable
+// file descriptor without creating a file that can outlive a failed read.
+const dumpCommand = 'uiautomator dump /proc/self/fd/1 | cat'
+const hierarchyEnd = '</hierarchy>'
+
 export async function collectGetUITree(deviceId?: string): Promise<GetUITreeResponse> {
   const measurement = createObservationMeasurement('android')
   let metadata
@@ -93,9 +100,11 @@ async function readAndroidTree(deviceId: string | undefined, measurement: Return
       remainingBudget()
 
       xmlContent = await measurement.physicalRead(async () => {
-        await execAdb(['shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], deviceId)
-        const content = await execAdb(['shell', 'cat', '/sdcard/ui.xml'], deviceId)
-        if (!content || !content.trim() || content.includes('ERROR:')) throw new Error('Empty or invalid UI dump')
+        const output = await execAdb(['shell', dumpCommand], deviceId, { timeout: getAdbTimeout(['uiautomator', 'dump']) })
+        // uiautomator prints its status after the XML and can return zero on failure.
+        const end = output.lastIndexOf(hierarchyEnd)
+        const content = end < 0 ? '' : output.slice(0, end + hierarchyEnd.length)
+        if (!content || XMLValidator.validate(content) !== true) throw new Error('Empty or invalid UI dump')
         return content
       })
       break

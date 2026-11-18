@@ -31,8 +31,7 @@ else if (args.includes('ro.kernel.qemu')) console.log('1')
 else if (args.includes('simctl list devices')) console.log(JSON.stringify({ devices: { 'iOS-18': [{ udid: 'fixture', name: 'Fixture', state: 'Booted' }] } }))
 else if (args.includes('list-targets')) { if (process.env.MCP_CONDITION_PREPARE) fs.writeFileSync(${JSON.stringify(changedPath)}, 'changed'); console.log('[]') }
 else if (args.includes('wm size')) console.log('Physical size: 100x200')
-else if (args.includes('uiautomator dump')) { if (process.env.MCP_CONDITION_SLOW) slow(); else console.log('dumped') }
-else if (args.includes('cat /sdcard/ui.xml')) console.log('<hierarchy><node class="android.widget.Button" resource-id="target" text="' + (process.env.MCP_CONDITION_TREE_TEXT || 'Ready') + '" clickable="true" enabled="true" visible-to-user="true" bounds="[0,0][50,50]" /></hierarchy>')
+else if (args.includes('uiautomator dump')) { if (process.env.MCP_CONDITION_SLOW) slow(); else console.log('<hierarchy><node class="android.widget.Button" resource-id="target" text="' + (process.env.MCP_CONDITION_TREE_TEXT || 'Ready') + '" clickable="true" enabled="true" visible-to-user="true" bounds="[0,0][50,50]" /></hierarchy>') }
 else if (args.includes('ui describe-all')) { if (process.env.MCP_CONDITION_SLOW) slow(); else console.log(JSON.stringify({ AXElementType: 'Button', AXLabel: process.env.MCP_CONDITION_TREE_TEXT || 'Ready', AXUniqueId: 'target', AXFrame: { x: 0, y: 0, width: 100, height: 200 } })) }
 else if (args.includes('shell input') || args.includes('ui tap') || args.includes('ui swipe')) { if (process.env.MCP_CONDITION_INPUT_FAIL) process.exit(1) }
 else process.exit(1)
