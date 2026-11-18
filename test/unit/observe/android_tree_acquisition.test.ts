@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { AndroidObserve } from '../../../src/observe/android.js'
 import { resetSnapshotMetadataForTests } from '../../../src/observe/snapshot-metadata.js'
-import { runWithBudget } from '../../../src/utils/operation-budget.js'
 
 async function run() {
   const directory = mkdtempSync(path.join(tmpdir(), 'mcp-fake-adb-'))
@@ -21,7 +20,15 @@ if (args.includes('ro.build.version.release')) console.log('16')
 else if (args.includes('ro.product.model')) console.log('Fake Android')
 else if (args.includes('ro.kernel.qemu')) console.log('1')
 else if (args.includes('wm size')) console.log('Physical size: 100x200')
-else if (args.includes('uiautomator dump')) { if (process.env.MCP_FAKE_ADB_FAIL === '1') process.exit(1); console.log('UI hierarchy dumped') }
+else if (args.includes('uiautomator dump /sdcard/ui.xml')) {
+  if (process.env.MCP_FAKE_ADB_FAIL === '1') console.error('ERROR: could not get idle state')
+  else console.log('UI hierarchy dumped')
+}
+else if (args.includes('uiautomator dump /proc/self/fd/1 | cat')) {
+  if (process.env.MCP_FAKE_ADB_FAIL === '1') console.error('ERROR: could not get idle state')
+  else if (process.env.MCP_FAKE_ADB_FAIL === 'malformed') console.log('<hierarchy><node></hierarchy>')
+  else console.log('<hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>UI hierchary dumped to: /proc/self/fd/1')
+}
 else if (args.includes('cat /sdcard/ui.xml')) console.log('<hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>')
 else process.exit(1)
 `)
@@ -44,8 +51,13 @@ else process.exit(1)
     assert.equal(second.snapshot_delta, null, 'different devices keep independent delta history')
     assert.equal(first.elements[0].text, 'Ready')
     process.env.MCP_FAKE_ADB_FAIL = '1'
-    const failed = await runWithBudget(1000, () => observe.getUITree('fake-a'))
-    assert.ok(failed.error)
+    const failed = await observe.getUITree('fake-a')
+    assert.ok(failed.error, 'a zero-exit dump failure cannot replay the old hierarchy')
+    assert.deepEqual(failed.elements, [])
+    process.env.MCP_FAKE_ADB_FAIL = 'malformed'
+    const malformed = await observe.getUITree('fake-a')
+    assert.ok(malformed.error, 'a closing hierarchy tag does not make malformed XML valid')
+    assert.deepEqual(malformed.elements, [])
     delete process.env.MCP_FAKE_ADB_FAIL
     const recovered = await observe.getUITree('fake-a')
     assert.equal(recovered.error, undefined, 'the next request takes a fresh physical read')
@@ -53,7 +65,7 @@ else process.exit(1)
     const started = events.filter((event) => event.type === 'physical_read_started')
     const completed = events.filter((event) => event.type === 'physical_read_completed')
     assert.equal(started.length, completed.length)
-    assert.ok(started.length >= 4)
+    assert.equal(started.length, 9, 'three successful reads and three attempts for each failed read')
     assert.equal(events.filter((event) => event.type === 'physical_read_completed' && event.success).length, 3)
     assert.ok(events.some((event) => event.type === 'physical_read_completed' && !event.success))
     const successfulAcquisitions = new Set(events.filter((event) => event.type === 'acquisition_completed' && event.outcome === 'observed').map((event) => event.acquisition_id))

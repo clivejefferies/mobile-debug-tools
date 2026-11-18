@@ -18,8 +18,7 @@ if (a.includes('ro.build.version.release')) console.log('16')
 else if (a.includes('ro.product.model')) console.log('Fixture')
 else if (a.includes('ro.kernel.qemu')) console.log('1')
 else if (a.includes('wm size')) console.log('Physical size: 100x200')
-else if (a.includes('uiautomator dump')) { if (process.env.READY_SLOW) slow(); else console.log('dumped') }
-else if (a.includes('cat /sdcard/ui.xml')) console.log('<hierarchy><node class="' + (process.env.READY_LOADER ? 'android.widget.ProgressBar' : 'android.widget.Button') + '" text="Ready" visible-to-user="true" enabled="true" bounds="[0,0][100,200]" /></hierarchy>')
+else if (a.includes('uiautomator dump')) { if (process.env.READY_SLOW) slow(); else console.log('<hierarchy><node class="' + (process.env.READY_LOADER ? 'android.widget.ProgressBar' : 'android.widget.Button') + '" text="Ready" visible-to-user="true" enabled="true" bounds="[0,0][100,200]" /></hierarchy>') }
 else if (a.includes('simctl list devices')) { if (process.env.READY_SLOW_META) { fs.writeFileSync(${JSON.stringify(marker)}, String(process.pid)); setInterval(() => {}, 1000) } else console.log(JSON.stringify({ devices: { 'iOS-18': [{ udid: 'fixture', name: 'Fixture', state: 'Booted' }] } })) }
 else if (a.includes('list-targets')) console.log('[]')
 else if (a.includes('ui describe-all')) { if (process.env.READY_SLOW) slow(); else console.log(JSON.stringify({ AXElementType: process.env.READY_LOADER ? 'ActivityIndicator' : 'Button', AXLabel: 'Ready', AXFrame: { x: 0, y: 0, width: 100, height: 200 } })) }
