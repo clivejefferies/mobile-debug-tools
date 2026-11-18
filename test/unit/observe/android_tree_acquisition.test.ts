@@ -26,6 +26,7 @@ else if (args.includes('uiautomator dump /sdcard/ui.xml')) {
 }
 else if (args.includes('uiautomator dump /proc/self/fd/1 | cat')) {
   if (process.env.MCP_FAKE_ADB_FAIL === '1') console.error('ERROR: could not get idle state')
+  else if (process.env.MCP_FAKE_ADB_FAIL === 'malformed') console.log('<hierarchy><node></hierarchy>')
   else console.log('<hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>UI hierchary dumped to: /proc/self/fd/1')
 }
 else if (args.includes('cat /sdcard/ui.xml')) console.log('<hierarchy><node class="android.widget.TextView" text="Ready" bounds="[0,0][50,50]" /></hierarchy>')
@@ -53,6 +54,10 @@ else process.exit(1)
     const failed = await observe.getUITree('fake-a')
     assert.ok(failed.error, 'a zero-exit dump failure cannot replay the old hierarchy')
     assert.deepEqual(failed.elements, [])
+    process.env.MCP_FAKE_ADB_FAIL = 'malformed'
+    const malformed = await observe.getUITree('fake-a')
+    assert.ok(malformed.error, 'a closing hierarchy tag does not make malformed XML valid')
+    assert.deepEqual(malformed.elements, [])
     delete process.env.MCP_FAKE_ADB_FAIL
     const recovered = await observe.getUITree('fake-a')
     assert.equal(recovered.error, undefined, 'the next request takes a fresh physical read')
@@ -60,7 +65,7 @@ else process.exit(1)
     const started = events.filter((event) => event.type === 'physical_read_started')
     const completed = events.filter((event) => event.type === 'physical_read_completed')
     assert.equal(started.length, completed.length)
-    assert.equal(started.length, 6, 'three successful reads and three attempts at the failed read')
+    assert.equal(started.length, 9, 'three successful reads and three attempts for each failed read')
     assert.equal(events.filter((event) => event.type === 'physical_read_completed' && event.success).length, 3)
     assert.ok(events.some((event) => event.type === 'physical_read_completed' && !event.success))
     const successfulAcquisitions = new Set(events.filter((event) => event.type === 'acquisition_completed' && event.outcome === 'observed').map((event) => event.acquisition_id))
